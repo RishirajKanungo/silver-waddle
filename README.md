@@ -1,2 +1,2 @@
 # silver-waddle
-waddle through learning into es6
+waddle through learning into es6 technicalities
