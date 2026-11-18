@@ -68,10 +68,10 @@ export function QuizView({ module, go }: { module: Module; go: (h: string) => vo
             ))}
           </div>
           <div className="row gap">
-            <button className="primary" onClick={() => go(`#/quiz/${module.id}?r=${Date.now()}`)}>
+            <button className="primary" onClick={() => go(`#quiz-${module.id}`)}>
               Retake
             </button>
-            <button onClick={() => go('#/learn')}>Back to course</button>
+            <button onClick={() => go('#learn')}>Back to course</button>
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function QuizView({ module, go }: { module: Module; go: (h: string) => vo
   return (
     <div className="page narrow">
       <div className="quiz-head">
-        <button className="link" onClick={() => go('#/learn')}>
+        <button className="link" onClick={() => go('#learn')}>
           ← Course
         </button>
         <h2>
@@ -118,7 +118,8 @@ function MC({ q, state, onAnswer }: { q: Extract<QuizQuestion, { kind: 'mc' }>; 
     const onKey = (e: KeyboardEvent) => {
       if (state !== 'ask') return;
       const n = Number(e.key);
-      if (n >= 1 && n <= q.options.length) {
+      if (n >= 1 && n <= q.options.length && !(e.target instanceof HTMLInputElement)) {
+        e.preventDefault();
         setPicked(n - 1);
         onAnswer(n - 1 === q.answer);
       }
@@ -171,6 +172,7 @@ function KeysQ({ q, state, onAnswer }: { q: Extract<QuizQuestion, { kind: 'keys'
       if (state !== 'ask' || answered.current) return;
       if (['Shift', 'Control', 'Meta'].includes(e.key)) return;
       handleGridKey(store, e);
+      e.preventDefault();
       if (store.dialog) store.openDialog(null);
     };
     const up = (e: KeyboardEvent) => handleGridKeyUp(store, e);
@@ -256,7 +258,12 @@ function FormulaQ({ q, state, onAnswer }: { q: Extract<QuizQuestion, { kind: 'fo
         <input
           value={f}
           onChange={(e) => setF(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && state === 'ask' && submit()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault(); // don't let this Enter also press the "Next" button that appears
+              if (state === 'ask') submit();
+            }
+          }}
           disabled={state !== 'ask'}
           autoFocus
           spellCheck={false}

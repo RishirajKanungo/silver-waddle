@@ -135,7 +135,7 @@ export function LessonPlayer({ lesson, module, go }: { lesson: Lesson; module?: 
   const side = (
     <aside className="coach" onMouseDown={(e) => e.stopPropagation()}>
       <div className="coach-head">
-        <button className="link" onClick={() => go(isProject ? '#/projects' : '#/learn')}>
+        <button className="link" onClick={() => go(isProject ? '#projects' : '#learn')}>
           ← {isProject ? 'Projects' : module?.title ?? 'Course'}
         </button>
         <h2>{lesson.title}</h2>
@@ -250,16 +250,16 @@ export function LessonPlayer({ lesson, module, go }: { lesson: Lesson; module?: 
           <div className="xp-gain">+{result.xp} bonus XP</div>
           <div className="coach-actions col">
             {nextLesson && (
-              <button className="primary big" onClick={() => go(`#/lesson/${nextLesson.id}`)} autoFocus>
+              <button className="primary big" onClick={() => go(`#lesson-${nextLesson.id}`)} autoFocus>
                 Next: {nextLesson.title} →
               </button>
             )}
             {module && (
-              <button onClick={() => go(`#/quiz/${module.id}`)}>
+              <button onClick={() => go(`#quiz-${module.id}`)}>
                 Take the {module.title} quiz
               </button>
             )}
-            <button onClick={() => go(`#/lesson/${lesson.id}?r=${Date.now()}`)}>↺ Replay for 3 stars</button>
+            <button onClick={() => go(`#lesson-${lesson.id}`)}>↺ Replay for 3 stars</button>
           </div>
         </div>
       )}

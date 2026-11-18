@@ -16,25 +16,48 @@ progress.catalog = {
   allLessonIds: ALL_LESSONS.map((l) => l.id),
 };
 
+// Routes are plain hashes (#home, #lesson-m01-l1, #quiz-m09) so they survive hosts
+// that only pass simple #names through to the page.
 function useHash() {
-  const [h, setH] = useState(() => window.location.hash || '#/home');
+  const [h, setH] = useState(() => window.location.hash || '#home');
+  const [nonce, setNonce] = useState(0);
   useEffect(() => {
-    const on = () => setH(window.location.hash || '#/home');
+    const on = () => setH(window.location.hash || '#home');
+    const again = () => setNonce((n) => n + 1);
     window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
+    window.addEventListener('xlh-reload', again);
+    return () => {
+      window.removeEventListener('hashchange', on);
+      window.removeEventListener('xlh-reload', again);
+    };
   }, []);
-  return h;
+  return { hash: h, nonce };
 }
 
 const go = (h: string) => {
-  window.location.hash = h;
+  if (window.location.hash === h) window.dispatchEvent(new Event('xlh-reload')); // replay / retake
+  else window.location.hash = h;
 };
+
+const PAGES = ['lesson', 'quiz', 'learn', 'dojo', 'projects', 'quizzes', 'trophies', 'reference', 'sandbox', 'home'];
+function parseRoute(hash: string): [string, string | undefined] {
+  const t = hash.replace(/^#\/?/, '');
+  if (t.includes('/')) {
+    const [a, b] = t.split('/');
+    return [a, b];
+  }
+  const i = t.indexOf('-');
+  const page = i < 0 ? t : t.slice(0, i);
+  if (!PAGES.includes(page)) return ['home', undefined];
+  return [page, i < 0 ? undefined : t.slice(i + 1)];
+}
 
 export default function App() {
   useProgress();
-  const hash = useHash();
-  const [route, query] = hash.slice(2).split('?');
-  const [page, arg] = route.split('/');
+  const { hash, nonce } = useHash();
+  const [page, arg] = parseRoute(hash);
+  const routeKey = `${hash}#${nonce}`;
+  const [notice, setNotice] = useState<string | null>(null);
   const [rewards, setRewards] = useState<(RewardEvent & { id: number })[]>([]);
   const [levelUp, setLevelUp] = useState<RewardEvent['levelUp'] | null>(null);
   const [kbLock, setKbLock] = useState(false);
@@ -72,17 +95,18 @@ export default function App() {
         await (navigator as unknown as { keyboard?: { lock(keys?: string[]): Promise<void> } }).keyboard?.lock();
       }
     } catch {
-      alert('Your browser blocked full-screen keyboard lock. Chrome or Edge on desktop support it.');
+      setNotice('Full-screen keyboard lock was blocked here. It works in desktop Chrome or Edge, or when the app runs in its own tab.');
+      setTimeout(() => setNotice(null), 6000);
     }
   };
 
   let body: React.ReactNode;
   if (page === 'lesson' && arg) {
     const f = findLesson(arg);
-    body = f ? <LessonPlayer key={hash} lesson={f.lesson} module={f.module} go={go} /> : <NotFound />;
+    body = f ? <LessonPlayer key={routeKey} lesson={f.lesson} module={f.module} go={go} /> : <NotFound />;
   } else if (page === 'quiz' && arg) {
     const m = MODULES.find((x) => x.id === arg);
-    body = m ? <QuizView key={hash} module={m} go={go} /> : <NotFound />;
+    body = m ? <QuizView key={routeKey} module={m} go={go} /> : <NotFound />;
   } else if (page === 'learn') body = <div className="page"><CourseMap go={go} /></div>;
   else if (page === 'dojo') body = <Dojo />;
   else if (page === 'projects') body = <ProjectsPage go={go} />;
@@ -91,7 +115,6 @@ export default function App() {
   else if (page === 'reference') body = <Reference />;
   else if (page === 'sandbox') body = <Sandbox />;
   else body = <Home go={go} />;
-  void query;
 
   const lv = progress.level;
   const streak = progress.streak();
@@ -110,7 +133,7 @@ export default function App() {
   return (
     <div className={'app' + (full ? ' full' : '')}>
       <header className="topbar">
-        <a className="brand" href="#/home">
+        <a className="brand" href="#home">
           <span className="brand-x">X</span>
           <span>
             Excel Hero <span className="brand-sub">Academy</span>
@@ -118,7 +141,7 @@ export default function App() {
         </a>
         <nav>
           {nav.map(([id, label]) => (
-            <a key={id} href={`#/${id}`} className={page === id || (page === '' && id === 'home') || (id === 'learn' && (page === 'lesson' || page === 'quiz')) ? 'on' : ''}>
+            <a key={id} href={`#${id}`} className={page === id || (page === '' && id === 'home') || (id === 'learn' && (page === 'lesson' || page === 'quiz')) ? 'on' : ''}>
               {label}
             </a>
           ))}
@@ -133,7 +156,7 @@ export default function App() {
         <span className="tb-stat" title={`Today: ${progress.todayXp}/${progress.state.dailyGoal} XP`}>
           <Ring pct={progress.todayXp / progress.state.dailyGoal} size={26} stroke={4} />
         </span>
-        <a className="tb-level" href="#/trophies" title={`${progress.state.xp} XP`}>
+        <a className="tb-level" href="#trophies" title={`${progress.state.xp} XP`}>
           <span className="lv-badge">{lv.cur.n}</span>
           <span className="lv-text">
             <span className="lv-title">{lv.cur.title}</span>
@@ -146,6 +169,7 @@ export default function App() {
           {progress.state.sound ? '🔊' : '🔇'}
         </button>
       </header>
+      {notice && <div className="notice">{notice}</div>}
       <main className="content">{body}</main>
       <div className="rewards">
         {rewards.map((r) => (
@@ -189,7 +213,7 @@ function NotFound() {
   return (
     <div className="page">
       <h2>Not found</h2>
-      <a href="#/home">Go home</a>
+      <a href="#home">Go home</a>
     </div>
   );
 }

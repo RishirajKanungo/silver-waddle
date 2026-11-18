@@ -2294,3 +2294,70 @@ button.icon {
     border-width: 14px;
   }
 }
+.mc-opt:disabled {
+  opacity: 1;
+  color: var(--muted);
+}
+.mc-opt.right:disabled,
+.mc-opt.wrong:disabled {
+  color: var(--text);
+  font-weight: 600;
+}
+.notice {
+  background: #fff4d6;
+  border-bottom: 1px solid #ecd28c;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.notice-inline {
+  color: var(--xl-green-dark);
+  font-weight: 600;
+}
+.code-box {
+  flex: 1;
+  min-width: 0;
+  height: 60px;
+  font-family: Consolas, Menlo, monospace;
+  font-size: 12px;
+  border: 1px solid #c8cdca;
+  border-radius: 5px;
+  padding: 6px;
+}
+
+/* narrow screens: put the coach pane under the sheet */
+@media (max-width: 760px) {
+  .xl-main {
+    flex-direction: column;
+  }
+  .coach,
+  .coach.narrow-side {
+    width: 100%;
+    max-height: 45%;
+    border-left: none;
+    border-top: 1px solid #d0d5d2;
+  }
+  .xl-title,
+  .bb-tip,
+  .tb-stat,
+  .xkeys {
+    display: none;
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .page {
+    padding-inline: 16px;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .stat-row {
+    flex-wrap: wrap;
+  }
+  .fn-row {
+    grid-template-columns: 1fr;
+  }
+  .mod-grid {
+    grid-template-columns: 1fr;
+  }
+}

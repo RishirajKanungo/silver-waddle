@@ -1,4 +1,4 @@
-// The function library (~130 functions). Each entry declares arg counts and
+// The function library (160+ functions). Each entry declares arg counts and
 // either `fn` (receives evaluated values) or `raw` (receives AST nodes, for
 // functions that need the *reference* rather than the value: ROW, OFFSET...).
 

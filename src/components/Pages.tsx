@@ -60,15 +60,15 @@ export function Home({ go }: { go: Go }) {
           )}
           <div className="row gap">
             {nl ? (
-              <button className="primary big" onClick={() => go(`#/lesson/${nl.id}`)}>
+              <button className="primary big" onClick={() => go(`#lesson-${nl.id}`)}>
                 {done ? 'Continue' : 'Start'}: {nl.title} →
               </button>
             ) : (
-              <button className="primary big" onClick={() => go('#/trophies')}>
+              <button className="primary big" onClick={() => go('#trophies')}>
                 🦸 You did it — see your certificate
               </button>
             )}
-            <button className="big" onClick={() => go('#/dojo')}>
+            <button className="big" onClick={() => go('#dojo')}>
               ⌨️ 5-minute shortcut drill
             </button>
           </div>
@@ -175,7 +175,7 @@ export function CourseMap({ go }: { go: Go }) {
                         const rec = progress.state.lessons[l.id];
                         return (
                           <li key={l.id}>
-                            <button className="lesson-link" onClick={() => go(`#/lesson/${l.id}`)}>
+                            <button className="lesson-link" onClick={() => go(`#lesson-${l.id}`)}>
                               <span className={'dot' + (rec ? ' on' : '')}>{rec ? '✓' : ''}</span>
                               <span className="lt">{l.title}</span>
                               <span className="lm">{rec ? '★'.repeat(rec.stars) + '☆'.repeat(3 - rec.stars) : `${l.minutes} min`}</span>
@@ -184,7 +184,7 @@ export function CourseMap({ go }: { go: Go }) {
                         );
                       })}
                     </ol>
-                    <button className="quiz-btn" onClick={() => go(`#/quiz/${m.id}`)}>
+                    <button className="quiz-btn" onClick={() => go(`#quiz-${m.id}`)}>
                       📝 Quiz {qb !== undefined ? `· best ${qb}%` : `· ${m.quiz.length} Qs`}
                     </button>
                   </div>
@@ -217,7 +217,7 @@ function ProjectsGrid({ go }: { go: Go }) {
                 <div className="muted small">{p.summary}</div>
               </div>
             </div>
-            <button className="primary" onClick={() => go(`#/lesson/${p.id}`)}>
+            <button className="primary" onClick={() => go(`#lesson-${p.id}`)}>
               {rec ? `Replay (${'★'.repeat(rec.stars)})` : 'Start project →'}
             </button>
           </div>
@@ -249,7 +249,7 @@ export function QuizzesPage({ go }: { go: Go }) {
         {MODULES.map((m) => {
           const qb = progress.state.quizBest[m.id];
           return (
-            <button key={m.id} className={'quiz-card' + (qb !== undefined && qb >= 80 ? ' passed' : '')} onClick={() => go(`#/quiz/${m.id}`)}>
+            <button key={m.id} className={'quiz-card' + (qb !== undefined && qb >= 80 ? ' passed' : '')} onClick={() => go(`#quiz-${m.id}`)}>
               <span className="mod-icon">{m.icon}</span>
               <b>{m.title}</b>
               <span className="muted small">{qb !== undefined ? `Best: ${qb}%` : `${m.quiz.length} questions`}</span>
@@ -265,6 +265,9 @@ export function Trophies() {
   useProgress();
   const s = progress.state;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [transfer, setTransfer] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
   const done = ALL_LESSONS.filter((l) => progress.lessonDone(l.id)).length;
   const quizAvg = Object.values(s.quizBest).length ? Math.round(Object.values(s.quizBest).reduce((a, b) => a + b, 0) / Object.values(s.quizBest).length) : 0;
   const hero = !!s.achievements.hero;
@@ -315,14 +318,28 @@ export function Trophies() {
           <div className="cert-small">{hero ? new Date(s.achievements.hero).toLocaleDateString() : `Unlocks when every lesson and project is complete (${done}/${ALL_LESSONS.length}).`}</div>
         </div>
       </div>
-      {hero && (
+      {hero && window.self === window.top && (
         <button className="primary" onClick={() => window.print()}>
           🖨 Print certificate
         </button>
       )}
       <h2>Your data</h2>
-      <p className="muted small">Progress is saved in this browser. Export a backup to move it to another computer.</p>
+      <p className="muted small">Progress is saved in this browser. To move it to another computer, copy your progress code (or download a backup) and import it there.</p>
       <div className="row gap">
+        <button
+          onClick={async () => {
+            const code = progress.exportJson();
+            try {
+              await navigator.clipboard.writeText(code);
+              setMsg('Progress code copied. Paste it into the box below on the other computer.');
+            } catch {
+              setTransfer(code);
+              setMsg('Select and copy the code in the box below.');
+            }
+          }}
+        >
+          ⧉ Copy progress code
+        </button>
         <button
           onClick={() => {
             const blob = new Blob([progress.exportJson()], { type: 'application/json' });
@@ -332,11 +349,12 @@ export function Trophies() {
             a.click();
           }}
         >
-          ⬇ Export progress
+          ⬇ Download backup
         </button>
-        <button onClick={() => fileRef.current?.click()}>⬆ Import progress</button>
+        <button onClick={() => fileRef.current?.click()}>⬆ Import file</button>
         <input
           ref={fileRef}
+          id="progress-file"
           type="file"
           accept="application/json"
           hidden
@@ -345,15 +363,15 @@ export function Trophies() {
             if (!f) return;
             try {
               progress.importJson(await f.text());
-              alert('Progress imported.');
+              setMsg('Progress imported.');
             } catch {
-              alert('That file is not an Excel Hero progress export.');
+              setMsg('That file is not an Excel Hero progress export.');
             }
           }}
         />
         <label className="row gap small">
           Daily goal:
-          <select value={s.dailyGoal} onChange={(e) => progress.setGoal(+e.target.value)}>
+          <select id="daily-goal" value={s.dailyGoal} onChange={(e) => progress.setGoal(+e.target.value)}>
             {[30, 60, 100, 150, 250].map((g) => (
               <option key={g} value={g}>
                 {g} XP
@@ -361,15 +379,36 @@ export function Trophies() {
             ))}
           </select>
         </label>
+        {confirmReset ? (
+          <span className="row gap">
+            <b className="small">Erase all XP, stars and streaks?</b>
+            <button className="danger" onClick={() => { progress.reset(); setConfirmReset(false); setMsg('Progress reset.'); }}>Yes, reset</button>
+            <button onClick={() => setConfirmReset(false)}>Cancel</button>
+          </span>
+        ) : (
+          <button className="danger" onClick={() => setConfirmReset(true)}>
+            Reset progress
+          </button>
+        )}
+      </div>
+      <div className="row gap" style={{ marginTop: 10 }}>
+        <textarea id="progress-code" className="code-box" placeholder="Paste a progress code here to import it" value={transfer} onChange={(e) => setTransfer(e.target.value)} />
         <button
-          className="danger"
+          disabled={!transfer.trim()}
           onClick={() => {
-            if (confirm('Reset ALL progress? This cannot be undone (export a backup first).')) progress.reset();
+            try {
+              progress.importJson(transfer);
+              setMsg('Progress imported.');
+              setTransfer('');
+            } catch {
+              setMsg('That code is not a valid progress export.');
+            }
           }}
         >
-          Reset progress
+          Import code
         </button>
       </div>
+      {msg && <p className="notice-inline">{msg}</p>}
     </div>
   );
 }
