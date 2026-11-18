@@ -3,7 +3,7 @@
 import type { Challenge } from './types';
 import { Interp, RunResult } from '../py/interp';
 import { PyDict } from '../py/values';
-import { compareResults, makeDb, runSql, Diff, ResultSet } from '../sql/engine';
+import { compareResults, runFresh, Diff, ResultSet } from '../sql/engine';
 
 export interface PyTestResult {
   expr: string;
@@ -33,9 +33,9 @@ function missingKeywords(code: string, must: string[] | undefined, ci: boolean) 
 }
 
 export function gradeSql(ch: Challenge, dataset: string, sql: string): GradeResult {
-  const exp = runSql(makeDb(dataset), ch.solution);
+  const exp = runFresh(dataset, ch.solution);
   if (exp.error) throw new Error(`Reference solution for ${ch.id} fails: ${exp.error}`);
-  const got = runSql(makeDb(dataset), sql);
+  const got = runFresh(dataset, sql);
   if (got.error) return { pass: false, message: 'Your query has an error.', sqlError: got.error, sqlHint: got.hint, expected: exp.last, got: null };
   const diff = compareResults(exp.last, got.last, { ordered: ch.sql?.ordered, checkColumnNames: ch.sql?.columns });
   const miss = missingKeywords(sql, ch.sql?.mustInclude, true);

@@ -782,3 +782,46 @@ export const ERROR_CORPUS: Record<string, string> = {
   recursion: `def f(n):\n    return f(n + 1)\nf(0)`,
   custom: `class InsufficientFunds(Exception):\n    pass\nraise InsufficientFunds('balance too low')`,
 };
+
+CORPUS.agent_gaps = `
+from collections import OrderedDict
+from dataclasses import dataclass, FrozenInstanceError
+od2 = OrderedDict([("a",1),("b",2),("c",3)])
+od2.move_to_end("c", last=False); od2.move_to_end("a")
+print(list(od2))
+@dataclass(frozen=True)
+class Pt:
+    x: int
+    y: int = 0
+pt = Pt(1)
+try:
+    pt.x = 5
+except FrozenInstanceError as e:
+    print("frozen", isinstance(e, AttributeError), pt)
+try:
+    pt.z = 1
+except AttributeError:
+    print("still frozen")
+from collections import OrderedDict, namedtuple
+from itertools import takewhile, dropwhile
+from functools import lru_cache
+od = OrderedDict()
+od['a'] = 1; od['b'] = 2; od['c'] = 3
+print(od.popitem(last=False), od.popitem())
+P = namedtuple('P', 'x y')
+p = P(1, 2)
+print(p == (1, 2), p._replace(y=5), P._make([3, 4]))
+print(list(takewhile(lambda v: v < 3, [1, 2, 3, 1])), list(dropwhile(lambda v: v < 3, [1, 2, 3, 1])))
+@lru_cache(maxsize=None)
+def f(n):
+    return n if n < 2 else f(n - 1) + f(n - 2)
+print(f(30))
+f.cache_clear()
+try:
+    try:
+        1 / 0
+    except ZeroDivisionError as e:
+        raise ValueError('bad') from e
+except ValueError as e:
+    print(type(e.__cause__).__name__)
+`;

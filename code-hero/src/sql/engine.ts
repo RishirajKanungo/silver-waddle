@@ -2,7 +2,7 @@
 // Also: result comparison for auto-grading, and query "pipeline" splitting so
 // the visualizer can show FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY -> LIMIT.
 
-import initSqlJs from 'sql.js/dist/sql-asm.js';
+import initSqlJs from 'sql.js/dist/sql-asm-memory-growth.js';
 import type { Database, SqlJsStatic } from 'sql.js';
 import { DATASETS } from './datasets';
 
@@ -45,6 +45,16 @@ export function makeDb(dataset: string): Database {
   db.run('PRAGMA foreign_keys = ON;');
   db.exec(ds.sql);
   return db;
+}
+
+/** Run on a throwaway copy of a dataset and free it afterwards (keeps memory flat). */
+export function runFresh(dataset: string, sql: string, maxRows = 2000): RunOutput {
+  const db = makeDb(dataset);
+  try {
+    return runSql(db, sql, maxRows);
+  } finally {
+    db.close();
+  }
 }
 
 export function runSql(db: Database, sql: string, maxRows = 2000): RunOutput {
@@ -247,6 +257,24 @@ export interface PipelineStep {
   error?: string;
 }
 
+/** Map each GROUP BY item to a real expression: SELECT aliases and 1-based positions are expanded. */
+export function resolveGroupKeys(select: string, groupBy: string): { expr: string; label?: string }[] {
+  const items = splitTopLevel(select).map((it) => {
+    const m = it.match(/^([\s\S]*?)\s+as\s+("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s*$/i);
+    return m ? { expr: m[1].trim(), alias: m[2] } : { expr: it.trim(), alias: undefined as string | undefined };
+  });
+  const bare = (a: string) => a.replace(/^["`[]|["`\]]$/g, '').toLowerCase();
+  return splitTopLevel(groupBy).map((g0) => {
+    const g = g0.trim();
+    if (/^\d+$/.test(g)) {
+      const it = items[Number(g) - 1];
+      if (it) return { expr: it.expr, label: it.alias };
+    }
+    const hit = items.find((it) => it.alias && bare(it.alias) === bare(g) && bare(it.expr) !== bare(g));
+    return hit ? { expr: hit.expr, label: hit.alias } : { expr: g };
+  });
+}
+
 /** Build the logical-order steps for a SELECT query, executing each intermediate query. */
 export function pipeline(db: Database, sql: string): PipelineStep[] | null {
   const c = splitClauses(sql);
@@ -258,9 +286,14 @@ export function pipeline(db: Database, sql: string): PipelineStep[] | null {
   steps.push({ key: 'from', title: c.from.match(/\bjoin\b/i) ? 'FROM + JOIN' : 'FROM', explain: 'Start with every row of the table(s). JOINs glue matching rows side by side.', sql: `${w}SELECT * ${base}` });
   if (c.where) steps.push({ key: 'where', title: 'WHERE', explain: 'Keep only rows that pass the filter. Aggregates do not exist yet, which is why you cannot use SUM() here.', sql: `${w}SELECT * ${base}${where}` });
   if (c.groupBy) {
-    steps.push({ key: 'group', title: 'GROUP BY', explain: 'Rows with the same key are stacked into buckets (colours). Each bucket will become ONE output row.', sql: `${w}SELECT ${c.groupBy}, * ${base}${where} ORDER BY ${c.groupBy}`, groupKeyCols: splitTopLevel(c.groupBy).length });
+    // The intermediate steps run before SELECT exists, so `GROUP BY month` (a SELECT alias) or `GROUP BY 1`
+    // must be swapped for the real expression. Keep the alias as the column label so it still reads naturally.
+    const keys = resolveGroupKeys(c.select, c.groupBy);
+    const keyList = keys.map((k) => k.expr).join(', ');
+    const keySel = keys.map((k) => (k.label ? `${k.expr} AS ${k.label}` : k.expr)).join(', ');
+    steps.push({ key: 'group', title: 'GROUP BY', explain: 'Rows with the same key are stacked into buckets (colours). Each bucket will become ONE output row.', sql: `${w}SELECT ${keySel}, * ${base}${where} ORDER BY ${keyList}`, groupKeyCols: keys.length });
     if (c.having)
-      steps.push({ key: 'having', title: 'HAVING', explain: 'Filter whole buckets using aggregates (e.g. COUNT(*) > 2). Buckets that fail disappear.', sql: `${w}SELECT ${c.groupBy}, COUNT(*) AS rows_in_group ${base}${where} GROUP BY ${c.groupBy} HAVING ${c.having}` });
+      steps.push({ key: 'having', title: 'HAVING', explain: 'Filter whole buckets using aggregates (e.g. COUNT(*) > 2). Buckets that fail disappear.', sql: `${w}SELECT ${keySel}, COUNT(*) AS rows_in_group ${base}${where} GROUP BY ${keyList} HAVING ${c.having}` });
   }
   const sel = `SELECT ${c.distinct ? 'DISTINCT ' : ''}${c.select} ${base}${where}${c.groupBy ? ` GROUP BY ${c.groupBy}` : ''}${c.having ? ` HAVING ${c.having}` : ''}${c.window ? ` WINDOW ${c.window}` : ''}`;
   steps.push({ key: 'select', title: c.distinct ? 'SELECT DISTINCT' : 'SELECT', explain: 'Now compute the output columns (aliases are born here — that is why WHERE cannot see them). Window functions run in this step too.', sql: w + sel });

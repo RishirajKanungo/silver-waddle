@@ -1,5 +1,7 @@
 # Excel Hero Academy
 
+> This repo also contains **[Code Hero Academy](code-hero/README.md)**: interactive SQL and Python notebooks with visualizers, spaced repetition and an interview gym.
+
 A zero-to-hero Excel course for bank / data-lake analysts that runs in your browser. It has an Excel-style workbook built in, with real Windows Excel shortcuts and Alt key-tips, a formula engine that supports cross-file references, and lessons that check your work automatically as you go.
 
 ## What's inside

@@ -171,7 +171,8 @@ export function installBuiltins(I: Interp) {
   exc('TypeError', E);
   const NameE = exc('NameError', E);
   exc('UnboundLocalError', NameE);
-  exc('AttributeError', E);
+  const AttrE = exc('AttributeError', E);
+  T.FrozenInstanceError = new PyClass('FrozenInstanceError', [AttrE], new Map(), 'exception');
   const RT = exc('RuntimeError', E);
   exc('RecursionError', RT);
   exc('NotImplementedError', RT);
@@ -818,10 +819,11 @@ const DICT: Record<string, Method> = {
     d.delete(a[0]);
     return v;
   },
-  popitem: (I, d: PyDict) => {
+  popitem: (I, d: PyDict, a, kw) => {
     const e = d.entries();
     if (!e.length) I.raise('KeyError', "'popitem(): dictionary is empty'");
-    const [k, v] = e[e.length - 1];
+    const last = a.length ? I.truthSync(a[0]) : kw.has('last') ? I.truthSync(kw.get('last')!) : true;
+    const [k, v] = last ? e[e.length - 1] : e[0];
     d.delete(k);
     return new PyTuple([k, v]);
   },
@@ -865,10 +867,12 @@ const DICT: Record<string, Method> = {
     else for (const x of yield* I.toArray(a[0])) d.set(x, toBig((d.get(x) ?? 0n) as bigint) - 1n);
     return null;
   },
-  move_to_end: (_, d: PyDict, a) => {
+  move_to_end: (I, d: PyDict, a, kw) => {
+    if (!d.has(a[0])) throw I.keyError(a[0]);
     const v = d.get(a[0])!;
     d.delete(a[0]);
-    if (a.length > 1 && a[1] === false) {
+    const last = a.length > 1 ? I.truthSync(a[1]) : kw.has('last') ? I.truthSync(kw.get('last')!) : true;
+    if (!last) {
       const rest = d.entries();
       d.map.clear();
       d.set(a[0], v);
@@ -1243,8 +1247,25 @@ function registerModules(I: Interp) {
       }));
       cls.dict.set('__eq__', new PyBuiltin('__eq__', (args) => {
         const x = args[0] as PyInstance, y = args[1];
+        if (y instanceof PyTuple) return y.items.length === fields.length && fields.every((fn, i) => I.eq(x.attrs.get(fn)!, y.items[i]));
         return y instanceof PyInstance && fields.every((fn) => I.eq(x.attrs.get(fn)!, y.attrs.get(fn)!));
       }));
+      cls.dict.set('__lt__', new PyBuiltin('__lt__', (args) => {
+        const x = args[0] as PyInstance, y = args[1] as PyInstance;
+        return I.cmpOrder(new PyTuple(fields.map((fn) => x.attrs.get(fn)!)), new PyTuple(fields.map((fn) => (y instanceof PyInstance ? y.attrs.get(fn)! : null)))) < 0;
+      }));
+      cls.dict.set('_replace', new PyBuiltin('_replace', (args, k2) => {
+        const x = args[0] as PyInstance;
+        const n = new PyInstance(cls);
+        fields.forEach((fn) => n.attrs.set(fn, k2.has(fn) ? k2.get(fn)! : x.attrs.get(fn)!));
+        return n;
+      }));
+      cls.dict.set('_make', new PyClassMethod(new PyBuiltin('_make', function* (args) {
+        const vals = yield* I.toArray(args[1]);
+        const n = new PyInstance(cls);
+        fields.forEach((fn, i) => n.attrs.set(fn, vals[i] ?? null));
+        return n;
+      })));
       cls.dict.set('__iter__', new PyBuiltin('__iter__', (args) => {
         const self = args[0] as PyInstance;
         const vals = fields.map((fn) => self.attrs.get(fn)!);
@@ -1400,6 +1421,13 @@ function registerModules(I: Interp) {
         return r;
       });
       (wrapped as PyBuiltin & { wrapped?: PyVal }).wrapped = fnv;
+      let hits = 0;
+      void hits;
+      (wrapped as PyBuiltin & { extra?: Map<string, PyVal> }).extra = new Map<string, PyVal>([
+        ['cache_info', new PyBuiltin('cache_info', () => `CacheInfo(currsize=${cache.size})`)],
+        ['cache_clear', new PyBuiltin('cache_clear', () => { cache.clear(); return null; })],
+        ['__wrapped__', fnv],
+      ]);
       return wrapped;
     };
     f(d, 'lru_cache', (a) => {
@@ -1564,6 +1592,25 @@ function registerModules(I: Interp) {
       for (let i = 0; i < n; i++) out.push(new PyTuple(lists.map((l) => (i < l.length ? l[i] : fill))));
       return fromArray('itertools.zip_longest', out);
     });
+    f(d, 'takewhile', function* (a) {
+      const out: PyVal[] = [];
+      for (const x of yield* I.toArray(a[1])) {
+        if (!(yield* I.truth(yield* I.call(a[0], [x])))) break;
+        out.push(x);
+      }
+      return fromArray('itertools.takewhile', out);
+    });
+    f(d, 'dropwhile', function* (a) {
+      const items = yield* I.toArray(a[1]);
+      let i = 0;
+      while (i < items.length && (yield* I.truth(yield* I.call(a[0], [items[i]])))) i++;
+      return fromArray('itertools.dropwhile', items.slice(i));
+    });
+    f(d, 'filterfalse', function* (a) {
+      const out: PyVal[] = [];
+      for (const x of yield* I.toArray(a[1])) if (!(yield* I.truth(a[0] === null ? x : yield* I.call(a[0], [x])))) out.push(x);
+      return fromArray('itertools.filterfalse', out);
+    });
     f(d, 'pairwise', function* (a) {
       const items = yield* I.toArray(a[0]);
       return fromArray('itertools.pairwise', items.slice(1).map((x, i) => new PyTuple([items[i], x])));
@@ -1592,6 +1639,18 @@ function registerModules(I: Interp) {
       return null;
     });
     f(d, 'getrecursionlimit', () => BigInt(I.recursionLimit));
+    f(d, 'getsizeof', (a) => {
+      const v = a[0];
+      if (v instanceof PyList) return BigInt(56 + 8 * v.items.length);
+      if (v instanceof PyTuple) return BigInt(40 + 8 * v.items.length);
+      if (typeof v === 'string') return BigInt(41 + v.length);
+      if (typeof v === 'bigint') return 28n;
+      if (typeof v === 'number') return 24n;
+      if (v instanceof PyDict) return BigInt(64 + 40 * v.map.size);
+      if (v instanceof PySet) return BigInt(216 + 16 * v.map.size);
+      if (v instanceof PyGenerator || v instanceof PyIter) return 200n;
+      return 56n;
+    });
     d.set('version', '3.12 (Code Hero sandbox)');
     d.set('argv', new PyList(['main.py']));
     const stdout = new PyInstance(new PyClass('TextIO', [T.object]));
@@ -1730,6 +1789,7 @@ function registerModules(I: Interp) {
   });
 
   mod('dataclasses', (d) => {
+    d.set('FrozenInstanceError', T.FrozenInstanceError);
     const make = (cls: PyClass, opts: Kw) => {
       const fields = cls.annotations.map(([n]) => n);
       const defaults = new Map<string, PyVal>();
@@ -1772,7 +1832,10 @@ function registerModules(I: Interp) {
           return I.cmpOrder(new PyTuple(fields.map((fn) => a2.attrs.get(fn)!)), new PyTuple(fields.map((fn) => b2.attrs.get(fn)!))) < 0;
         }));
       }
-      if (opts.has('frozen') && I.truthSync(opts.get('frozen')!)) cls.dict.set('__hash__', new PyBuiltin('__hash__', () => 0n));
+      if (opts.has('frozen') && I.truthSync(opts.get('frozen')!)) {
+        cls.dict.set('__hash__', new PyBuiltin('__hash__', () => 0n));
+        cls.dict.set('__frozen__', true);
+      }
       else cls.dict.set('__hash__', null);
       return cls;
     };

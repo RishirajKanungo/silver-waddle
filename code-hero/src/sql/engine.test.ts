@@ -59,3 +59,18 @@ describe('sql engine', () => {
     expect(w.error).toBeNull();
   });
 });
+
+it('pipeline resolves GROUP BY aliases and positions', async () => {
+  const { loadSql, makeDb, pipeline } = await import('./engine');
+  await loadSql();
+  const db = makeDb('bank');
+  for (const q of [
+    "SELECT strftime('%Y-%m', txn_date) AS month, COUNT(*) AS n FROM transactions GROUP BY month HAVING COUNT(*) > 1",
+    "SELECT strftime('%Y-%m', txn_date) AS month, COUNT(*) FROM transactions GROUP BY 1",
+    "SELECT account_id, COUNT(*) FROM transactions GROUP BY account_id",
+  ]) {
+    const steps = pipeline(db, q)!;
+    for (const s of steps) expect(s.error, q + ' @ ' + s.title).toBeUndefined();
+  }
+  db.close();
+});

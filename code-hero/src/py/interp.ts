@@ -26,7 +26,7 @@ export type G<T> = Generator<Ev, T, any>;
 type Sig = undefined | { sig: 'break' } | { sig: 'continue' } | { sig: 'return'; v: PyVal };
 
 // ---------------- snapshot format (consumed by the visualizer) ----------------
-export type SVal = { t: 'prim'; type: string; repr: string } | { t: 'ref'; id: number };
+export type SVal = { t: 'prim'; type: string; repr: string; raw?: string } | { t: 'ref'; id: number };
 export interface SObj {
   id: number;
   kind: 'list' | 'tuple' | 'set' | 'dict' | 'instance' | 'function' | 'class' | 'deque' | 'range' | 'other';
@@ -221,7 +221,7 @@ export class Interp {
     const heap: Record<number, SObj> = {};
     const queue: PyObj[] = [];
     const sval = (v: PyVal): SVal => {
-      if (v === null || typeof v !== 'object') return { t: 'prim', type: typeNameOf(v), repr: this.primRepr(v) };
+      if (v === null || typeof v !== 'object') return typeof v === 'string' ? { t: 'prim', type: 'str', repr: this.primRepr(v), raw: v.slice(0, 300) } : { t: 'prim', type: typeNameOf(v), repr: this.primRepr(v) };
       if (v instanceof PyModule || v instanceof PyBuiltin || (v instanceof PyClass && v.builtin)) return { t: 'prim', type: v.typeName, repr: v instanceof PyModule ? `<module '${v.name}'>` : v instanceof PyClass ? `<class '${v.name}'>` : `<built-in ${v.name}>` };
       if (!heap[v.id]) {
         heap[v.id] = { id: v.id, kind: 'other', type: v.typeName };
@@ -474,6 +474,11 @@ export class Interp {
         let v = yield* this.evalE(st.v, s);
         if (v instanceof PyClass) v = yield* this.call(v, []);
         if (!(v instanceof PyInstance) || !v.cls.isSubclassOf(this.T.BaseException)) this.raise('TypeError', 'exceptions must derive from BaseException');
+        if (st.cause) {
+          let c = yield* this.evalE(st.cause, s);
+          if (c instanceof PyClass) c = yield* this.call(c, []);
+          v.attrs.set('__cause__', c);
+        }
         throw new PyRaise(v);
       }
       case 'global':
@@ -1077,6 +1082,7 @@ export class Interp {
       if (cv !== undefined) return this.bindClassAttr(cv, o, o.cls);
       if (o.cls.builtin === 'exception' || o.cls.isSubclassOf(this.T.BaseException)) {
         if (name === 'args') return o.attrs.get('args') ?? new PyTuple();
+        if (name === '__cause__' || name === '__context__') return null;
       }
       const ga = o.cls.lookup('__getattr__');
       if (ga) return yield* this.call(ga, [o, name]);
@@ -1139,6 +1145,7 @@ export class Interp {
       if (name === '__doc__') return null;
     }
     if (o instanceof PyBuiltin && name === '__name__') return o.name;
+    if (o instanceof PyBuiltin && (o as PyBuiltin & { extra?: Map<string, PyVal> }).extra?.has(name)) return (o as PyBuiltin & { extra?: Map<string, PyVal> }).extra!.get(name)!;
     const m = methodOf(this, o, name);
     if (m) return m;
     this.raise('AttributeError', `'${typeNameOf(o)}' object has no attribute '${name}'`);
@@ -1160,6 +1167,7 @@ export class Interp {
         yield* this.call(cv.fset, [o, v]);
         return;
       }
+      if (o.cls.lookup('__frozen__') === true) this.raise('FrozenInstanceError', `cannot assign to field '${name}'`);
       const sa = o.cls.lookup('__setattr__');
       if (sa instanceof PyFunc) {
         yield* this.call(sa, [o, name, v]);

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { MODULES, PROBLEMS } from './index';
 import { Interp } from '../py/interp';
-import { loadSql, makeDb, runSql } from '../sql/engine';
+import { loadSql, runFresh } from '../sql/engine';
 import { DATASETS } from '../sql/datasets';
 import { gradePy, gradeSql } from './grade';
 import type { Card, Cell, Challenge, Lesson } from './types';
@@ -26,7 +26,7 @@ function cpython(src: string) {
 }
 
 function sqlPredictValue(dataset: string, sql: string): string[] {
-  const r = runSql(makeDb(dataset), sql);
+  const r = runFresh(dataset, sql);
   if (r.error || !r.last) return [];
   const vals = [String(r.last.rows.length), `${r.last.rows.length} rows`, `${r.last.rows.length} row`];
   if (r.last.rows.length === 1 && r.last.columns.length === 1) vals.push(String(r.last.rows[0][0]));
@@ -79,7 +79,7 @@ function checkCell(c: Cell, l: Lesson, i: number) {
       }
     } else {
       expect(l.dataset, `${where}: SQL lesson needs dataset`).toBeTruthy();
-      const r = runSql(makeDb(l.dataset!), c.code);
+      const r = runFresh(l.dataset!, c.code);
       if (c.error) expect(r.error, `${where}: expected SQL error`).toBeTruthy();
       else expect(r.error, `${where}: ${r.error}`).toBeNull();
       if (c.predict && c.predict.fromOutput) {
@@ -92,7 +92,7 @@ function checkCell(c: Cell, l: Lesson, i: number) {
   if (c.kind === 'quiz') expect(c.answer, where).toBeLessThan(c.options.length);
   if (c.kind === 'viz') {
     const v = c.viz;
-    if (v.type === 'pipeline') expect(runSql(makeDb(l.dataset!), v.sql).error, where).toBeNull();
+    if (v.type === 'pipeline') expect(runFresh(l.dataset!, v.sql).error, where).toBeNull();
     if (v.type === 'trace') {
       const r = new Interp().run(v.code, { trace: true });
       expect(r.error, `${where}: ${r.error}`).toBeNull();
@@ -101,7 +101,7 @@ function checkCell(c: Cell, l: Lesson, i: number) {
     if (v.type === 'join' || v.type === 'groupby' || v.type === 'window') {
       expect(l.dataset, where).toBeTruthy();
       const tables = v.type === 'join' ? [v.left, v.right] : [v.table];
-      for (const t of tables) expect(runSql(makeDb(l.dataset!), `SELECT * FROM ${t}`).error, `${where}: table ${t}`).toBeNull();
+      for (const t of tables) expect(runFresh(l.dataset!, `SELECT * FROM ${t}`).error, `${where}: table ${t}`).toBeNull();
     }
   }
 }
@@ -115,7 +115,7 @@ function checkCard(card: Card, where: string) {
   }
   if (card.kind === 'sql') {
     expect(DATASETS[card.dataset], where).toBeTruthy();
-    expect(runSql(makeDb(card.dataset), card.solution).error, where).toBeNull();
+    expect(runFresh(card.dataset, card.solution).error, where).toBeNull();
   }
   if (card.kind === 'cloze') {
     const blanks = (card.text.match(/\{\{\}\}/g) ?? []).length;
