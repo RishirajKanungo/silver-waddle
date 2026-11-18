@@ -8,7 +8,7 @@ import { Editor } from '../Editor';
 import { progress } from '../../progress/store';
 import { PyOutput, PyVisualizer, SqlOutput, runPython } from './runners';
 import { RunResult } from '../../py/interp';
-import { RunOutput, runSql, pipeline } from '../../sql/engine';
+import { RunOutput, runSql, runFresh, pipeline } from '../../sql/engine';
 import { gradePy, gradeSql, GradeResult, expectedPy } from '../../course/grade';
 import { GroupByViz, IndexViz, JoinViz, NullsViz, PipelineViz, ResultTable, SchemaViz, WindowViz, fmtCell } from '../viz/SqlViz';
 import { BigOViz, HashMapViz } from '../viz/ConceptViz';
@@ -277,7 +277,7 @@ export function ChallengeCell({ ch, k, ctx, dataset, onPass, compact }: { ch: Ch
       setOut(r);
       setLine(r.errorLine ?? null);
       setLk('err');
-    } else if (ctx.db) setOut(runSql(ctx.db, code));
+    } else if (dataset) setOut(runFresh(dataset, code)); // a fresh copy each time, exactly like grading
   };
   const submit = () => {
     setAttempts(attempts + 1);

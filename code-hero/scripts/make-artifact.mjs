@@ -6,7 +6,7 @@ const html = readFileSync('dist-single/index.html', 'utf8');
 const head = /<head>([\s\S]*?)<\/head>/i.exec(html)[1];
 const body = /<body>([\s\S]*?)<\/body>/i.exec(html)[1];
 const title = /<title>[\s\S]*?<\/title>/i.exec(head)[0];
-const desc = /<meta name="description"[^>]*>/i.exec(head)?.[0] ?? '';
+const desc = [...head.matchAll(/<meta name="(?:description|claude:viewport-fit-sides)"[^>]*>/gi)].map((m) => m[0]).join('\n');
 const links = [...head.matchAll(/<link rel="(?:preconnect|stylesheet)"[^>]*>/gi)].map((m) => m[0]).join('\n');
 const styles = [...head.matchAll(/<style[\s\S]*?<\/style>/gi)].map((m) => m[0]).join('\n');
 const scripts = [...head.matchAll(/<script[\s\S]*?<\/script>/gi)].map((m) => m[0]).join('\n');

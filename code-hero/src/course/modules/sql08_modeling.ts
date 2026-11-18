@@ -380,7 +380,7 @@ SELECT id, customer FROM accounts ORDER BY id;`,
         {
           kind: 'code',
           lang: 'sql',
-          code: `CREATE INDEX idx_views_show ON views(show_id);
+          code: `CREATE INDEX IF NOT EXISTS idx_views_show ON views(show_id);
 
 EXPLAIN QUERY PLAN
 SELECT * FROM views WHERE show_id = 3;`,
