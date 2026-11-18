@@ -2361,3 +2361,6 @@ button.icon {
     grid-template-columns: 1fr;
   }
 }
+.markup code {
+  overflow-wrap: anywhere;
+}
