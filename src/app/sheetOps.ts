@@ -10,8 +10,8 @@ import { formatValue, isDateFmt } from '../engine/format';
 
 export const GRID_ROWS = 100000;
 export const GRID_COLS = 16384;
-export const DEFAULT_COL_W = 72;
-export const ROW_H = 22;
+export const DEFAULT_COL_W = 64;
+export const ROW_H = 20;
 
 export const getCell = (sh: Sheet, r: number, c: number): Cell | undefined => sh.cells[cellKey(r, c)];
 export const hasInput = (sh: Sheet, r: number, c: number) => {
@@ -191,7 +191,7 @@ export function insertDelete(books: Workbook[], bi: number, si: number, axis: 'r
 export function pasteBlock(
   src: Sheet, g: RangeAddr, dst: Sheet, r0: number, c0: number,
   mode: 'all' | 'values' | 'formulas' | 'formats' = 'all',
-  calc?: { value: (r: number, c: number) => Scalar }, transpose = false,
+  calc?: { value: (r: number, c: number) => Scalar }, transpose = false, isCut = false,
 ): Sheet {
   const edits: { r: number; c: number; v?: string; s?: CellStyle | null }[] = [];
   for (let r = g.r1; r <= g.r2; r++)
@@ -204,7 +204,7 @@ export function pasteBlock(
       if (mode === 'values') {
         const val = calc ? calc.value(r, c) : parseLiteral(v);
         v = scalarToInput(val);
-      } else if (v.startsWith('=')) v = shiftFormula(v, tr - r, tc - c);
+      } else if (v.startsWith('=') && !isCut) v = shiftFormula(v, tr - r, tc - c); // a cut formula moves unchanged
       if (mode === 'formats') edits.push({ r: tr, c: tc, s: cell?.s ?? null });
       else if (mode === 'values') edits.push({ r: tr, c: tc, v, s: cell?.s?.fmt ? { ...(getCell(dst, tr, tc)?.s ?? {}), fmt: cell.s.fmt } : undefined });
       else edits.push({ r: tr, c: tc, v, s: mode === 'all' ? cell?.s ?? null : undefined });

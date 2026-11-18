@@ -323,7 +323,7 @@ export const FUNCS: Record<string, FnDef> = {
     },
   },
   COUNTIFS: {
-    min: 2, max: 254,
+    min: 2, max: 254, lift: [1, 3, 5, 7, 9, 11],
     fn: (args) => {
       if (args.length % 2) return ERR.VALUE;
       const a0 = toArray(args[0]);
@@ -350,7 +350,7 @@ export const FUNCS: Record<string, FnDef> = {
     },
   },
   SUMIFS: {
-    min: 3, max: 255,
+    min: 3, max: 255, lift: [2, 4, 6, 8, 10, 12],
     fn: ([sumRng, ...pairs]) => {
       if (pairs.length % 2) return ERR.VALUE;
       const s = toArray(sumRng);
@@ -378,7 +378,7 @@ export const FUNCS: Record<string, FnDef> = {
     },
   },
   AVERAGEIFS: {
-    min: 3, max: 255,
+    min: 3, max: 255, lift: [2, 4, 6, 8, 10, 12],
     fn: ([avgRng, ...pairs]) => {
       const s = toArray(avgRng);
       const mask = ifsMask(pairs, s.rows, s.cols);
@@ -390,7 +390,7 @@ export const FUNCS: Record<string, FnDef> = {
     },
   },
   MAXIFS: {
-    min: 3, max: 255,
+    min: 3, max: 255, lift: [2, 4, 6, 8, 10, 12],
     fn: ([rng, ...pairs]) => {
       const s = toArray(rng);
       const mask = ifsMask(pairs, s.rows, s.cols);
@@ -400,7 +400,7 @@ export const FUNCS: Record<string, FnDef> = {
     },
   },
   MINIFS: {
-    min: 3, max: 255,
+    min: 3, max: 255, lift: [2, 4, 6, 8, 10, 12],
     fn: ([rng, ...pairs]) => {
       const s = toArray(rng);
       const mask = ifsMask(pairs, s.rows, s.cols);

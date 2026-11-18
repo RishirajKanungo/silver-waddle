@@ -157,7 +157,7 @@ function formatNumberSection(n: number, fmt: string): string {
   let suffix = '';
   let core = fmt;
   // pull quoted strings & currency symbols at edges
-  const lit = /^((?:"[^"]*"|[$€£¥\\ (]|\\.)*)(.*?)((?:"[^"]*"|[ )%]|\\.|_.)*)$/.exec(fmt);
+  const lit = /^((?:"[^"]*"|[$€£¥\\ (+\-]|\\.)*)(.*?)((?:"[^"]*"|[ )%]|\\.|_.)*)$/.exec(fmt);
   if (lit) {
     prefix = lit[1];
     core = lit[2];

@@ -101,7 +101,7 @@ export class AppStore {
   status: string | null = null;
   toasts: Toast[] = [];
   lastFill = '#FFFF00';
-  lastFontColor = '#C00000';
+  lastFontColor = '#0000FF';
   version = 0;
   /** set by a lesson to stop learners from doing structural things it doesn't support */
   readOnlyBooks = new Set<number>();
@@ -119,11 +119,15 @@ export class AppStore {
   // ---------------- subscription ----------------
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
+    return () => {
+      this.listeners.delete(fn);
+    };
   };
   onCommand(fn: (e: CommandEvent) => void) {
     this.cmdListeners.add(fn);
-    return () => this.cmdListeners.delete(fn);
+    return () => {
+      this.cmdListeners.delete(fn);
+    };
   }
   emitCommand(id: string, source: 'key' | 'mouse') {
     const e = { id, source, at: performance.now() };
@@ -591,7 +595,7 @@ export class AppStore {
     for (const [r0, c0] of targets) {
       books = books.map((b, i) =>
         i === this.bi
-          ? { ...b, sheets: b.sheets.map((s, j) => (j === this.si ? pasteBlock(src, cl.range, s, r0, c0, mode, { value: valueOf }, transpose) : s)) }
+          ? { ...b, sheets: b.sheets.map((s, j) => (j === this.si ? pasteBlock(src, cl.range, s, r0, c0, mode, { value: valueOf }, transpose, cl.cut) : s)) }
           : b,
       );
     }
@@ -632,8 +636,12 @@ export class AppStore {
     const nf = bumpDecimals(cell?.s?.fmt, delta, typeof v === 'number' ? v : null);
     this.setFormat(nf);
   }
+  /** Only shrink whole-row/column selections; an explicit range is honoured as selected. */
+  clampWhole(g: RangeAddr): RangeAddr {
+    return g.r2 === GRID_ROWS - 1 || g.c2 === GRID_COLS - 1 ? this.clampToUsed(g) : g;
+  }
   border(kind: 'all' | 'outside' | 'none' | 'bottom' | 'top' | 'thick') {
-    const g = this.clampToUsed(this.range);
+    const g = this.clampWhole(this.range);
     const sh = this.sheet;
     const edits: { r: number; c: number; s: CellStyle }[] = [];
     for (let r = g.r1; r <= g.r2; r++)
@@ -643,11 +651,16 @@ export class AppStore {
         if (kind === 'none') b = {};
         if (kind === 'all') b = { t: true, b: true, l: true, r: true };
         if (kind === 'outside' || kind === 'thick') {
-          if (r === g.r1) b.t = true;
-          if (r === g.r2) b.b = true;
-          if (c === g.c1) b.l = true;
-          if (c === g.c2) b.r = true;
-          if (kind === 'thick') b.thick = true;
+          let sides = '';
+          if (r === g.r1) { b.t = true; sides += 't'; }
+          if (r === g.r2) { b.b = true; sides += 'b'; }
+          if (c === g.c1) { b.l = true; sides += 'l'; }
+          if (c === g.c2) { b.r = true; sides += 'r'; }
+          if (kind === 'thick' && sides) {
+            const merged = [...new Set((b.thickSides ?? '') + sides)].join('');
+            b.thickSides = merged;
+            b.thick = ['t', 'b', 'l', 'r'].every((x) => !b[x as 't'] || merged.includes(x)) || undefined;
+          }
         }
         if (kind === 'bottom' && r === g.r2) b.b = true;
         if (kind === 'top' && r === g.r1) b.t = true;
@@ -699,6 +712,8 @@ export class AppStore {
     this.selectRange(norm({ r1: Math.min(src.r1, dst.r1), c1: Math.min(src.c1, dst.c1), r2: Math.max(src.r2, dst.r2), c2: Math.max(src.c2, dst.c2) }));
   }
   autoSum() {
+    const g = this.range;
+    if (g.r1 !== g.r2 || g.c1 !== g.c2) return this.autoSumBlock(g.r2 === GRID_ROWS - 1 || g.c2 === GRID_COLS - 1 ? this.clampToUsed(g) : g);
     const s = this.sel;
     const sh = this.sheet;
     // look up for numbers, else left
@@ -715,6 +730,26 @@ export class AppStore {
     this.startEdit(`=SUM(${ref})`, 'enter');
     if (this.edit) this.edit = { ...this.edit, caret: 5 + ref.length };
     this.notify();
+  }
+  /** Alt+= on a block: fills totals in the empty last row/column (or adds a total row below). */
+  private autoSumBlock(g: RangeAddr) {
+    const sh = this.sheet;
+    const empty = (r: number, c: number) => (getCell(sh, r, c)?.v ?? '') === '';
+    let emptyRow = true, emptyCol = true;
+    for (let c = g.c1; c <= g.c2; c++) if (!empty(g.r2, c)) emptyRow = false;
+    for (let r = g.r1; r <= g.r2; r++) if (!empty(r, g.c2)) emptyCol = false;
+    if (g.r1 === g.r2) emptyRow = false;
+    if (g.c1 === g.c2) emptyCol = false;
+    const edits: { r: number; c: number; v: string }[] = [];
+    const colSum = (c: number, r2: number) => `=SUM(${addrToA1(g.r1, c)}:${addrToA1(r2, c)})`;
+    if (!emptyRow && !emptyCol) {
+      for (let c = g.c1; c <= g.c2; c++) edits.push({ r: g.r2 + 1, c, v: colSum(c, g.r2) });
+    } else {
+      if (emptyRow) for (let c = g.c1; c <= g.c2; c++) edits.push({ r: g.r2, c, v: colSum(c, g.r2 - 1) });
+      if (emptyCol)
+        for (let r = g.r1; r <= (emptyRow ? g.r2 - 1 : g.r2); r++) edits.push({ r, c: g.c2, v: `=SUM(${addrToA1(r, g.c1)}:${addrToA1(r, g.c2 - 1)})` });
+    }
+    this.updateSheet((x) => withCells(x, edits));
   }
   insertNow(time: boolean) {
     const d = new Date();
@@ -912,7 +947,7 @@ export class AppStore {
     this.updateSheet((sh) => ({ ...sh, showGridlines: sh.showGridlines === false ? true : false }));
   }
   addCF(rule: Omit<CFRule, 'id' | 'range'>) {
-    const g = this.clampToUsed(this.range);
+    const g = this.clampWhole(this.range);
     this.updateSheet((sh) => ({ ...sh, cf: [...(sh.cf ?? []), { ...rule, id: String(Date.now()), range: `${addrToA1(g.r1, g.c1)}:${addrToA1(g.r2, g.c2)}` }] }));
   }
   clearCF() {
@@ -1029,7 +1064,9 @@ export class AppStore {
     const s = this.sel;
     const v = getCell(this.sheet, s.ar, s.ac)?.v ?? '';
     if (!v.startsWith('=')) return;
-    const tok = tokenize(v.slice(1)).find((t) => t.type === 'ref');
+    const refs = tokenize(v.slice(1)).filter((t) => t.type === 'ref');
+    // prefer a reference into another sheet/file — that's the one you're usually auditing
+    const tok = refs.find((t) => t.text.includes('!')) ?? refs[0];
     if (!tok) return;
     if (!this.goTo(tok.text.replace(/#$/, ''))) this.toast('Cannot follow that reference (the file is not open).', 'warn');
   }

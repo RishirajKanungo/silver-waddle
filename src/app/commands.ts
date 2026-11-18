@@ -44,7 +44,11 @@ export const COMMANDS: Command[] = [
   C('nav.goto', 'Go To…', 'Navigate', (s) => s.openDialog({ type: 'goto' }), ['F5', 'Ctrl+G'], 'HFDG'),
   C('nav.gotoSpecial', 'Go To Special…', 'Navigate', (s) => s.openDialog({ type: 'gotoSpecial' }), [], 'HFDS'),
   C('nav.tracePrecedent', 'Jump to referenced cells (precedents)', 'Navigate', (s) => s.tracePrecedent(), ['Ctrl+[']),
-  C('nav.nameBox', 'Jump to the Name Box', 'Navigate', () => document.getElementById('namebox')?.focus(), ['Ctrl+Shift+F3?']),
+  C('nav.nameBox', 'Jump to the Name Box', 'Navigate', () => {
+    if (typeof document !== 'undefined') document.getElementById('namebox')?.focus();
+  }, ['Click the Name Box?']),
+  C('edit.f4', 'Toggle $ absolute reference (while editing)', 'Edit', (s) => s.f4(), ['F4']),
+  C('edit.fillSelection', 'Enter into every selected cell', 'Edit', (s) => (s.edit ? s.commitEdit('none', true) : undefined), ['Ctrl+Enter']),
 
   // ---- selection ----
   C('sel.up', 'Extend selection up', 'Select', (s) => s.extend(-1, 0), ['Shift+↑']),

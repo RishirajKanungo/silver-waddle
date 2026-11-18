@@ -60,7 +60,10 @@ export interface Border {
   b?: boolean;
   l?: boolean;
   r?: boolean;
+  /** true when every drawn side of this cell is thick (single-cell thick box) */
   thick?: boolean;
+  /** which sides are thick, e.g. 'tl' for the top-left corner of a thick box */
+  thickSides?: string;
 }
 
 export interface CellStyle {

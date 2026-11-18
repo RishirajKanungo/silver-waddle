@@ -141,3 +141,21 @@ describe('engine', () => {
     expect(formatValue(1500000, '#,##0,"K"')).toBe('1,500K');
   });
 });
+
+describe('fixes', () => {
+  it('TEXT keeps literal +/- signs', () => {
+    const c = new Calc([wb('B', sheet('S', { A1: '=TEXT(0.24,"+0.0%;-0.0%")', A2: '=TEXT(-0.029,"+0.0%;-0.0%")' }))]);
+    expect(val(c, 'A1')).toBe('+24.0%');
+    expect(val(c, 'A2')).toBe('-2.9%');
+  });
+});
+
+describe('ifs spill', () => {
+  it('SUMIFS lifts over a spilled criteria list', () => {
+    const c = new Calc([wb('B', sheet('S', { A2: 'N', A3: 'S', A4: 'N', A5: 'W', B2: 100, B3: 200, B4: 300, B5: 50, G2: '=UNIQUE(A2:A5)', H2: '=SUMIFS(B2:B5,A2:A5,G2#)', I2: '=COUNTIFS(A2:A5,G2#)' }))]);
+    expect(val(c, 'H2')).toBe(400);
+    expect(val(c, 'H3')).toBe(200);
+    expect(val(c, 'H4')).toBe(50);
+    expect(val(c, 'I2')).toBe(2);
+  });
+});
