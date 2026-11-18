@@ -1,0 +1,47 @@
+import type { Problem } from '../types';
+
+export const problems: Problem[] = [
+  {
+    id: 'py-gym-reverse-words',
+    track: 'python',
+    title: 'Reverse words in a sentence',
+    difficulty: 'Easy',
+    pattern: 'Strings',
+    companies: ['Microsoft', 'Amazon'],
+    minutes: 8,
+    challenge: {
+      kind: 'challenge',
+      id: 'py-gym-reverse-words',
+      lang: 'python',
+      title: 'Reverse words',
+      prompt: 'Write `reverse_words(s)` that returns the words of `s` in reverse order, separated by single spaces (extra spaces removed).',
+      starter: 'def reverse_words(s):\n    return s[::-1]\n',
+      hints: ['Reversing characters is not the same as reversing words.', "`' '.join(reversed(s.split()))`"],
+      solution: "def reverse_words(s):\n    return ' '.join(reversed(s.split()))\n",
+      explain: '`split()` with no argument also collapses repeated spaces. Then reverse the list and join.',
+      py: { tests: ['reverse_words("the sky is blue")', 'reverse_words("  hello   world  ")', 'reverse_words("a")'] },
+    },
+    followups: ['Do it in-place on a list of characters with O(1) extra space.'],
+  },
+  {
+    id: 'py-gym-fizzbuzz',
+    track: 'python',
+    title: 'FizzBuzz (returning a list)',
+    difficulty: 'Easy',
+    pattern: 'Control flow',
+    companies: ['Google', 'Apple'],
+    minutes: 6,
+    challenge: {
+      kind: 'challenge',
+      id: 'py-gym-fizzbuzz',
+      lang: 'python',
+      title: 'FizzBuzz',
+      prompt: 'Write `fizzbuzz(n)` returning a list of strings for 1..n: "Fizz" for multiples of 3, "Buzz" for 5, "FizzBuzz" for both, otherwise the number as a string.',
+      starter: 'def fizzbuzz(n):\n    out = []\n    for i in range(n):\n        out.append(str(i))\n    return out\n',
+      hints: ['Loop over `range(1, n + 1)`.', 'Check divisibility by 15 (or both) **first**.'],
+      solution: "def fizzbuzz(n):\n    out = []\n    for i in range(1, n + 1):\n        if i % 15 == 0:\n            out.append('FizzBuzz')\n        elif i % 3 == 0:\n            out.append('Fizz')\n        elif i % 5 == 0:\n            out.append('Buzz')\n        else:\n            out.append(str(i))\n    return out\n",
+      explain: 'Order of checks matters: test the most specific condition first.',
+      py: { tests: ['fizzbuzz(5)', 'fizzbuzz(15)[-1]', 'len(fizzbuzz(30))'] },
+    },
+  },
+];

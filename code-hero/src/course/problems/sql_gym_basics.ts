@@ -1,0 +1,48 @@
+import type { Problem } from '../types';
+
+export const problems: Problem[] = [
+  {
+    id: 'sql-gym-active-products',
+    track: 'sql',
+    title: 'Never-ordered products',
+    difficulty: 'Easy',
+    pattern: 'Anti-join',
+    companies: ['Amazon', 'Shopify'],
+    minutes: 8,
+    dataset: 'shop',
+    challenge: {
+      kind: 'challenge',
+      id: 'sql-gym-active-products',
+      lang: 'sql',
+      title: 'Never-ordered products',
+      prompt: 'Return the `name` of every product that has **never** appeared in `order_items`.',
+      starter: 'SELECT name\nFROM products;',
+      hints: ['Think "products WHERE id NOT IN (the product ids that were ordered)".', 'Or LEFT JOIN order_items and keep rows where the order side IS NULL.'],
+      solution: 'SELECT p.name\nFROM products p\nLEFT JOIN order_items oi ON oi.product_id = p.id\nWHERE oi.product_id IS NULL;',
+      explain: 'The **anti-join**: LEFT JOIN then keep the unmatched rows (`IS NULL`). `NOT EXISTS` works too. Beware `NOT IN` when the subquery can contain NULLs — it returns nothing.',
+    },
+    followups: ['How would you return products not ordered in the **last 30 days**?', 'Why can `NOT IN (subquery)` silently return zero rows?'],
+  },
+  {
+    id: 'sql-gym-null-referrals',
+    track: 'sql',
+    title: 'Referral counts (keep the zeros)',
+    difficulty: 'Easy',
+    pattern: 'NULL handling',
+    companies: ['Meta', 'Airbnb'],
+    minutes: 8,
+    dataset: 'shop',
+    challenge: {
+      kind: 'challenge',
+      id: 'sql-gym-null-referrals',
+      lang: 'sql',
+      title: 'Customers not referred by customer 1',
+      prompt: 'Return the `name` of every customer who was **not** referred by customer `1` — including customers who have **no** referrer at all.',
+      starter: 'SELECT name\nFROM customers\nWHERE referred_by <> 1;',
+      hints: ['The starter silently drops rows where referred_by is NULL.', 'Add `OR referred_by IS NULL`, or use `COALESCE(referred_by, 0) <> 1`.'],
+      solution: 'SELECT name\nFROM customers\nWHERE referred_by <> 1 OR referred_by IS NULL;',
+      explain: '`NULL <> 1` is UNKNOWN, so WHERE drops it. This exact bug is a favourite debugging question.',
+    },
+    followups: ['Rewrite it with `IS DISTINCT FROM` (Postgres) — what does that operator do?'],
+  },
+];
