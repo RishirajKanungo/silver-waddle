@@ -2,6 +2,26 @@
 
 A browser-based course in linear algebra, calculus and probability, machine learning, deep learning and LLMs, aimed at ML engineer and ML-focused software roles. It runs fully offline in the browser: math is rendered with KaTeX, figures are interactive SVG, and Python with a NumPy implementation runs in the page.
 
+## Contents
+
+24 modules in six parts:
+- Linear Algebra
+- Calculus, Probability & Optimization
+- Machine Learning
+- Deep Learning
+- Transformers & LLMs
+- Interview Practice (ML system design, the ML coding round)
+
+In total:
+- 72 lessons (about 44 hours)
+- 173 interactive figures
+- 88 step-by-step derivations
+- 232 problem-set problems, plus 73 paper problems inside lessons
+- 48 graded NumPy exercises
+- 360 review cards
+- 86 drill generators
+- 170 interview questions
+
 ## How it is meant to be used
 
 - **Lessons**: short sections of reading, each followed by a figure you manipulate and a checkpoint. The rest of a lesson opens only after you attempt the checkpoint. Checkpoints include:
