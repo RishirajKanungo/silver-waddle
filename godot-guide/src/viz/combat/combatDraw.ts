@@ -127,24 +127,27 @@ export function stext(ctx: CanvasRenderingContext2D, s: string, x: number, y: nu
   text(ctx, s, x, y, color, align);
 }
 
-/** The arena floor: dungeon tiles when the tileset exists, else a two-tone stone pattern. */
+/** The battle floor: overworld grass (Shardbound fights in the field), with dungeon flagstones or a
+ *  two-tone pattern as fallbacks. A deterministic hash scatters the variants. */
 export function floor(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number) {
-  const ts = SHEETS['tiles_dungeon'];
-  const tiles = ts?.tiles;
-  const f1 = tiles?.floor ?? tiles?.floor1 ?? tiles?.ground;
-  if (ts && f1 !== undefined) {
-    const f2 = tiles?.floor2 ?? f1, f3 = tiles?.floor3 ?? f1;
-    const pick = [f1, f1, f2, f1, f3];
+  const ow = SHEETS['tiles_overworld']?.tiles;
+  if (ow?.grass !== undefined) {
+    const g1 = ow.grass, g2 = ow.grass2 ?? g1, g3 = ow.grass3 ?? g1, fl = ow.flowers ?? g1;
+    const pick = [g1, g1, g2, g1, g3, g1, g2, g1, g1, g3, g1, fl];
     for (let y = y0; y < y1; y += 16)
-      for (let x = x0; x < x1; x += 16) drawFrame(ctx, 'tiles_dungeon', pick[((x * 7 + y * 13) / 16) % 5 | 0], x, y);
+      for (let x = x0; x < x1; x += 16) drawFrame(ctx, 'tiles_overworld', pick[(((x * 7 + y * 13) / 16) | 0) % pick.length], x, y);
+    return;
+  }
+  const tiles = SHEETS['tiles_dungeon']?.tiles;
+  const f1 = tiles?.floor;
+  if (f1 !== undefined) {
+    for (let y = y0; y < y1; y += 16) for (let x = x0; x < x1; x += 16) drawFrame(ctx, 'tiles_dungeon', f1, x, y);
     return;
   }
   for (let y = y0; y < y1; y += 16)
     for (let x = x0; x < x1; x += 16) {
       const v = ((x * 7 + y * 13) / 16) % 3 | 0;
       rect(ctx, x, y, 16, 16, v === 0 ? '#3d3a4c' : v === 1 ? '#423f52' : '#3a3748');
-      rect(ctx, x, y, 16, 1, '#4a4760');
-      rect(ctx, x, y, 1, 16, '#4a4760');
     }
 }
 

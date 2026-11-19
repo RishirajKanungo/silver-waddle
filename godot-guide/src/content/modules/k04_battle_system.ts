@@ -241,12 +241,9 @@ var multiplier_bonus := 0.0
 ## A copy with a different amount, so a target can report what it really took without changing
 ## the HitData that the attacker's Hitbox shares between every target of one swing.
 func with_amount(new_amount: int) -> HitData:
-    var copy := HitData.new()
-    copy.amount = new_amount
-    copy.element = element
+    var copy := HitData.new(new_amount, element, source)
     copy.knockback = knockback
     copy.stagger = stagger
-    copy.source = source
     copy.from_ability = from_ability
     copy.pressures = pressures
     copy.multiplier_bonus = multiplier_bonus
@@ -259,7 +256,8 @@ extends Resource
 ## One ability, spell or item use. Each is a .tres file (braver.tres, fire.tres, potion.tres);
 ## the AbilityRunner executes any of them, so adding an ability needs no new code.
 
-enum Target { ENEMY, ALLY, SELF, ALL_ENEMIES, ALL_ALLIES }
+## The same targets g04 sketched; k04 adds the fields the battle system needs.
+enum Target { SELF, ONE_ENEMY, ALL_ENEMIES, ONE_ALLY, ALL_ALLIES }
 
 @export var display_name := ""
 @export_multiline var description := ""
@@ -269,12 +267,12 @@ enum Target { ENEMY, ALLY, SELF, ALL_ENEMIES, ALL_ALLIES }
 @export var mp_cost := 0
 
 @export_group("Effect")
-@export var target := Target.ENEMY
-## Multiplies the user's attack (or magic, for spells). 0 for pure support.
+@export var target: Target = Target.ONE_ENEMY
+## Multiplies the user's attack (or magic, for spells): r01's DamageCalc reads it the same way.
+## 0 for pure support.
 @export var power := 1.0
 @export var is_magic := false
-## "physical", "fire" or "ice": the same strings HitData uses.
-@export var element := "physical"
+@export var element: Element.Type = Element.Type.NONE
 ## Added to the target's stagger meter.
 @export var stagger := 10.0
 ## Puts the target into the pressured state.
@@ -285,8 +283,8 @@ enum Target { ENEMY, ALLY, SELF, ALL_ENEMIES, ALL_ALLIES }
 @export var heal := 0
 
 @export_group("Presentation")
-## Base name for Character.play_anim(): "attack", "cast" or "guard".
-@export var animation := "cast"
+## Base name for Character.play_anim(): &"attack", &"cast" or &"guard".
+@export var animation: StringName = &"cast"
 ## Seconds from the start of the animation to the effect landing (game time, so it slows in tactical mode).
 @export var cast_time := 0.4
 ## Spawned at each target when the effect lands: a fireball burst, a heal sparkle.
@@ -405,15 +403,12 @@ func _apply(command: BattleCommand) -> void:
 
 
 func _make_hit(ability: AbilityData, target: Character) -> HitData:
-    var hit := HitData.new()
     var stat := magic if ability.is_magic else attack
-    hit.amount = roundi(ability.power * stat)
-    hit.element = ability.element
+    var hit := HitData.new(roundi(ability.power * stat), ability.element, character)
     hit.stagger = ability.stagger
     hit.pressures = ability.pressures
     hit.multiplier_bonus = ability.multiplier_bonus
     hit.from_ability = true
-    hit.source = character
     hit.knockback = (target.global_position - character.global_position).normalized() * 60.0
     return hit
 `;
@@ -460,7 +455,7 @@ enum State { NORMAL, PRESSURED, STAGGERED }
 ## ...at this many points per second.
 @export var decay_rate := 8.0
 ## Elements that pressure this enemy and add 50% stagger.
-@export var weaknesses := PackedStringArray()
+@export var weaknesses: Array[Element.Type] = []
 
 var state := State.NORMAL
 var value := 0.0
@@ -1135,7 +1130,7 @@ The design from k03, as rules an enemy component can enforce:
           steps: [
             md`Create \`resources/abilities/\` and in it \`braver.tres\` (power 4, atb_cost 1, stagger 14, animation \`attack\`, cast_time 0.3) and \`focus_strike.tres\` (power 1.5, stagger 30, multiplier_bonus 0.25). Add a \`potion.tres\` with target \`SELF\`, power 0 and heal 70.`,
             md`Add an \`AbilityRunner\` to Kai, set its \`atb\` export to his \`AtbGauge\` and drag the three \`.tres\` files into \`abilities\`. Add an \`Ability\` state (\`scripts/states/ability.gd\`) and a \`Guard\` state under his \`StateMachine\`.`,
-            md`Open the skeleton scene from k02. Add a \`StaggerComponent\` child, set \`weaknesses\` to \`["ice"]\`, add a \`Staggered\` state under its \`StateMachine\`, and update its windup state as in the fragment above.`,
+            md`Open the skeleton scene from k02. Add a \`StaggerComponent\` child, add \`ICE\` to \`weaknesses\`, add a \`Staggered\` state under its \`StateMachine\`, and update its windup state as in the fragment above.`,
             md`Replace \`scripts/character.gd\` with the listing above and add the new fields to \`hit_data.gd\`.`,
             md`Until k05 builds the menu, test with a debug key: in a test script, on a key press call \`$Kai/AbilityRunner.enqueue(braver, $Skeleton)\` with \`braver\` preloaded from the \`.tres\`.`,
           ],

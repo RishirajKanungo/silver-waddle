@@ -583,18 +583,23 @@ func _physics_process(_delta: float) -> void:
 const HIT_DATA = gd`
 class_name HitData
 extends RefCounted
-## One hit: what a Hitbox hands to the Hurtbox it touches.
+## One hit: what a Hitbox hands to the Hurtbox it touches. The same class as in g04.
 
 ## Damage before defence. The damage formula arrives in r01.
-var amount := 1
-## "physical", "fire", "ice" and so on. Elements become data in r01.
-var element := "physical"
+var amount := 0
+var element: Element.Type = Element.Type.NONE
 ## Velocity given to the target, in px/s. Set from the attacker's facing when the swing starts.
 var knockback := Vector2.ZERO
 ## Added to the target's stagger gauge (k04).
 var stagger := 0.0
-## Who dealt the hit: for hitstop on the attacker, ATB gain and aggro.
-var source: Node = null
+## Who dealt the hit: for hitstop on the attacker, ATB gain and aggro. May be freed later.
+var source: Node
+
+
+func _init(p_amount: int = 0, p_element: Element.Type = Element.Type.NONE, p_source: Node = null) -> void:
+    amount = p_amount
+    element = p_element
+    source = p_source
 `;
 
 const HEALTH = gd`
@@ -637,6 +642,7 @@ extends Area2D
 ## Layer: player_hitbox (5) or enemy_hitbox (6). Mask: none. It is detected, it detects nothing.
 
 @export var damage := 1
+@export var element: Element.Type = Element.Type.NONE
 @export var knockback_speed := 120.0
 @export var stagger := 1.0
 
@@ -648,11 +654,9 @@ var hit := HitData.new()
 
 ## Fill in the hit for a swing in direction dir. Call it before the box turns on.
 func prepare(source: Node, dir: Vector2) -> void:
-    hit = HitData.new()
-    hit.amount = damage
+    hit = HitData.new(damage, element, source)
     hit.knockback = dir.normalized() * knockback_speed
     hit.stagger = stagger
-    hit.source = source
 
 
 ## Turn the box on or off. Deferred, because shapes must not change while physics runs callbacks.
@@ -1364,7 +1368,7 @@ A crate is a \`StaticBody2D\` with a Hurtbox and a HealthComponent. A slime is a
           task: md`Swing at all three objects with **J**. Then select the crate and give it a **Hitbox**: walk into it. Select the slime and remove its **Hurtbox**, then its **HealthComponent** instead. Each change is one node added or removed; no script changes.`,
           caption: md`The panel lists the selected object's child nodes. The event log shows the signals as they fire. Without a HealthComponent the hurt signal still fires but nothing listens, which the log shows as a hit with no effect.`,
         },
-        { kind: 'code', file: 'scripts/resources/hit_data.gd', code: HIT_DATA, note: md`\`HitData\` is a \`RefCounted\`, not a \`Resource\`: it is created at runtime for one swing and never saved to disk. The fields are what every later system needs: \`amount\` for damage (r01), \`knockback\` for k01, \`stagger\` for the stagger gauge (k04), \`source\` for hitstop and ATB gain.` },
+        { kind: 'code', file: 'scripts/resources/hit_data.gd', code: HIT_DATA, note: md`This is g04's \`HitData\`, unchanged. It is a \`RefCounted\`, not a \`Resource\`: it is created at runtime for one swing and never saved to disk. The fields are what every later system needs: \`amount\` for damage (r01), \`knockback\` for k01, \`stagger\` for the stagger gauge (k04), \`source\` for hitstop and ATB gain.` },
         { kind: 'code', file: 'scripts/components/health_component.gd', code: HEALTH, note: md`\`maxi\` and \`mini\` are the integer versions of \`max\` and \`min\`. The early return on \`health <= 0\` matters: two hitboxes can touch a dying slime in the same physics tick, and \`died\` must fire once.` },
         { kind: 'code', file: 'scripts/components/hitbox.gd', code: HITBOX },
         { kind: 'code', file: 'scripts/components/hurtbox.gd', code: HURTBOX, note: md`The Hurtbox does the detecting, so it is the one with \`monitoring\` on and a mask; the Hitbox only needs to be \`monitorable\` on a layer. One detector per pair keeps every hit reported exactly once.` },

@@ -950,7 +950,7 @@ The phase is a function of health, but the *transition* is an event: it plays a 
         {
           kind: 'viz',
           viz: { type: 'combat.ai_phases' },
-          task: md`Drag the golem's HP down slowly and watch the phase and the attack timeline change. Reset, then use **big hit (-45%)** from full health: which phases begin, and in what order? Then drag HP back up past a threshold.`,
+          task: md`Drag the golem's HP down slowly and watch the phase and the attack timeline change. Reset, then use **big hit -75%** from full health: which phases begin, and in what order? Then drag HP back up past a threshold.`,
           caption: md`The timeline shows one attack cycle of the current phase: wind-up (amber, the telegraph), slam (red), recover (blue, the player's opening). The log lists \`phase_changed\` emissions.`,
         },
         {

@@ -358,7 +358,7 @@ export function BossPhasesFig({ spec }: { spec: VizSpec }) {
           <Slider label="golem health" value={hp} min={0} max={MAXHP} step={1} onChange={setHp} />
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <Btn onClick={() => setHp(hp - 6)}>hit -5%</Btn>
-            <Btn onClick={() => setHp(hp - 54)}>big hit -45%</Btn>
+            <Btn onClick={() => setHp(hp - 90)}>big hit -75%</Btn>
             <Btn onClick={() => setHp(hp + 24)}>heal +20%</Btn>
             <Btn
               onClick={() => {

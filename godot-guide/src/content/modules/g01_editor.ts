@@ -236,7 +236,7 @@ The figure simulates exactly this: it draws the game at 320×180, then scales it
           kind: 'steps',
           title: 'Set the display settings',
           steps: [
-            md`Open **Project → Project Settings**, tab **General**. Switch on **Advanced Settings** (top right of the dialog); some settings below are hidden otherwise.`,
+            md`Open **Project → Project Settings**, tab **General**. Switch on **Advanced Settings** (top right of the dialog); some settings below are hidden otherwise. The starter project already ships with these values, so here you are finding each one and confirming it; in your own future projects you set them yourself on day one.`,
             md`**Display → Window**: under *Size* set **Viewport Width** 320, **Viewport Height** 180, **Window Width Override** 1280, **Window Height Override** 720.`,
             md`Still under **Display → Window**, in *Stretch*: **Mode** \`viewport\`, **Aspect** \`keep\`, **Scale Mode** \`integer\`.`,
             md`**Rendering → Textures**: under *Canvas Textures* set **Default Texture Filter** to \`Nearest\`.`,

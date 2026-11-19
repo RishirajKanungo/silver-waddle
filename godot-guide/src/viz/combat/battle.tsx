@@ -231,17 +231,17 @@ function drawHud(ctx: CanvasRenderingContext2D, sim: BattleSim, time: number) {
     const lead = c === sim.leader;
     const ko = c.state === 'ko';
     stext(ctx, (lead ? '>' : ' ') + c.name, x + 4, y + 10, ko ? PAL.hurt : lead ? PAL.weak : PAL.white);
-    stext(ctx, `${c.health.health}`, x + colW - 8, y + 10, c.health.health < c.def.max_hp * 0.3 ? PAL.hurt : PAL.white, 'right');
+    stext(ctx, `${c.health.health}`, single ? 150 : x + colW - 8, y + 10, c.health.health < c.def.max_hp * 0.3 ? PAL.hurt : PAL.white, 'right');
     if (single) {
-      gauge(ctx, x + 40, y + 5, 90, c.health.health / c.def.max_hp, 'hp');
-      stext(ctx, 'ATB', x + 140, y + 10, PAL.atb);
-      drawAtbSegments(ctx, c, x + 160, y + 5, 54, time);
-      stext(ctx, `${Math.floor(c.atb.value)}/${c.atb.maximum}`, x + 276, y + 10, PAL.atb, 'right');
-      gauge(ctx, x + 40, y + 14, 60, c.mp / c.def.max_mp, 'mp');
-      stext(ctx, `MP ${c.mp}`, x + 104, y + 19, PAL.mp);
+      gauge(ctx, 40, y + 5, 88, c.health.health / c.def.max_hp, 'hp');
+      stext(ctx, 'ATB', 156, y + 10, PAL.atb);
+      drawAtbSegments(ctx, c, 178, y + 5, 46, time);
+      stext(ctx, `${Math.floor(c.atb.value)}/${c.atb.maximum}`, W - 7, y + 10, PAL.atb, 'right');
+      gauge(ctx, 40, y + 14, 56, c.mp / c.def.max_mp, 'mp');
+      stext(ctx, `MP ${c.mp}`, 100, y + 19, PAL.mp);
       const cmd = c.running?.cmd ?? c.queue[0];
-      stext(ctx, cmd ? `> ${cmd.ability.name}` : `segment in ${c.last_seg_time ? c.last_seg_time.toFixed(1) + ' s last' : '...'}`, x + 160, y + 19, cmd ? PAL.white : PAL.dim);
-      stext(ctx, sim.mode === 'atb' ? 'hits fill ATB. L: tactical mode' : 'build stagger, then spend ATB', x + 4, y + 29, PAL.dim);
+      stext(ctx, cmd ? `> ${cmd.ability.name}` : c.last_seg_time ? `last segment ${c.last_seg_time.toFixed(1)} s` : 'segment: attack to fill', 156, y + 19, cmd ? PAL.white : PAL.dim);
+      stext(ctx, sim.mode === 'atb' ? 'Hits fill ATB. L: tactical mode' : 'Build stagger, then spend ATB', 6, y + 29, PAL.dim);
     } else {
       gauge(ctx, x + 4, y + 13, colW - 10, c.health.health / c.def.max_hp, 'hp');
       drawAtbSegments(ctx, c, x + 4, y + 20, Math.floor((colW - 36) / 2), time);
@@ -272,6 +272,7 @@ function drawHud(ctx: CanvasRenderingContext2D, sim: BattleSim, time: number) {
     }
   }
   // clock and wave
+  if (sim.menu) return;
   const secs = Math.floor(sim.clock);
   stext(ctx, `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, W - 6, 26 + 4, PAL.dim, 'right');
   if (sim.waves.length > 1) stext(ctx, `wave ${sim.wave}/${sim.waves.length}`, 8, 30, PAL.dim);
@@ -485,7 +486,7 @@ export function BattleFigure({ spec }: { spec: VizSpec }) {
     below = (
       <CodeBlock
         compact
-        file="scenes/components/atb_gauge.gd (tuning)"
+        file="scripts/components/atb_gauge.gd (tuning)"
         code={`@export var segment_size := 100.0
 @export var max_segments := 2
 @export var passive_rate := ${passive.toFixed(1)}
@@ -515,7 +516,7 @@ export function BattleFigure({ spec }: { spec: VizSpec }) {
     below = (
       <CodeBlock
         compact
-        file="scenes/components/stagger_component.gd (tuning)"
+        file="scripts/components/stagger_component.gd (tuning)"
         code={`@export var stagger_max := ${sm.toFixed(1)}
 @export var pressured_gain := ${pg.toFixed(2)}
 @export var base_multiplier := ${bm.toFixed(2)}

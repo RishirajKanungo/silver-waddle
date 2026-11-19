@@ -402,7 +402,7 @@ func _issue(runner: AbilityRunner, ability: AbilityData, target: Node2D) -> void
 
 
 func _targets_for(ability: AbilityData) -> Array[Node2D]:
-    var group := "party" if ability.target == AbilityData.Target.ALLY else "enemies"
+    var group := "party" if ability.target == AbilityData.Target.ONE_ALLY else "enemies"
     var out: Array[Node2D] = []
     for node in get_tree().get_nodes_in_group(group):
         var unit := node as Character
@@ -734,15 +734,12 @@ func _apply(command: BattleCommand) -> void:
 
 
 func _make_hit(ability: AbilityData, target: Character) -> HitData:
-    var hit := HitData.new()
     var stat := magic if ability.is_magic else attack
-    hit.amount = roundi(ability.power * stat)
-    hit.element = ability.element
+    var hit := HitData.new(roundi(ability.power * stat), ability.element, character)
     hit.stagger = ability.stagger
     hit.pressures = ability.pressures
     hit.multiplier_bonus = ability.multiplier_bonus
     hit.from_ability = true
-    hit.source = character
     hit.knockback = (target.global_position - character.global_position).normalized() * 60.0
     return hit
 `;

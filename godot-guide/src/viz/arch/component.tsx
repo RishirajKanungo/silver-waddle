@@ -43,7 +43,7 @@ function buildSteps(dmg: number, hp: number, maxHp: number, invincible: boolean,
       node: ['attack', 'hitbox'],
       edge: 'prep',
       md: `Kai's <b>Attack</b> state enters. <code>hitbox.prepare(character, facing_vector)</code> makes a fresh HitData: amount ${dmg}, knockback (120, 0), source Kai. The hitbox shape is still disabled.`,
-      code: `func prepare(source: Node, dir: Vector2) -> void:\n\thit = HitData.new()\n\thit.amount = damage\n\thit.knockback = dir.normalized() * knockback_speed\n\thit.source = source`,
+      code: `func prepare(source: Node, dir: Vector2) -> void:\n\thit = HitData.new(damage, element, source)\n\thit.knockback = dir.normalized() * knockback_speed\n\thit.stagger = stagger`,
     },
     {
       node: ['hitbox'],
