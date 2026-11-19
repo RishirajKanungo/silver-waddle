@@ -294,6 +294,12 @@ export class PyRaise {
 
 // ---------------- hashing / keys ----------------
 
+/** numpy values (scalars, dtypes, arrays) register their hashing here; values.ts must not import numpy.ts */
+let npKeyHook: ((v: PyObj) => string | undefined) | null = null;
+export function setNpKeyHook(f: (v: PyObj) => string | undefined) {
+  npKeyHook = f;
+}
+
 export function keyOf(v: PyVal): string {
   if (v === null) return 'N';
   if (typeof v === 'boolean') return v ? 'i:1' : 'i:0';
@@ -303,6 +309,10 @@ export function keyOf(v: PyVal): string {
   if (v instanceof PyTuple) return 't:(' + v.items.map(keyOf).join(',') + ')';
   if (v instanceof PySet && v.frozen) return 'fs:{' + [...v.map.keys()].sort().join(',') + '}';
   if (v instanceof PyList || v instanceof PyDict || (v instanceof PySet && !v.frozen)) throw new TypeError(`unhashable type: '${v.typeName}'`);
+  if (npKeyHook && v.typeName.startsWith('numpy.')) {
+    const k = npKeyHook(v);
+    if (k !== undefined) return k;
+  }
   if (v instanceof PyInstance && v.cls.lookup('__hash__') === null) throw new TypeError(`unhashable type: '${v.typeName}'`);
   if (v instanceof PyInstance && (v as PyInstance & { hashKey?: string }).hashKey) return (v as PyInstance & { hashKey?: string }).hashKey!;
   return 'o:' + v.id;

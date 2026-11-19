@@ -9,6 +9,7 @@ import {
   floatRepr, isNum, toBig, toNum, typeNameOf,
 } from './values';
 import { formatSpec } from './format';
+import { NDArray, NPScalar, npAbs, npClassOf, npCopy, npLen, npRound, npToNumber, registerNumpy } from './numpy';
 
 type Kw = Map<string, PyVal>;
 
@@ -56,6 +57,7 @@ export function installBuiltins(I: Interp) {
       if (!isFinite(v)) I.raise(isNaN(v) ? 'ValueError' : 'OverflowError', isNaN(v) ? 'cannot convert float NaN to integer' : 'cannot convert float infinity to integer');
       return BigInt(Math.trunc(v));
     }
+    if (v instanceof NDArray || v instanceof NPScalar) return npToNumber(I, v, true);
     if (typeof v === 'string') {
       const s = v.trim().replace(/_/g, '');
       if (!/^[+-]?\d+$/.test(s)) I.raise('ValueError', `invalid literal for int() with base 10: ${I.primRepr(v)}`);
@@ -72,6 +74,7 @@ export function installBuiltins(I: Interp) {
     const v = a[0];
     if (typeof v === 'number') return v;
     if (typeof v === 'bigint' || typeof v === 'boolean') return toNum(v);
+    if (v instanceof NDArray || v instanceof NPScalar) return npToNumber(I, v, false);
     if (typeof v === 'string') {
       const s = v.trim().toLowerCase();
       if (s === 'inf' || s === '+inf' || s === 'infinity') return Infinity;
@@ -119,6 +122,7 @@ export function installBuiltins(I: Interp) {
   });
   mk('range', (a) => {
     const ints = a.map((x) => {
+      if (x instanceof NPScalar && x.dtype === 'int64') return BigInt(x.v);
       if (typeof x !== 'bigint' && typeof x !== 'boolean') I.raise('TypeError', `'${typeNameOf(x)}' object cannot be interpreted as an integer`);
       return toBig(x as bigint);
     });
@@ -216,6 +220,7 @@ export function installBuiltins(I: Interp) {
     if (v instanceof PyDict || v instanceof PySet) return BigInt(v.map.size);
     if (v instanceof PyRange) return v.length;
     if (v instanceof PyDictView) return BigInt(v.dict.map.size);
+    if (v instanceof NDArray) return npLen(I, v);
     if (v instanceof PyInstance) {
       const m = v.cls.lookup('__len__');
       if (m) return yield* I.call(m, [v]);
@@ -239,6 +244,7 @@ export function installBuiltins(I: Interp) {
       return n < 0n ? -n : n;
     }
     if (v instanceof PyInstance && v.cls.lookup('__abs__')) return yield* I.call(v.cls.lookup('__abs__')!, [v]);
+    if (v instanceof NDArray || v instanceof NPScalar) return npAbs(I, v);
     I.raise('TypeError', `bad operand type for abs(): '${typeNameOf(v)}'`);
   });
   fn('isinstance', (a) => {
@@ -390,6 +396,7 @@ export function installBuiltins(I: Interp) {
   });
   fn('round', (a) => {
     const v = a[0];
+    if (v instanceof NDArray || v instanceof NPScalar) return npRound(I, v, a[1]);
     const nd = a.length > 1 && a[1] !== null ? Number(toBig(a[1] as bigint)) : null;
     if (typeof v === 'bigint' || typeof v === 'boolean') return toBig(v);
     if (typeof v !== 'number') I.raise('TypeError', `type ${typeNameOf(v)} doesn't define __round__ method`);
@@ -533,7 +540,7 @@ export function classOf(I: Interp, v: PyVal): PyClass {
   if (v instanceof PyGenerator) return T.generator;
   if (v instanceof PyModule) return T.module;
   if (v instanceof PyBoundMethod) return T.method;
-  return T.object;
+  return npClassOf(I, v) ?? T.object;
 }
 
 export function* sortList(I: Interp, items: PyVal[], key: PyVal, reverse: boolean): G<void> {
@@ -1079,6 +1086,7 @@ export function methodOf(I: Interp, o: PyVal, name: string): PyVal | null {
 
 function registerModules(I: Interp) {
   const T = I.T;
+  registerNumpy(I);
   const mod = (name: string, build: (d: Map<string, PyVal>) => void) => {
     I.moduleFactories.set(name, () => {
       const d = new Map<string, PyVal>();
@@ -1088,10 +1096,12 @@ function registerModules(I: Interp) {
   };
   const f = (d: Map<string, PyVal>, name: string, impl: BuiltinImpl) => d.set(name, new PyBuiltin(name, impl));
   const num = (v: PyVal) => {
+    if (v instanceof NDArray || v instanceof NPScalar) return npToNumber(I, v, false) as number;
     if (!isNum(v)) I.raise('TypeError', `must be real number, not ${typeNameOf(v)}`);
     return toNum(v as number);
   };
   const int = (v: PyVal) => {
+    if (v instanceof NPScalar && v.dtype !== 'float64') return BigInt(v.v);
     if (typeof v !== 'bigint' && typeof v !== 'boolean') I.raise('TypeError', `'${typeNameOf(v)}' object cannot be interpreted as an integer`);
     return toBig(v as bigint);
   };
@@ -1715,6 +1725,7 @@ function registerModules(I: Interp) {
     f(d, 'copy', (a) => {
       const v = a[0];
       if (v instanceof PyList) return new PyList([...v.items]);
+      if (v instanceof NDArray) return npCopy(v);
       if (v instanceof PyDict) return DICT.copy(I, v, [], new Map()) as PyVal;
       if (v instanceof PySet) return SET.copy(I, v, [], new Map()) as PyVal;
       if (v instanceof PyInstance) {
@@ -1727,6 +1738,7 @@ function registerModules(I: Interp) {
     const deep = (v: PyVal, memo: Map<number, PyVal>): PyVal => {
       if (v === null || typeof v !== 'object') return v;
       if (memo.has(v.id)) return memo.get(v.id)!;
+      if (v instanceof NDArray) return npCopy(v);
       if (v instanceof PyList) {
         const n = new PyList();
         memo.set(v.id, n);

@@ -15,6 +15,10 @@ import {
 } from './values';
 import { installBuiltins, methodOf } from './builtins';
 import { formatSpec, percentFormat } from './format';
+import {
+  NDArray, NPDtype, NPScalar, npBinop, npContains, npEq, npFormat, npGetAttr, npGetItem, npInplace, npIter, npRepr, npSetAttr, npSetItem, npStr,
+  npToPy, npTruth, npUnary, npElementStrings, scalarStr, shapeStr,
+} from './numpy';
 
 export type Ev =
   | { ev: 'line'; line: number }
@@ -29,12 +33,17 @@ type Sig = undefined | { sig: 'break' } | { sig: 'continue' } | { sig: 'return';
 export type SVal = { t: 'prim'; type: string; repr: string; raw?: string } | { t: 'ref'; id: number };
 export interface SObj {
   id: number;
-  kind: 'list' | 'tuple' | 'set' | 'dict' | 'instance' | 'function' | 'class' | 'deque' | 'range' | 'other';
+  kind: 'list' | 'tuple' | 'set' | 'dict' | 'instance' | 'function' | 'class' | 'deque' | 'range' | 'ndarray' | 'other';
   type: string;
   items?: SVal[];
   entries?: [SVal, SVal][];
   attrs?: [string, SVal][];
   label?: string;
+  /** ndarray only: shape, dtype name, and element strings (numpy str() formatting, row-major, capped) */
+  shape?: number[];
+  dtype?: string;
+  values?: string[];
+  truncated?: boolean;
 }
 export interface SFrame {
   id: number;
@@ -222,6 +231,8 @@ export class Interp {
     const queue: PyObj[] = [];
     const sval = (v: PyVal): SVal => {
       if (v === null || typeof v !== 'object') return typeof v === 'string' ? { t: 'prim', type: 'str', repr: this.primRepr(v), raw: v.slice(0, 300) } : { t: 'prim', type: typeNameOf(v), repr: this.primRepr(v) };
+      if (v instanceof NPScalar) return { t: 'prim', type: v.dtype, repr: scalarStr(v) };
+      if (v instanceof NPDtype) return { t: 'prim', type: 'dtype', repr: `dtype('${v.name}')` };
       if (v instanceof PyModule || v instanceof PyBuiltin || (v instanceof PyClass && v.builtin)) return { t: 'prim', type: v.typeName, repr: v instanceof PyModule ? `<module '${v.name}'>` : v instanceof PyClass ? `<class '${v.name}'>` : `<built-in ${v.name}>` };
       if (!heap[v.id]) {
         heap[v.id] = { id: v.id, kind: 'other', type: v.typeName };
@@ -269,6 +280,13 @@ export class Interp {
         e.kind = 'class';
         e.label = o.name;
         e.attrs = [...o.dict].filter(([k]) => !(k.startsWith('__') && k.endsWith('__'))).map(([k, v]) => [k, sval(v)]);
+      } else if (o instanceof NDArray) {
+        e.kind = 'ndarray';
+        e.shape = [...o.shape];
+        e.dtype = o.dtype;
+        const { values, truncated } = npElementStrings(this, o);
+        e.values = values;
+        e.truncated = truncated;
       } else if (o instanceof PyRange) {
         e.kind = 'range';
         e.label = `range(${o.start}, ${o.stop}${o.step !== 1n ? ', ' + o.step : ''})`;
@@ -328,7 +346,9 @@ export class Interp {
       if (t !== undefined) s += `    ${t.trim()}\n`;
     }
     const msg = this.excMessage(r.exc);
-    return s + r.exc.cls.name + (msg ? ': ' + msg : '');
+    const c = r.exc.cls as PyClass & { module?: string; qualname?: string };
+    const name = c.qualname ?? (c.module ? c.module + '.' + c.name : c.name);
+    return s + name + (msg ? ': ' + msg : '');
   }
 
   // ---------------- scopes ----------------
@@ -669,6 +689,10 @@ export class Interp {
   }
 
   *inplace(op: string, a: PyVal, b: PyVal): G<PyVal> {
+    if (a instanceof NDArray) {
+      const r = npInplace(this, op, a, b);
+      if (r !== undefined) return r;
+    }
     // lists/sets/dicts mutate in place (this is why `a += [1]` affects aliases!)
     if (a instanceof PyList && op === '+') {
       a.items.push(...(yield* this.toArray(b)));
@@ -773,6 +797,7 @@ export class Interp {
           const n = toBig(a);
           return e.op === '-' ? -n : e.op === '+' ? n : ~n;
         }
+        if (a instanceof NDArray || a instanceof NPScalar) return npUnary(this, e.op, a);
         if (a instanceof PyInstance) {
           const m = a.cls.lookup(e.op === '-' ? '__neg__' : e.op === '+' ? '__pos__' : '__invert__');
           if (m) return yield* this.call(m, [a]);
@@ -1059,6 +1084,7 @@ export class Interp {
   }
 
   shortRepr(v: PyVal): string {
+    if (v instanceof NDArray && v.size > 16) return `array(shape=${shapeStr(v.shape)}, dtype=${v.dtype})`;
     try {
       const s = this.runSync(this.repr(v));
       return s.length > 30 ? s.slice(0, 27) + '...' : s;
@@ -1069,6 +1095,7 @@ export class Interp {
 
   // ---------------- attributes ----------------
   *getAttr(o: PyVal, name: string): G<PyVal> {
+    if (o instanceof NDArray || o instanceof NPScalar || o instanceof NPDtype) return npGetAttr(this, o, name);
     if (o instanceof PyInstance) {
       const cv = o.cls.lookup(name);
       if (cv instanceof PyProperty) return yield* this.call(cv.fget, [o]);
@@ -1181,11 +1208,13 @@ export class Interp {
       return;
     }
     if (o instanceof PyFunc) return;
+    if (o instanceof NDArray) return npSetAttr(this, o, name, v);
     this.raise('AttributeError', `'${typeNameOf(o)}' object has no attribute '${name}'`);
   }
 
   // ---------------- items ----------------
   index(len: number, i: PyVal, what: string): number {
+    if (i instanceof NPScalar && i.dtype === 'int64') i = BigInt(i.v);
     if (!(typeof i === 'bigint' || typeof i === 'boolean')) {
       if (i instanceof PyInstance) {
         this.raise('TypeError', `${what} indices must be integers or slices, not ${typeNameOf(i)}`);
@@ -1201,6 +1230,7 @@ export class Interp {
   sliceIdx(len: number, sl: PySlice): number[] {
     const num = (v: PyVal, name: string) => {
       if (v === null) return null;
+      if (v instanceof NPScalar && v.dtype === 'int64') return v.v;
       if (typeof v === 'bigint' || typeof v === 'boolean') return Number(toBig(v));
       this.raise('TypeError', `slice indices must be integers or None or have an __index__ method`);
       void name;
@@ -1223,6 +1253,7 @@ export class Interp {
   }
 
   *getItem(o: PyVal, i: PyVal): G<PyVal> {
+    if (o instanceof NDArray) return npGetItem(this, o, i);
     if (o instanceof PyList || o instanceof PyTuple || o instanceof PyDeque) {
       if (i instanceof PySlice) {
         const idx = this.sliceIdx(o.items.length, i);
@@ -1268,6 +1299,7 @@ export class Interp {
   }
 
   *setItem(o: PyVal, i: PyVal, v: PyVal): G<void> {
+    if (o instanceof NDArray) return npSetItem(this, o, i, v);
     if (o instanceof PyList || o instanceof PyDeque) {
       if (i instanceof PySlice && o instanceof PyList) {
         const vals = yield* this.toArray(v);
@@ -1345,6 +1377,7 @@ export class Interp {
   // ---------------- iteration ----------------
   *iter(v: PyVal): G<PyIter> {
     if (v instanceof PyIter) return v;
+    if (v instanceof NDArray) return npIter(this, v);
     if (v instanceof PyGenerator) return this.genIter(v);
     if (v instanceof PyList || v instanceof PyDeque) {
       let i = 0;
@@ -1489,6 +1522,7 @@ export class Interp {
     if (v instanceof PyDict) return v.map.size > 0;
     if (v instanceof PySet) return v.map.size > 0;
     if (v instanceof PyRange) return v.length > 0n;
+    if (v instanceof NDArray || v instanceof NPScalar) return npTruth(this, v);
     if (v instanceof PyInstance) {
       const b = v.cls.lookup('__bool__');
       if (b) return !!(yield* this.call(b, [v]));
@@ -1503,6 +1537,7 @@ export class Interp {
 
   eq(a: PyVal, b: PyVal): boolean {
     if (a === b) return true;
+    if (a instanceof NPScalar || b instanceof NPScalar || a instanceof NPDtype || b instanceof NPDtype) return npEq(this, a, b)!;
     if (isNum(a) && isNum(b)) {
       if (typeof a === 'number' || typeof b === 'number') return toNum(a) === toNum(b);
       return toBig(a) === toBig(b);
@@ -1540,6 +1575,16 @@ export class Interp {
 
   /** Ordering: returns <0, 0, >0. Throws TypeError for unorderable types. */
   cmpOrder(a: PyVal, b: PyVal, op = '<'): number {
+    if (a instanceof NPScalar) a = npToPy(a);
+    if (b instanceof NPScalar) b = npToPy(b);
+    if (a instanceof NDArray || b instanceof NDArray) {
+      const r = npBinop(this, op === '>' || op === '>=' ? '>' : '<', a, b);
+      if (r !== undefined) {
+        if (this.truthSync(r)) return op === '>' || op === '>=' ? 1 : -1;
+        const r2 = npBinop(this, op === '>' || op === '>=' ? '<' : '>', a, b);
+        return this.truthSync(r2!) ? (op === '>' || op === '>=' ? -1 : 1) : 0;
+      }
+    }
     if (isNum(a) && isNum(b)) {
       if (typeof a === 'number' || typeof b === 'number') {
         const x = toNum(a), y = toNum(b);
@@ -1573,6 +1618,15 @@ export class Interp {
   }
 
   *compare(op: string, a: PyVal, b: PyVal): G<PyVal> {
+    if (op !== 'is' && op !== 'is not' && op !== 'in' && op !== 'not in') {
+      if (a instanceof NPDtype || b instanceof NPDtype) {
+        if (op === '==') return npEq(this, a, b)!;
+        if (op === '!=') return !npEq(this, a, b);
+      } else if (a instanceof NDArray || a instanceof NPScalar || b instanceof NDArray || b instanceof NPScalar) {
+        const r = npBinop(this, op, a, b);
+        if (r !== undefined) return r;
+      }
+    }
     switch (op) {
       case '==':
         return this.eq(a, b);
@@ -1611,6 +1665,7 @@ export class Interp {
       if (typeof x !== 'string') this.raise('TypeError', `'in <string>' requires string as left operand, not ${typeNameOf(x)}`);
       return container.includes(x);
     }
+    if (container instanceof NDArray) return npContains(this, container, x);
     if (container instanceof PyDict) return container.has(this.hashable(x));
     if (container instanceof PySet) return container.has(this.hashable(x));
     if (container instanceof PyList || container instanceof PyTuple || container instanceof PyDeque) return container.items.some((y) => this.eq(y, x));
@@ -1639,6 +1694,10 @@ export class Interp {
   // ---------------- arithmetic ----------------
   *binop(op: string, a: PyVal, b: PyVal): G<PyVal> {
     if (isNum(a) && isNum(b)) return this.numop(op, a, b);
+    if (a instanceof NDArray || a instanceof NPScalar || b instanceof NDArray || b instanceof NPScalar) {
+      const r = npBinop(this, op, a, b);
+      if (r !== undefined) return r;
+    }
     if (a instanceof PyInstance) {
       const m = a.cls.lookup(`__${DUNDER[op]}__`);
       if (m) {
@@ -1809,6 +1868,7 @@ export class Interp {
   }
 
   private *reprObj(v: PyObj): G<string> {
+    if (v instanceof NDArray || v instanceof NPScalar || v instanceof NPDtype) return npRepr(this, v);
     const items = function* (self: Interp, xs: PyVal[]): G<string> {
       const parts: string[] = [];
       for (const x of xs) parts.push(yield* self.repr(x));
@@ -1836,6 +1896,7 @@ export class Interp {
     if (v instanceof PyRange) return `range(${v.start}, ${v.stop}${v.step !== 1n ? ', ' + v.step : ''})`;
     if (v instanceof PyFunc) return `<function ${v.owner ? v.owner.name + '.' : ''}${v.name} at 0x${(0x7f0000 + v.id).toString(16)}>`;
     if (v instanceof PyBuiltin) return `<built-in function ${v.name}>`;
+    if (v instanceof PyClass && (v as PyClass & { module?: string }).module) return `<class '${(v as PyClass & { module?: string }).module}.${v.name}'>`;
     if (v instanceof PyClass) return v.builtin && v.builtin !== 'exception' ? `<class '${v.name}'>` : v.builtin === 'exception' && v.name in this.T ? `<class '${v.name}'>` : `<class '__main__.${v.name}'>`;
     if (v instanceof PyModule) return `<module '${v.name}'>`;
     if (v instanceof PyBoundMethod) return `<bound method ${v.func instanceof PyFunc ? v.func.name : '?'}>`;
@@ -1858,6 +1919,7 @@ export class Interp {
 
   *str(v: PyVal): G<string> {
     if (typeof v === 'string') return v;
+    if (v instanceof NDArray || v instanceof NPScalar || v instanceof NPDtype) return npStr(this, v);
     if (v instanceof PyInstance) {
       const m = v.cls.lookup('__str__');
       if (m) return (yield* this.call(m, [v])) as string;
@@ -1867,6 +1929,11 @@ export class Interp {
   }
 
   *format(v: PyVal, spec: string): G<string> {
+    if (v instanceof NDArray || v instanceof NPScalar || v instanceof NPDtype) {
+      const r = npFormat(this, v, spec);
+      if (!(v instanceof NPScalar)) return r as string;
+      v = r;
+    }
     if (v instanceof PyInstance) {
       const m = v.cls.lookup('__format__');
       if (m) return (yield* this.call(m, [v, spec])) as string;

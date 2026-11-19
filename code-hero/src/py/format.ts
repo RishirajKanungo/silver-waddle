@@ -2,8 +2,10 @@
 
 import type { Interp, G } from './interp';
 import { PyDict, PyTuple, PyVal, floatRepr, isNum, toBig, toNum, typeNameOf } from './values';
+import { NPScalar, npToPy } from './numpy';
 
 export function formatSpec(v: PyVal, spec: string, I: Interp): string {
+  if (v instanceof NPScalar) v = npToPy(v);
   const m = /^(?:(.)?([<>=^]))?([+\- ])?(#)?(0)?(\d+)?([,_])?(?:\.(\d+))?([bcdeEfFgGnosxX%])?$/s.exec(spec);
   if (!m) I.raise('ValueError', `Invalid format specifier '${spec}' for object of type '${typeNameOf(v)}'`);
   let [, fill, align, sign, alt, zero, widthS, group, precS, type] = m;
@@ -108,6 +110,7 @@ export function* percentFormat(I: Interp, fmt: string, arg: PyVal): G<string> {
       if (i >= args.length) I.raise('TypeError', 'not enough arguments for format string');
       v = args[i++];
     }
+    if (v instanceof NPScalar) v = npToPy(v);
     let s: string;
     if (conv === 's') s = yield* I.str(v);
     else if (conv === 'r') s = yield* I.repr(v);
