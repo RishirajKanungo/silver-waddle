@@ -127,7 +127,7 @@ extends Node
 
 @export var curve: XpCurve
 
-@onready var progression: Node = $Progression
+@onready var progression = $Progression  # untyped: its script's signal is not on Node
 
 
 func _ready() -> void:
@@ -423,7 +423,7 @@ Shardbound's answer is divisive with $k = 100$: party stats stay roughly between
             md`Create \`scenes/tests/damage_table.tscn\` with a \`Node\` root named \`DamageTable\` and attach a new script \`scripts/tests/damage_table.gd\` with the listing below.`,
             md`Press **F6** to run the scene and read the Output panel. Then select the root and change **Kai Attack** in the Inspector to 12 and run again.`,
           ],
-          result: md`A four-row table of hits to kill. At attack 20 the golem (defence 30) takes 600 hits with the subtractive formula, 38 with divisive, and 75 with relative. At attack 12 the skeleton (defence 14) joins the golem as a subtractive wall.`,
+          result: md`A four-row table of hits to kill. At attack 20 the golem (defence 30) takes 600 hits with the subtractive formula, 40 with divisive, and 75 with relative. At attack 12 the skeleton (defence 14) joins the golem as a subtractive wall.`,
           troubleshoot: [
             { problem: md`"Identifier DamageFormulas not declared".`, fix: md`The \`class_name\` registers when the script is saved without errors. Save \`damage_formulas.gd\` first; if it still fails, check for a parse error in that file.` },
             { problem: md`All hits-to-kill numbers are off by one or zero.`, fix: md`\`hp / sub\` with two \`int\`s truncates. The listing converts to \`float\` and uses \`ceili\` to round up: 40 HP at 16 damage is 3 hits, not 2.` },
@@ -438,7 +438,7 @@ Shardbound's answer is divisive with $k = 100$: party stats stay roughly between
             goal: md`Extend the damage table so it flags every pairing that a designer should look at.`,
             requirements: [
               md`Each row also prints the damage per hit for each formula, not only the hits to kill.`,
-              md`Any pairing that takes more than 20 hits is marked with \`WALL\`.`,
+              md`Any pairing that takes more than 50 hits is marked with \`WALL\`.`,
               md`Any pairing where one more point of enemy defence would cut the damage by 25% or more is marked \`EDGE\` (test it by computing the formula again with \`defence + 1\`).`,
               md`At Kai attack 20, the golem is a WALL under subtractive and relative but not divisive.`,
             ],
@@ -461,14 +461,14 @@ const ENEMIES := [
 ]
 
 @export var kai_attack := 20
-@export var wall_hits := 20
+@export var wall_hits := 50
 
 
 func _ready() -> void:
     for e in ENEMIES:
         var hp: int = e.hp
         var d: int = e.defence
-        var cells: Array[String] = []
+        var cells := PackedStringArray()
         for formula in ["subtractive", "divisive", "relative"]:
             var dmg := _damage(formula, kai_attack, d)
             var dmg_next := _damage(formula, kai_attack, d + 1)
@@ -644,7 +644,7 @@ So decide the pacing first ("each level takes 15 to 25 minutes, rising slowly"),
             md`Create \`scenes/tests/xp_test.tscn\`: a \`Node\` root named \`XpTest\` with a child \`Node\` named \`Progression\`. Attach \`scripts/progression.gd\` (the build solution below; type it first or copy it) to \`Progression\` and \`scripts/tests/xp_test.gd\` (listing below) to the root. Drag \`xp_curve.tres\` into the **Curve** slot of both.`,
             md`Press **F6** and read the Output panel.`,
           ],
-          result: md`Four table lines (level 2: 283 to next, 100 total; level 20: 8944 to next, 67135 total), then "reached level 2" through "reached level 6", then "now level 6 with 10 XP into it" and "level for 5000 total XP: 5".`,
+          result: md`Four table lines (level 2: 283 to next, 100 total; level 20: 8944 to next, 67135 total), then "reached level 2" through "reached level 6", then "now level 6 with 10 XP into it" and "level for 5000 total XP: 7".`,
           troubleshoot: [
             { problem: md`\`XpCurve\` does not appear in the Create New Resource dialog.`, fix: md`The script needs \`class_name XpCurve\` and \`extends Resource\`, and it must be saved without errors. Reopen the dialog after saving.` },
             { problem: md`"Invalid access to property or key 'xp_to_next' on a base object of type 'Nil'".`, fix: md`The \`curve\` export is empty on one of the nodes. Drag \`xp_curve.tres\` into both.` },
@@ -670,7 +670,7 @@ So decide the pacing first ("each level takes 15 to 25 minutes, rising slowly"),
               md`Divide with a \`float\` on one side, or the bar will snap between 0 and 1.`,
             ],
             solution: [{ file: 'scripts/progression.gd', code: PROGRESSION }],
-            explain: md`Keeping XP relative to the current level means the threshold is always \`xp_to_next(level)\`, and the loop subtracts it each time a level is paid out, which is exactly the carry-over. r02 attaches one of these to each party member and plays \`fx_levelup\` from the signal.`,
+            explain: md`Keeping XP relative to the current level means the threshold is always \`xp_to_next(level)\`, and the loop subtracts it each time a level is paid out, which is exactly the carry-over. The \`level_gained\` signal is where stat growth (r01) and the \`fx_levelup\` effect hook in.`,
           },
         },
         {
@@ -796,7 +796,7 @@ To pick one: roll a number in $[0, \text{total})$, then walk the entries, subtra
           answer: 0,
           explain: md`The roll is $0.83 \times 100 = 83$. Subtract 50 (33 left, not below 30), subtract 30 (3 left, below 15): the third entry, potion. The cumulative boundaries are 50, 80, 95, 99, 100, and 83 lies between 80 and 95.`,
         },
-        { kind: 'code', file: 'scripts/tests/drop_test.gd', code: DROP_TEST, note: md`Seeding the generator (\`rng.seed = 7\`) makes every run identical, which is what you want in a test. In the game, leave the seed alone; \`RandomNumberGenerator.new()\` starts from a random seed. r03 turns the table into a \`Resource\` so designers edit it in the Inspector.` },
+        { kind: 'code', file: 'scripts/tests/drop_test.gd', code: DROP_TEST, note: md`Seeding the generator (\`rng.seed = 7\`) makes every run identical, which is what you want in a test. In the game, leave the seed alone; \`RandomNumberGenerator.new()\` starts from a random seed. A shipping version keeps the table in a \`Resource\` so designers edit it in the Inspector; r03 covers loot tables.` },
         {
           kind: 'text',
           md: md`### Streaks, pity and pseudo-random distribution
@@ -851,7 +851,7 @@ Because of the ceiling, hits to kill changes in steps: damage only matters when 
           title: 'Spreadsheets as code',
           md: md`Balance lives in tables: every party member against every enemy, in hits and seconds. Many studios keep those tables in spreadsheets; in Godot you can keep them next to the game as an \`EditorScript\`, a script that runs inside the editor when you choose **File → Run** in the script editor (Ctrl+Shift+X). Its advantages over a separate spreadsheet: it calls the real \`DamageFormulas\`, so the numbers can never drift from the game's, and later (r01, r03) it can load the real \`.tres\` resources instead of literal tables. Check the sheet after every stat change, and look for walls, breakpoints, and party members whose numbers are far from the others'.`,
         },
-        { kind: 'code', file: 'scripts/tools/balance_sheet.gd', code: BALANCE, note: md`\`@tool\` with \`extends EditorScript\` and a \`_run()\` function is all an editor script needs. It prints, for example, \`Kai  slime 2.3 s  skeleton 2.6 s  golem 15.4 s\` with the numbers in the listing.` },
+        { kind: 'code', file: 'scripts/tools/balance_sheet.gd', code: BALANCE, note: md`\`@tool\` with \`extends EditorScript\` and a \`_run()\` function is all an editor script needs. With the numbers in the listing, Kai's line reads slime 0.8 s, skeleton 1.9 s, golem 15.2 s.` },
         {
           kind: 'build',
           ch: {
