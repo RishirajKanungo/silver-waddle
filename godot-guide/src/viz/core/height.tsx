@@ -5,7 +5,7 @@
 // Positions are ground footprints; everything (player, plateaus) is drawn shifted up by its height.
 import { useMemo, useRef, useState } from 'react';
 import type { VizSpec } from '../../content/types';
-import { GameCanvas, Keys, text, rect, playSound, type Input } from '../game';
+import { GameCanvas, Keys, text, rect, playSound, drawFrame, SHEETS, type Input } from '../game';
 import { Slider, Toggle, Readout, FigureLayout } from '../kit';
 import { CodeBlock } from '../../ui/GameCells';
 import { type Box, moveToward2, feetHit, inBox, drawChar, drawGrass, drawWall, drawShadow } from './motionkit';
@@ -24,8 +24,8 @@ interface Plateau {
 // footprints on the ground plane; P2 sits on top of P1; P3 is across a 32 px gap from P1
 const PLATEAUS: Plateau[] = [
   { box: [40, 72, 160, 80], level: 1 },
-  { box: [112, 80, 72, 40], level: 2 },
-  { box: [232, 104, 72, 48], level: 1 },
+  { box: [112, 80, 64, 48], level: 2 },
+  { box: [232, 104, 64, 48], level: 1 },
 ];
 
 export function HeightLab({ spec }: { spec: VizSpec }) {
@@ -118,16 +118,28 @@ export function HeightLab({ spec }: { spec: VizSpec }) {
     const top = y - p.level * LEVEL_HEIGHT;
     const base = p.level - 1; // nested plateaus stand on the level below
     const faceTop = y + h - p.level * LEVEL_HEIGHT, faceH = (p.level - base) * LEVEL_HEIGHT;
-    // top surface: lighter grass, brighter for higher levels
-    rect(ctx, x, top, w, h, p.level === 2 ? '#8cc25a' : '#74ae4c');
-    for (let gy = top + 6; gy < top + h - 2; gy += 9) for (let gx = x + 5 + ((gy / 9) % 2) * 6; gx < x + w - 3; gx += 13) rect(ctx, gx, gy, 2, 1, p.level === 2 ? '#a2d052' : '#8cc25a');
-    rect(ctx, x, top, w, 1, '#c8e890');
-    // cliff face
-    rect(ctx, x, faceTop, w, faceH, '#9c5e3c');
-    for (let fy = faceTop + 4; fy < faceTop + faceH; fy += 5) rect(ctx, x, fy, w, 1, '#64392c');
-    for (let fx = x + 7; fx < x + w; fx += 11) rect(ctx, fx, faceTop + 1, 1, faceH - 2, '#cf9058');
-    rect(ctx, x, faceTop + faceH - 1, w, 1, '#33202a');
-    text(ctx, `${p.level * LEVEL_HEIGHT} px`, x + w - 3, faceTop + faceH - 4, '#fbf6e6', 'right');
+    const T = SHEETS['tiles_overworld']?.tiles;
+    if (T && T.cliff_c !== undefined && T.cliff_base !== undefined) {
+      // the art's cliff block: a 3×3 plateau top and a face row along the bottom
+      const cols = Math.round(w / 16), rows = Math.round(h / 16);
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++) {
+          const key = (r === 0 ? 't' : r === rows - 1 ? 'b' : '') + (c === 0 ? 'l' : c === cols - 1 ? 'r' : '');
+          drawFrame(ctx, 'tiles_overworld', T['cliff_' + (key || 'c')] ?? T.cliff_c, x + c * 16, top + r * 16);
+        }
+      // a light tint per level, so the heights read at a glance
+      rect(ctx, x + 1, top + 1, w - 2, h - 2, `rgba(255,250,210,${0.1 * p.level})`);
+      for (let k = 0; k < faceH / 16; k++)
+        for (let c = 0; c < cols; c++) drawFrame(ctx, 'tiles_overworld', T['cliff_base' + (c === 0 ? '_l' : c === cols - 1 ? '_r' : '')] ?? T.cliff_base, x + c * 16, faceTop + k * 16);
+    } else {
+      rect(ctx, x, top, w, h, p.level === 2 ? '#8cc25a' : '#74ae4c');
+      rect(ctx, x, top, w, 1, '#c8e890');
+      rect(ctx, x, faceTop, w, faceH, '#9c5e3c');
+      for (let fy = faceTop + 4; fy < faceTop + faceH; fy += 5) rect(ctx, x, fy, w, 1, '#64392c');
+      rect(ctx, x, faceTop + faceH - 1, w, 1, '#33202a');
+    }
+    rect(ctx, x + w - 36, faceTop + faceH - 11, 34, 9, 'rgba(0,0,0,0.55)');
+    text(ctx, `${p.level * LEVEL_HEIGHT} px`, x + w - 4, faceTop + faceH - 3, '#fbf6e6', 'right');
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {

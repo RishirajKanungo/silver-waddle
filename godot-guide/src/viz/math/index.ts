@@ -8,6 +8,11 @@ import { IntegratorLab } from './integrators';
 import { JumpLab } from './jumplab';
 import { ProjectileLab } from './projectile';
 import { SmoothingLab } from './smoothing';
+import { EasingLab, TRANS } from './easing';
+import { BezierLab } from './bezier';
+import { SpringLab } from './spring';
+import { ShakeLab } from './shake';
+import { OrbitLab } from './orbit';
 
 const oneOf = (key: string, values: string[], optional = true) => (s: VizSpec) =>
   (optional && s[key] === undefined) || values.includes(s[key] as string) ? null : `${key} must be one of ${values.join(', ')}`;
@@ -63,5 +68,30 @@ export const VIZ: Record<string, VizDef> = {
     component: SmoothingLab,
     validate: oneOf('method', ['naive', 'exp']),
     doc: "Playable: three follow cameras at 30/60/144 fps using per-frame lerp(weight) or 1 − exp(−k·delta), with a step-response plot. Optional method 'naive' | 'exp'.",
+  },
+  'math.easing': {
+    component: EasingLab,
+    validate: all(oneOf('trans', TRANS), oneOf('ease', ['in', 'out', 'in_out'])),
+    doc: "Easing explorer: Godot TRANS_* × EASE_* curves, a sprite and a UI panel moving with them, and the create_tween() code. Optional trans ('linear' | 'sine' | 'quad' | 'cubic' | 'expo' | 'back' | 'elastic' | 'bounce'), ease ('in' | 'out' | 'in_out').",
+  },
+  'math.bezier': {
+    component: BezierLab,
+    validate: oneOf('kind', ['quadratic', 'cubic']),
+    doc: "Quadratic / cubic Bezier with draggable control points, De Casteljau construction, uniform-t vs even-spacing samples, and lerp code. Optional kind.",
+  },
+  'math.spring': {
+    component: SpringLab,
+    validate: all(num('frequency', 0.5, 8), num('damping', 0, 1.5)),
+    doc: 'Spring lab: frequency / damping ratio, draggable target, squash and stretch, step response with overshoot, settle time, and spring_follow.gd. Optional frequency, damping.',
+  },
+  'math.shake': {
+    component: ShakeLab,
+    validate: oneOf('kind', ['noise', 'random']),
+    doc: "Playable trauma screen shake: J/K add trauma, shake = trauma^p, Perlin noise vs per-frame random, strip chart and shake_camera.gd. Optional kind.",
+  },
+  'math.orbit': {
+    component: OrbitLab,
+    validate: num('count', 1, 6),
+    doc: 'Playable: shards orbit Kai with cos/sin (squashed for the top-down view, near side in front) and a bobbing pickup; orbiting_shards.gd. Optional count.',
   },
 };
