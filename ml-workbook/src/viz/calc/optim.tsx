@@ -212,7 +212,7 @@ function XEnt({ spec }: { spec: VizSpec }) {
             rows={[
               ['p_y = \\softmax(\\mathbf{z})_y', ff(p[y], 3)],
               ['\\text{loss} = -\\ln p_y\\ \\text{(nats)}', ff(loss, 3)],
-              ['\\partial L/\\partial \\mathbf{z} = \\mathbf{p} - \\mathbf{e}_y', `(${grad.map((g) => ff(g, 2)).join(', ')})`],
+              ['\\nabla_{\\mathbf{z}}L', `(${grad.map((g) => ff(g, 2)).join(', ')})`],
             ]}
           />
           <div className="calc-note">Gradient descent subtracts the gradient: it raises the true class's logit by 1 − p_y and lowers each other logit by its probability. Adding the same constant to every logit changes nothing.</div>
@@ -265,7 +265,7 @@ function GD1D({ spec }: { spec: VizSpec }) {
   else { regime = 'converges monotonically'; col = 'var(--ok)'; }
   const R = 4;
   const pts = xs.filter((x) => Math.abs(x) <= R * 1.5).map((x) => [x, f(x)] as P2);
-  const err = xs.map((x, k) => [k, Math.max(Math.abs(x), 1e-12)] as [number, number]);
+  const err = xs.map((x, k) => [k, clamp(Math.log10(Math.max(Math.abs(x), 1e-12)), -6, 4)] as [number, number]);
   return (
     <FigureLayout
       side={
@@ -285,8 +285,8 @@ function GD1D({ spec }: { spec: VizSpec }) {
       }
       below={
         <div className="calc-stack">
-          <div className="calc-plotk">distance to the minimum |x_k| (log scale)</div>
-          <LinePlot series={[{ pts: err, color: 'var(--c-u)' }, { pts: err, color: 'var(--c-u)', scatter: true }]} x={[0, K]} y={[1e-6, 1e4]} logY width={520} height={150} xlabel="step k" hlines={[{ y: x0 }]} />
+          <div className="calc-plotk">log₁₀ of the distance to the minimum, log₁₀ |x_k| (clipped to [−6, 4])</div>
+          <LinePlot series={[{ pts: err, color: 'var(--c-u)' }, { pts: err, color: 'var(--c-u)', scatter: true }]} x={[0, K]} y={[-6, 4]} width={520} height={160} xlabel="step k" hlines={[{ y: Math.log10(Math.abs(x0)) }]} />
         </div>
       }
     >
@@ -347,7 +347,7 @@ function GD2D({ spec }: { spec: VizSpec }) {
   const end = path[path.length - 1];
   const gEnd = P.g(end[0], end[1]);
   const atSaddle = fk === 'wells' && Math.hypot(...gEnd) < 1e-3 && Math.abs(end[0]) < 0.05;
-  const lossPts = vals.map((v, k) => [k, Math.max(v, 1e-12)] as [number, number]);
+  const lossPts = vals.map((v, k) => [k, clamp(Math.log10(Math.max(v, 1e-12)), -10, 6)] as [number, number]);
   const q = fk === 'quad' ? (P as ReturnType<typeof quadProb>) : null;
   return (
     <FigureLayout
@@ -360,7 +360,8 @@ function GD2D({ spec }: { spec: VizSpec }) {
           <Readout
             rows={[
               ...(q ? ([['\\lambda_{\\max},\\ \\lambda_{\\min}', `${ff(1, 2)}, ${ff(q.lmin, 3)}`], ['\\eta\\lambda_{\\max}\\ (\\text{stable} < 2)', ff(eta, 2)]] as [string, string][]) : ([['\\eta\\lambda_{\\max}\\ (\\lambda_{\\max} = 4)', ff(4 * eta, 2)]] as [string, string][])),
-              ['f(\\mathbf{x}_0) \\to f(\\mathbf{x}_{\\text{end}})', `${ff(vals[0], 3)} → ${fEnd > 1e6 ? '> 10⁶' : ff(fEnd, 5)}`],
+              ['f(\\mathbf{x}_0)', ff(vals[0], 3)],
+              ['f(\\mathbf{x}_{\\text{end}})', fEnd > 1e6 ? '> 10⁶' : fEnd < 1e-4 ? fEnd.toExponential(1) : ff(fEnd, 5)],
               ['\\text{steps to } f < 10^{-6}f_0', hit >= 0 ? String(hit) : '—'],
             ]}
           />
@@ -371,8 +372,8 @@ function GD2D({ spec }: { spec: VizSpec }) {
       }
       below={
         <div className="calc-stack">
-          <div className="calc-plotk">f(x_k) (log scale)</div>
-          <LinePlot series={[{ pts: lossPts, color: 'var(--c-v)' }]} x={[0, Math.max(steps, 1)]} y={[1e-10, Math.max(10, vals[0] * 2)]} logY width={520} height={150} xlabel="step k" />
+          <div className="calc-plotk">log₁₀ f(x_k)</div>
+          <LinePlot series={[{ pts: lossPts, color: 'var(--c-v)' }]} x={[0, Math.max(steps, 1)]} y={[-10, diverged ? 6 : Math.max(1, Math.min(6, Math.log10(vals[0]) + 1))]} width={520} height={160} xlabel="step k" />
         </div>
       }
     >
@@ -397,7 +398,7 @@ function GD2D({ spec }: { spec: VizSpec }) {
  * params: theta, logB
  */
 function Minibatch({ spec }: { spec: VizSpec }) {
-  const [theta, setTheta] = useState<P2>((spec.theta as P2) ?? [0, -1]);
+  const [theta, setTheta] = useState<P2>((spec.theta as P2) ?? [0, 3]);
   const [lb, setLb] = useState((spec.logB as number) ?? Math.log2(8));
   const [seed, setSeed] = useState(3);
   const B = Math.round(2 ** lb);
@@ -425,7 +426,7 @@ function Minibatch({ spec }: { spec: VizSpec }) {
   const per = all.map((i) => grad(theta[0], theta[1], [i]));
   const s2 = per.reduce((s, g) => s + (g[0] - full[0]) ** 2 + (g[1] - full[1]) ** 2, 0) / n;
   const theory = (s2 / B) * ((n - B) / (n - 1));
-  const k = 0.12;
+  const k = 0.2;
   const levels = useMemo(() => [0.7, 0.9, 1.3, 2, 3, 4.5, 6.5, 9, 12, 16, 21].map((v) => v), []);
   return (
     <FigureLayout
@@ -435,8 +436,8 @@ function Minibatch({ spec }: { spec: VizSpec }) {
           <div className="calc-row"><button onClick={() => setSeed(seed + 1)}>new batches</button></div>
           <Readout
             rows={[
-              ['\\nabla L(\\boldsymbol\\theta)\\ \\text{(full batch)}', `(${ff(full[0])}, ${ff(full[1])})`],
-              ['\\text{mean of 30 minibatch } \\mathbf{g}', `(${ff(mean[0])}, ${ff(mean[1])})`],
+              ['\\nabla L\\ \\text{(full)}', `(${ff(full[0])}, ${ff(full[1])})`],
+              ['\\bar{\\mathbf g}\\ \\text{(30 batches)}', `(${ff(mean[0])}, ${ff(mean[1])})`],
               ['\\text{avg } \\lVert\\mathbf{g} - \\nabla L\\rVert^2', ff(spread, 3)],
               ['\\text{theory } \\tfrac{\\sigma^2}{B}\\tfrac{n - B}{n - 1}', ff(theory, 3)],
             ]}
@@ -524,8 +525,7 @@ function Optim({ spec }: { spec: VizSpec }) {
   useEffect(() => setI(frames - 1), [pk]); // eslint-disable-line react-hooks/exhaustive-deps
   const upto = Math.round((P.T * (i + 1)) / frames);
   const H = Math.round((P.width * (P.Y[1] - P.Y[0])) / (P.X[1] - P.X[0]));
-  const fmin = 1e-12;
-  const series = OPTS.map((o, k) => ({ pts: runs[k].slice(0, upto + 1).map((p, t) => [t, Math.max(P.f(p[0], p[1]), fmin)] as [number, number]), color: o.color, label: o.label })).filter((_, k) => on[OPTS[k].id]);
+  const series = OPTS.map((o, k) => ({ pts: runs[k].slice(0, upto + 1).map((p, t) => [t, clamp(Math.log10(Math.max(P.f(p[0], p[1]), 1e-12)), -10, 4)] as [number, number]), color: o.color, label: o.label })).filter((_, k) => on[OPTS[k].id]);
   const fmt = (v: number) => (v < 1e-4 ? v.toExponential(1) : ff(v, 4));
   return (
     <FigureLayout
@@ -553,8 +553,8 @@ function Optim({ spec }: { spec: VizSpec }) {
       below={
         <div className="calc-stack">
           {controls}
-          <div className="calc-plotk">loss f(x_t) − f* (log scale)</div>
-          <LinePlot series={series.length ? series : [{ pts: [[0, 1]], color: 'transparent' }]} x={[0, P.T]} y={[1e-10, pk === 'rosen' ? 1e2 : 1e1]} logY width={520} height={170} xlabel="step t" legend={false} />
+          <div className="calc-plotk">log₁₀ of the loss f(x_t) − f* (f* = 0)</div>
+          <LinePlot series={series.length ? series : [{ pts: [[0, 0]], color: 'transparent' }]} x={[0, P.T]} y={[-10, pk === 'rosen' ? 2 : 1]} width={520} height={180} xlabel="step t" legend={false} />
         </div>
       }
     >
@@ -592,7 +592,8 @@ function Schedule({ spec }: { spec: VizSpec }) {
     if (kind === 'linear') return peak - (peak - lo) * u;
     return lo + 0.5 * (peak - lo) * (1 + Math.cos(Math.PI * u));
   };
-  const pts = linspace(0, T - 1, 400).map((s) => [s, lr(Math.round(s))] as [number, number]);
+  // plotted in thousands of steps and units of 1e-4, so the kit's tick labels stay distinct
+  const pts = linspace(0, T - 1, 400).map((s) => [s / 1000, 1e4 * lr(Math.round(s))] as [number, number]);
   return (
     <FigureLayout
       side={
@@ -612,8 +613,8 @@ function Schedule({ spec }: { spec: VizSpec }) {
         </>
       }
     >
-      <LinePlot series={[{ pts, color: 'var(--c-u)', width: 2.5 }]} x={[0, T]} y={[0, peak * 1.1]} width={440} height={260} xlabel="training step" ylabel="learning rate" vlines={[{ x: t, color: 'var(--c-v)' }, ...(W > 0 ? [{ x: W }] : [])]}>
-        {(sx, sy) => <circle cx={sx(t)} cy={sy(lr(t))} r={5} style={{ fill: 'var(--c-v)' }} />}
+      <LinePlot series={[{ pts, color: 'var(--c-u)', width: 2.5 }]} x={[0, T / 1000]} y={[0, 1e4 * peak * 1.1]} width={440} height={260} xlabel="training step (thousands)" ylabel="learning rate (×10⁻⁴)" vlines={[{ x: t / 1000, color: 'var(--c-v)' }, ...(W > 0 ? [{ x: W / 1000 }] : [])]}>
+        {(sx, sy) => <circle cx={sx(t / 1000)} cy={sy(1e4 * lr(t))} r={5} style={{ fill: 'var(--c-v)' }} />}
       </LinePlot>
     </FigureLayout>
   );

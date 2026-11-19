@@ -397,7 +397,8 @@ function ReviewItem({ k, onDone }: { k: string; onDone: (r: Rating) => void }) {
   const parts = card.text.split('{{}}');
   const bl = blanks.length ? blanks : card.answers.map(() => '');
   const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
-  const okAt = (j: number) => norm(bl[j]) === norm(card.answers[j]);
+  // a blank may list accepted spellings separated by '|', e.g. 'relu|ReLU|rectified linear unit'
+  const okAt = (j: number) => card.answers[j].split('|').some((a) => norm(bl[j]) === norm(a));
   return (
     <div className="review-card">
       {src}
@@ -406,7 +407,7 @@ function ReviewItem({ k, onDone }: { k: string; onDone: (r: Rating) => void }) {
           <span key={j}>
             <Md text={p} inlineOnly />
             {j < parts.length - 1 && (
-              <input className={'blank' + (shown ? (okAt(j) ? ' ok' : ' bad') : '')} value={bl[j]} size={Math.max(5, card.answers[j].length + 1)} disabled={shown} onChange={(e) => setBlanks(bl.map((b, x) => (x === j ? e.target.value : b)))} onKeyDown={(e) => e.key === 'Enter' && setShown(true)} aria-label={`blank ${j + 1}`} autoFocus={j === 0} />
+              <input className={'blank' + (shown ? (okAt(j) ? ' ok' : ' bad') : '')} value={bl[j]} size={Math.max(5, card.answers[j].split('|')[0].length + 1)} disabled={shown} onChange={(e) => setBlanks(bl.map((b, x) => (x === j ? e.target.value : b)))} onKeyDown={(e) => e.key === 'Enter' && setShown(true)} aria-label={`blank ${j + 1}`} autoFocus={j === 0} />
             )}
           </span>
         ))}
@@ -421,7 +422,7 @@ function ReviewItem({ k, onDone }: { k: string; onDone: (r: Rating) => void }) {
             <div className="small">
               Expected:{' '}
               {card.answers.map((a, j) => (
-                <code key={j}>{a}</code>
+                <code key={j}>{a.split('|')[0]}</code>
               ))}
             </div>
           )}

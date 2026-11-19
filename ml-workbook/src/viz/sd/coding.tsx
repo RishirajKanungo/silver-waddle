@@ -396,7 +396,7 @@ function Attention({ spec }: { spec: VizSpec }) {
         </div>
       }
     >
-      <Plane x={[-3.5, 3.5]} y={[-3.5, 3.5]} width={340}>
+      <Plane x={[-3.5, 3.5]} y={[-3.5, 3.5]} width={340} ticks={false}>
         {V.map((v, k) => (
           <Seg key={'s' + k} a={o} b={v as P2} color="var(--c-w)" width={1 + 5 * W[t][k]} opacity={W[t][k] > 0 ? 0.35 : 0} />
         ))}

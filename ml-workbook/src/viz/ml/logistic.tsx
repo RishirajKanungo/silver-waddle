@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { VizSpec } from '../../content/types';
-import { Plane, Handle, Arrow, InfLine, Heat, Label, Slider, Readout, FigureLayout, SegControl, Btn, Toggle, LinePlot, Bars, usePlane, type P2 } from '../kit';
+import { Plane, Handle, Arrow, InfLine, Slider, Readout, FigureLayout, SegControl, Btn, Toggle, LinePlot, Bars, usePlane, type P2 } from '../kit';
 import { Rng } from '../../math/rng';
 import { fx, fc, sigmoid, softplus, softmax, logSumExp, CLASS3 } from './common';
 import './ml.css';
@@ -124,7 +124,7 @@ function LogReg2D({ spec }: { spec: VizSpec }) {
             <Btn onClick={() => { setRunning(false); setS({ w: w0, b: b0, t: 0, hist: [] }); }}>Reset</Btn>
           </div>
           <Toggle label={`L2 penalty (λ = ${lam})`} value={l2} onChange={setL2} />
-          <div className="muted small">Drag the tip of w. Orange: y = 1, blue: y = 0; a dark ring marks a misclassified point. η = {eta}.</div>
+          <div className="muted small">Drag the tip of w. Orange: y = 1, blue: y = 0; a ring marks a misclassified point. η = {eta}.</div>
         </>
       }
       below={
@@ -139,7 +139,7 @@ function LogReg2D({ spec }: { spec: VizSpec }) {
       }
     >
       <Plane x={[-4, 4]} y={[-4, 4]} width={400} gridStep={1}>
-        <Heat f={prob} res={34} range={[0, 1]} scheme="div" opacity={0.6} />
+        <ProbRaster f={prob} res={40} />
         {nw > 1e-6 && (
           <>
             <InfLine p={lineAt(Math.log(3))} d={dir} color="var(--muted)" dashed width={1.2} />
@@ -153,10 +153,29 @@ function LogReg2D({ spec }: { spec: VizSpec }) {
         })}
         <Arrow to={tip} color="var(--fg)" width={2.5} tex={tipScale < 1 ? '\\mathbf{w}\\ (\\text{scaled})' : '\\mathbf{w}'} labelAt={0.55} />
         <Handle at={tip} onChange={(p) => setS({ ...S, w: p })} color="var(--fg)" r={5} snap={0.1} label="weight vector w" />
-        <Label at={[-3.85, 3.65]} text="p = 0.25 / 0.75 dashed" anchor="start" color="var(--muted)" />
       </Plane>
     </FigureLayout>
   );
+}
+
+/** raster of a probability in [0, 1], blue (0) to orange (1), drawn with crisp edges so no seams show */
+function ProbRaster({ f, res = 40 }: { f: (x: number, y: number) => number; res?: number }) {
+  const { x, y, sx, sy } = usePlane();
+  const cells = useMemo(() => {
+    const out: ReactNode[] = [];
+    const dx = (x[1] - x[0]) / res, dy = (y[1] - y[0]) / res;
+    for (let i = 0; i < res; i++)
+      for (let j = 0; j < res; j++) {
+        const cx = x[0] + (j + 0.5) * dx, cy = y[0] + (i + 0.5) * dy;
+        const p = f(cx, cy);
+        const pct = Math.round(Math.abs(p - 0.5) * 120);
+        const fill = `color-mix(in oklab, ${p < 0.5 ? 'var(--c-neg)' : 'var(--c-pos)'} ${pct}%, var(--surface))`;
+        const x0 = Math.floor(sx(cx - dx / 2)), x1 = Math.ceil(sx(cx + dx / 2)), y0 = Math.floor(sy(cy + dy / 2)), y1 = Math.ceil(sy(cy - dy / 2));
+        out.push(<rect key={i * res + j} x={x0} y={y0} width={x1 - x0} height={y1 - y0} style={{ fill }} shapeRendering="crispEdges" />);
+      }
+    return out;
+  }, [f, res, x, y, sx, sy]);
+  return <g>{cells}</g>;
 }
 
 /** a data point: circle (class 1) or square (class 0), with an optional ring */
@@ -213,6 +232,16 @@ function LossVsZ({ spec }: { spec: VizSpec }) {
       side={
         <>
           <SegControl value={mode} onChange={setMode} options={[{ v: 'loss', label: 'loss' }, { v: 'grad', label: 'gradient' }, { v: 'w', label: 'loss vs w' }]} />
+          <div className="ml-legend">
+            {series.map((se) => (
+              <div key={se.label} className="ml-legend-row">
+                <span className="ml-key">
+                  <span className="ml-swatch" style={{ background: se.color }} />
+                  {se.label}
+                </span>
+              </div>
+            ))}
+          </div>
           {isW ? <Slider tex="w" value={wv} min={-6} max={8} step={0.1} onChange={setWv} /> : <Slider tex="z" value={z} min={-8} max={8} step={0.1} onChange={setZ} />}
           {isW ? (
             <Readout
@@ -240,7 +269,7 @@ function LossVsZ({ spec }: { spec: VizSpec }) {
         </>
       }
     >
-      <LinePlot series={series} x={isW ? [-6, 8] : [-8, 8]} y={yr} width={460} height={300} xlabel={isW ? 'w' : 'logit z'} vlines={[{ x: cur, color: 'var(--muted)' }]} hlines={mode === 'grad' ? [{ y: 0 }] : []}>
+      <LinePlot series={series} legend={false} x={isW ? [-6, 8] : [-8, 8]} y={yr} width={460} height={300} xlabel={isW ? 'w' : 'logit z'} vlines={[{ x: cur, color: 'var(--muted)' }]} hlines={mode === 'grad' ? [{ y: 0 }] : []}>
         {(sx, sy) => (
           <>
             <circle cx={sx(cur)} cy={sy(fb(cur))} r={5} style={{ fill: 'var(--c-u)' }} />
@@ -324,8 +353,9 @@ function ClassRaster({ f, res = 40 }: { f: (x: number, y: number) => number[]; r
         const p = f(cx, cy);
         let k = 0;
         for (let m = 1; m < p.length; m++) if (p[m] > p[k]) k = m;
-        const a = 0.06 + 0.5 * ((p[k] - 1 / 3) / (2 / 3));
-        out.push(<rect key={i * res + j} x={sx(cx - dx / 2)} y={sy(cy + dy / 2)} width={sx(cx + dx / 2) - sx(cx - dx / 2) + 0.5} height={sy(cy - dy / 2) - sy(cy + dy / 2) + 0.5} style={{ fill: CLASS3[k], opacity: a }} />);
+        const pct = Math.round(6 + 50 * ((p[k] - 1 / 3) / (2 / 3)));
+        const x0 = Math.floor(sx(cx - dx / 2)), x1 = Math.ceil(sx(cx + dx / 2)), y0 = Math.floor(sy(cy + dy / 2)), y1 = Math.ceil(sy(cy - dy / 2));
+        out.push(<rect key={i * res + j} x={x0} y={y0} width={x1 - x0} height={y1 - y0} style={{ fill: `color-mix(in oklab, ${CLASS3[k]} ${pct}%, var(--surface))` }} shapeRendering="crispEdges" />);
       }
     return out;
   }, [f, res, x, y, sx, sy]);
@@ -338,7 +368,7 @@ function ClassRaster({ f, res = 40 }: { f: (x: number, y: number) => number[]; r
  * params: W [[w0], [w1], [w2]], T
  */
 function Softmax2D({ spec }: { spec: VizSpec }) {
-  const W0 = (spec.W as P2[]) ?? [[0, 1], [-1, 0], [1, 0]];
+  const W0 = (spec.W as P2[]) ?? [[1, 0], [0, 1], [-1, 0]];
   const [W, setW] = useState<P2[]>(W0.map((v) => [...v] as P2));
   const [T, setT] = useState((spec.T as number) ?? 1);
   const data = threeClass;

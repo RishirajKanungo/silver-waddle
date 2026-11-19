@@ -50,7 +50,7 @@ Requirements per lesson:
 - At least 4 gated cells (check / numeric / derive / paper / exercise / recall / explain / code with predict).
 - At least 2 figures.
 - Exactly 5 review `cards`, mixing concept, cloze and compute.
-- Cards must be answerable in under 30 seconds and test one fact or skill each. Cloze answers must be easy to type: no unicode math, one or two words or a short number.
+- Cards must be answerable in under 30 seconds and test one fact or skill each. Cloze answers must be easy to type: no unicode math, one or two words or a short number. List accepted spellings with `|`, e.g. `'relu|ReLU'`.
 
 **Intuition first, then rigor.** For every abstract idea (span, rank, null space, eigenvector, SVD, gradient, MLE, attention…):
 - give a picture or figure the learner manipulates
@@ -102,6 +102,8 @@ The default tolerance is relative 1e-4. Learners can type `3/4`, `sqrt(2)/2`, `p
 **Code cells** run in our in-browser Python, with `import numpy as np` available. The validator runs every code cell in **real CPython + NumPy 2.5.3** and requires byte-identical stdout.
 - Use the legacy `np.random.seed(…)` / `np.random.randn` / `np.random.rand` API. `default_rng` may be unsupported.
 - Prefer `np.round(x, 3)` when printing floats you want to read.
+- `math.erf`/`erfc` agree with CPython to ~15 significant digits; print them rounded (`round(x, 10)`).
+- Lesson objectives may contain `$math$`.
 - Exercises compare `repr(expr)` of each test expression between the learner's code and the reference solution. Use stable expressions like `np.round(f(X), 6).tolist()`, `round(float(loss), 6)` or `f(X).shape`.
 - `mustExclude: ['for ']` forces a vectorized solution. The starter must fail at least one test.
 

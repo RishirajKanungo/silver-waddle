@@ -50,3 +50,24 @@
 .dl-x { stroke: var(--c-err); stroke-width: 2.5; }
 .dl-bar-t { fill: var(--c-w); }
 .dl-bar-p { fill: var(--c-v); }
+.dl-cell { stroke: var(--line); stroke-width: 1; }
+.dl-cell.pad { stroke-dasharray: 3 2; opacity: 0.7; }
+.dl-cellt { fill: var(--fg); font: 11.5px var(--mono); }
+.dl-cellt.inv { fill: var(--surface); }
+.dl-win { fill: none; stroke: var(--c-v); stroke-width: 3; }
+.dl-cell1 { fill: var(--surface2); stroke: var(--line); }
+.dl-cell1.pad { fill: var(--surface); stroke-dasharray: 3 2; }
+.dl-cell1.on { fill: color-mix(in oklab, var(--c-v) 35%, var(--surface)); stroke: var(--c-v); }
+.dl-cell1.out { fill: color-mix(in oklab, var(--c-u) 15%, var(--surface)); }
+.dl-cell1.out.on { fill: color-mix(in oklab, var(--c-u) 45%, var(--surface)); stroke: var(--c-u); }
+.dl-tap { stroke: var(--line); stroke-width: 1; }
+.dl-tap.on { stroke: var(--c-v); stroke-width: 2; }
+.dl-rf { fill: var(--surface2); stroke: var(--muted); stroke-width: 1; }
+.dl-rf.on { fill: var(--c-v); stroke: var(--c-v); }
+.dl-rf.top { stroke-width: 2; }
+.dl-op { font-size: 20px; color: var(--muted); align-self: center; padding: 0 2px; }
+.dl-select { font: 13.5px var(--sans); padding: 3px 6px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); }
+.dl-rnncell { fill: var(--surface2); stroke: var(--c-u); stroke-width: 1.5; }
+.dl-rnnedge { stroke: var(--c-u); stroke-width: 2; }
+.dl-rnnin { stroke: var(--muted); stroke-width: 1.2; }
+.dl-attnedge { fill: none; stroke: var(--c-w); stroke-width: 2; stroke-dasharray: 5 4; }

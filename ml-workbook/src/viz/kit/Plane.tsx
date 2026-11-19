@@ -276,7 +276,7 @@ export function TGrid({ M, extent = 6, step = 1, color = 'var(--c-grid-t)', widt
   return <g>{els}</g>;
 }
 
-export function Contours({ f, levels, color = 'var(--c-contour)', width = 1.2, n = 70, labels }: { f: (x: number, y: number) => number; levels?: number[]; color?: Col; width?: number; n?: number; labels?: boolean }) {
+export function Contours({ f, levels, color = 'var(--c-contour)', width = 1.2, n = 70 }: { f: (x: number, y: number) => number; levels?: number[]; color?: Col; width?: number; n?: number }) {
   const { x, y, sx, sy } = usePlane();
   const lv = useMemo(() => levels ?? niceLevels(f, x[0], x[1], y[0], y[1], 10), [f, levels, x, y]);
   const paths = useMemo(
@@ -293,7 +293,6 @@ export function Contours({ f, levels, color = 'var(--c-contour)', width = 1.2, n
       {paths.map((d, i) => (
         <path key={i} d={d} style={{ stroke: color, strokeWidth: width, fill: 'none', opacity: 0.35 + (0.65 * (lv.length - i)) / lv.length }} />
       ))}
-      {labels && null}
     </g>
   );
 }

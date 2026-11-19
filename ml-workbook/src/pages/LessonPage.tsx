@@ -6,6 +6,7 @@ import { CellView, isGate, type CellCtx } from '../ui/Cells';
 import { progress } from '../progress/store';
 import { useProgress } from '../ui/hooks';
 import { QUESTIONS, moduleNumber, nextLesson } from '../content';
+import { Md } from '../ui/Markup';
 
 export function LessonPage({ lesson, module, index }: { lesson: Lesson; module: Module; index: number }) {
   useProgress();
@@ -68,7 +69,9 @@ export function LessonPage({ lesson, module, index }: { lesson: Lesson; module: 
           <div className="objectives-k">After this lesson you can</div>
           <ul>
             {lesson.objectives.map((o, i) => (
-              <li key={i}>{o}</li>
+              <li key={i}>
+                <Md text={o} inlineOnly />
+              </li>
             ))}
           </ul>
         </div>

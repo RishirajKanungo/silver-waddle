@@ -651,7 +651,7 @@ function Flash({ spec }: { spec: VizSpec }) {
       }
       below={controls}
     >
-      <div className="llm-wrap">
+      <div className="llm-wrap" style={{ width: '100%' }}>
         <svg viewBox={`0 0 ${s.length * cw + 80} 130`} className="llm-svg llm-big" style={{ maxWidth: s.length * cw + 80 }}>
           <text x={0} y={42}>scores s</text>
           <text x={0} y={82}>values v</text>

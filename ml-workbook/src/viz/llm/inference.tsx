@@ -164,7 +164,8 @@ function Beam({ spec }: { spec: VizSpec }) {
     <FigureLayout
       side={
         <>
-          <Slider label="beam width" value={B} min={1} max={3} step={1} onChange={setB} fmt={(v) => (v === 1 ? '1 (greedy)' : String(v))} />
+          <Slider label="beam width" value={B} min={1} max={3} step={1} onChange={setB} fmt={String} />
+          <div className="muted small">Width 1 is greedy decoding.</div>
           <Readout
             title={i < 2 ? `step ${i}` : 'result'}
             rows={
@@ -250,11 +251,14 @@ function KvCache({ spec }: { spec: VizSpec }) {
           <Slider label="batch B" value={B} min={1} max={64} step={1} onChange={setB} fmt={String} />
           <Readout
             rows={[
-              [R`2\cdot L\cdot n_{kv}\cdot d_h\cdot\text{bytes}`, `${bytes(per(kv))}/token`],
-              [`\\times\\ T = ${T0 / 1024}\\text{k} \\times B`, bytes(per(kv) * T0 * B)],
-              [R`\text{weights (illustrative)}`, `${N}B params: ${bytes(N * 1e9 * 2)}`],
+              [R`\text{per token}`, bytes(per(kv))],
+              [`\\text{at } T = ${T0 / 1024}\\text{k},\\ B = ${B}`, bytes(per(kv) * T0 * B)],
+              [`\\text{weights, } ${N}\\text{B params}`, bytes(N * 1e9 * 2)],
             ]}
           />
+          <div className="muted small">
+            Per token: <TeX>{R`2\cdot L\cdot n_{kv}\cdot d_h\cdot\text{bytes}`}</TeX>. The dashed line is the 16-bit weights.
+          </div>
         </>
       }
     >
@@ -314,7 +318,7 @@ function Quant({ spec }: { spec: VizSpec }) {
   const qmin = sym ? -(2 ** (bits - 1) - 1) : 0, qmax = sym ? 2 ** (bits - 1) - 1 : 2 ** bits - 1;
   const levelStep = bits === 8 ? 16 : 1;
   const levels: number[] = [];
-  for (let k = qmin; k <= qmax; k += levelStep) levels.push(k);
+  for (let k = Math.ceil(qmin / levelStep) * levelStep; k <= qmax; k += levelStep) levels.push(k);
   const show = Array.from({ length: 14 }, (_, i) => i * 18 + 3).concat(outlier ? [7] : []);
   // error histogram
   const E = Math.max(maxe, 1e-6);
@@ -571,9 +575,10 @@ function Batching({ spec }: { spec: VizSpec }) {
               const vis = Math.max(0, Math.min(b, t) - a);
               return (
                 <g key={r}>
+                  <rect x={X0 + a * cw + 1} y={Y0 + s * rh + 3} width={Math.max(0, (b - a) * cw - 2)} height={rh - 6} rx={3} style={{ fill: PAL[r % 7], opacity: 0.18 }} />
                   <rect x={X0 + a * cw + 1} y={Y0 + s * rh + 3} width={Math.max(0, vis * cw - 2)} height={rh - 6} rx={3} style={{ fill: PAL[r % 7], opacity: 0.85 }} />
-                  {vis > 0 && (
-                    <text x={X0 + a * cw + 6} y={Y0 + s * rh + rh / 2 + 4} style={{ fill: 'var(--surface)', fontWeight: 600 }}>
+                  {(
+                    <text x={X0 + a * cw + 6} y={Y0 + s * rh + rh / 2 + 4} style={{ fill: vis > 0 ? 'var(--surface)' : 'var(--fg)', fontWeight: 600 }}>
                       R{r + 1}
                     </text>
                   )}
@@ -633,7 +638,7 @@ function IvfCells({ cents, probed }: { cents: P2[]; probed: Set<number> }) {
     for (let b = 0; b < n; b++) {
       const x = lo + (a + 0.5) * st, y = lo + (b + 0.5) * st;
       const c = cents.reduce((bi, cc, j) => ((x - cc[0]) ** 2 + (y - cc[1]) ** 2 < (x - cents[bi][0]) ** 2 + (y - cents[bi][1]) ** 2 ? j : bi), 0);
-      out.push(<rect key={a + '-' + b} x={sx(x - st / 2)} y={sy(y + st / 2)} width={sx(st) - sx(0) + 0.6} height={sy(0) - sy(st) + 0.6} style={{ fill: PAL[c % PAL.length], opacity: probed.has(c) ? 0.2 : 0.06 }} />);
+      out.push(<rect key={a + '-' + b} x={sx(x - st / 2)} y={sy(y + st / 2)} width={sx(st) - sx(0) + 0.6} height={sy(0) - sy(st) + 0.6} style={{ fill: PAL[c % PAL.length], opacity: probed.has(c) ? 0.2 : 0.06 }} shapeRendering="crispEdges" />);
     }
   return <g>{out}</g>;
 }

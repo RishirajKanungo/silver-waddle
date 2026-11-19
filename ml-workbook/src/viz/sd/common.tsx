@@ -11,7 +11,7 @@ export const fx = (x: number, d = 2) => {
 /** thousands separators */
 export const fint = (x: number) => Math.round(x).toLocaleString('en-US');
 /** money with enough precision for small per-request costs */
-export const fusd = (x: number) => (x >= 100 ? '$' + fint(x) : x >= 1 ? '$' + x.toFixed(2) : '$' + x.toPrecision(3));
+export const fusd = (x: number) => (x >= 100 ? '$' + fint(x) : x >= 1 ? '$' + x.toFixed(2) : '$' + Number(x.toPrecision(4)).toString());
 
 /** cluster / series colours, all theme tokens */
 export const PALETTE = ['var(--c-u)', 'var(--c-v)', 'var(--c-w)', 'var(--violet)', 'var(--c-err)', 'var(--warn)'];

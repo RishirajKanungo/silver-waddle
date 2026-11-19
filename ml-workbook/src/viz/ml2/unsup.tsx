@@ -773,7 +773,7 @@ function Anomaly({ spec }: { spec: VizSpec }) {
             ]}
           />
           <div className="ml2-note">
-            {method === 'z' && <>Per-feature z-scores flag points far out on some axis. The two points that break the correlation sit inside the box and are missed.</>}
+            {method === 'z' && <>Per-feature z-scores flag points far out on some axis. Points that break the correlation without being extreme on one feature sit inside the box and are missed.</>}
             {method === 'maha' && <>Mahalanobis distance <TeX>{'\\sqrt{(\\mathbf{x}-\\boldsymbol\\mu)^\\top\\Sigma^{-1}(\\mathbf{x}-\\boldsymbol\\mu)}'}</TeX> measures distance in units of the data's own spread and correlation, so its boundary is an ellipse.</>}
             {method === 'knn' && <>The mean distance to the 5 nearest neighbours makes no assumption about the shape of the data: any point in a sparse region scores high.</>}
           </div>

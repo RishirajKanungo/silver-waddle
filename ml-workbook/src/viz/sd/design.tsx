@@ -167,12 +167,12 @@ function Funnel({ spec }: { spec: VizSpec }) {
   const light = (n1 * FIX.lightUs) / 1000;
   const heavy = (N2 * cost) / workers / 1000;
   const segs = [
-    { name: 'retrieve (ANN)', ms: FIX.retrieval, col: 'var(--c-i)' },
+    { name: 'retrieve (ANN)', ms: FIX.retrieval, col: 'var(--violet)' },
     { name: 'feature fetch', ms: FIX.features, col: 'var(--muted)' },
     { name: 'light ranker', ms: light, col: 'var(--c-u)' },
     { name: 'heavy ranker', ms: heavy, col: 'var(--c-v)' },
     { name: 're-rank', ms: FIX.rerank, col: 'var(--c-w)' },
-    { name: 'network + overhead', ms: FIX.overhead, col: 'var(--line)' },
+    { name: 'network + overhead', ms: FIX.overhead, col: 'var(--axis)' },
   ];
   const total = segs.reduce((s, x) => s + x.ms, 0);
   const cpuS = (n1 * FIX.lightUs + N2 * cost) / 1e6;
@@ -317,8 +317,8 @@ function RagCost({ spec }: { spec: VizSpec }) {
               ['\\text{input tokens}', fint(inTok)],
               ['\\text{time to first token}', `${fint(ttft)} ms`],
               ['\\text{full answer}', `${fx(totalMs / 1000, 2)} s`],
-              ['\\text{cost / request}', fusd(cost)],
-              ['\\text{cost / 1M requests}', fusd(cost * 1e6)],
+              ['\\text{cost / request}', <span key="c1">{fusd(cost)}</span>],
+              ['\\text{cost / 1M requests}', <span key="c2">{fusd(cost * 1e6)}</span>],
             ]}
           />
         </>
@@ -339,7 +339,7 @@ function RagCost({ spec }: { spec: VizSpec }) {
             </g>
           );
         })}
-        <text x={sT(ttft) + 4 > x1 - 60 ? sT(ttft) - 4 : sT(ttft) + 4} y={70} textAnchor={sT(ttft) + 4 > x1 - 60 ? 'end' : 'start'} className="sd-ts sd-num">{fint(ttft)} ms</text>
+        <text x={x0} y={72} className="sd-ts sd-num">{segs.map((g) => `${g.name} ${fint(g.ms)}`).join(' + ')} = {fint(ttft)} ms</text>
         <text x={8} y={100} className="sd-tb">full answer</text>
         <rect x={sF(0)} y={110} width={sF(ttft) - sF(0)} height={24} style={{ fill: 'var(--c-u)', opacity: 0.85 }} />
         <rect x={sF(ttft)} y={110} width={sF(totalMs) - sF(ttft)} height={24} style={{ fill: 'var(--violet)', opacity: 0.7 }} />
@@ -348,6 +348,8 @@ function RagCost({ spec }: { spec: VizSpec }) {
         <text x={8} y={186} className="sd-tb">cost</text>
         <rect x={sC(0)} y={196} width={sC(costIn) - sC(0)} height={24} style={{ fill: 'var(--c-u)', opacity: 0.8 }} />
         <rect x={sC(costIn)} y={196} width={sC(cost) - sC(costIn)} height={24} style={{ fill: 'var(--c-v)', opacity: 0.8 }} />
+        {sC(costIn) - sC(0) > 44 && <text x={(sC(0) + sC(costIn)) / 2} y={212} textAnchor="middle" className="sd-ts" style={{ fill: 'var(--surface)', fontWeight: 600 }}>input</text>}
+        {sC(cost) - sC(costIn) > 48 && <text x={(sC(costIn) + sC(cost)) / 2} y={212} textAnchor="middle" className="sd-ts" style={{ fill: 'var(--surface)', fontWeight: 600 }}>output</text>}
         <text x={x0} y={238} className="sd-ts sd-num">input {fusd(costIn)} ({fint(billedIn)} billed tokens) + output {fusd(costOut)}</text>
       </svg>
     </FigureLayout>

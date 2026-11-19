@@ -777,4 +777,16 @@ print(np.logaddexp(a, b))
 print(np.logaddexp(a, 0.5), np.logaddexp(2.0, 3.0))
 print(np.logaddexp2(a, b))
 `,
+  bool_ops_last_operand: `
+import numpy as np
+x = None or np.zeros(3)
+y = 1 and np.ones(2)
+z = 0 or [] or np.arange(3)
+print(x, y, z)
+`,
+  range_index: `
+import numpy as np
+Q = np.array([[1., -2.], [3., 4.]])
+print(Q[np.array([1, 1]), range(2)], Q[range(2)], np.arange(10)[range(1, 8, 3)])
+`,
 };

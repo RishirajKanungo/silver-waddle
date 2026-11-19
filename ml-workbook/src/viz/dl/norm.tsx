@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { VizSpec } from '../../content/types';
 import { LinePlot, Slider, Readout, FigureLayout, SegControl, Toggle, Btn, MatGrid, TeX } from '../kit';
 import { Rng } from '../../math/rng';
-import { fmt } from './util';
+import { fmt, tv } from './util';
 import './dl.css';
 
 // ------------------------------------------------------------------ dl.normaxes
@@ -68,7 +68,7 @@ function NormAxes({ spec }: { spec: VizSpec }) {
           <SegControl value={norm} onChange={setNorm} options={(['batch', 'layer', 'rms'] as NormK[]).map((k) => ({ v: k, label: NORM_LABEL[k] }))} />
           <Readout
             rows={[
-              ['\\text{statistics}', '$' + axesTex[norm]],
+              ['\\text{statistics}', tv(axesTex[norm])],
               ['\\text{group size}', String(s.n)],
               ...(norm === 'rms'
                 ? ([['\\text{RMS} = \\sqrt{\\tfrac1n\\sum x^2}', fmt(s.rms, 3)]] as [string, string][])
@@ -111,19 +111,21 @@ function Dropout({ spec }: { spec: VizSpec }) {
   const h = [1.2, 0.4, 2.0, 0.8, 1.5, 0.3, 1.0, 1.8, 0.6, 1.1];
   const w = [0.5, -0.3, 0.8, 0.4, -0.6, 1.0, 0.7, 0.2, -0.4, 0.9];
   const yEval = h.reduce((a, v, i) => a + v * w[i], 0);
-  const [state, setState] = useState<{ masks: boolean[][]; ys: number[]; seed: number }>({ masks: [], ys: [], seed: 1 });
-  const draw = (k: number) => {
-    const r = new Rng(state.seed * 7919 + state.ys.length);
-    const masks = [...state.masks];
-    const ys = [...state.ys];
+  type St = { masks: boolean[][]; ys: number[]; seed: number };
+  const sample = (st: St, k: number, pp: number, scaled: boolean): St => {
+    const r = new Rng(st.seed * 7919 + st.ys.length);
+    const masks = [...st.masks];
+    const ys = [...st.ys];
     for (let s = 0; s < k; s++) {
-      const m = h.map(() => r.next() >= p);
+      const m = h.map(() => r.next() >= pp);
       masks.push(m);
-      ys.push(m.reduce((a, keep, i) => a + (keep ? (h[i] * w[i]) / (inv ? 1 - p : 1) : 0), 0));
+      ys.push(m.reduce((a, keep, i) => a + (keep ? (h[i] * w[i]) / (scaled ? 1 - pp : 1) : 0), 0));
     }
-    setState({ masks: masks.slice(-1), ys, seed: state.seed });
+    return { masks: masks.slice(-1), ys, seed: st.seed };
   };
-  const reset = () => setState({ masks: [], ys: [], seed: state.seed + 1 });
+  const [state, setState] = useState<St>(() => sample({ masks: [], ys: [], seed: 1 }, 10, (spec.p as number) ?? 0.5, (spec.inverted as boolean) ?? true));
+  const draw = (k: number) => setState(sample(state, k, p, inv));
+  const reset = (pp = p, scaled = inv) => setState(sample({ masks: [], ys: [], seed: state.seed + 1 }, 10, pp, scaled));
   const mask = state.masks[state.masks.length - 1];
   const mean = state.ys.length ? state.ys.reduce((a, v) => a + v, 0) / state.ys.length : NaN;
   const series = useMemo(() => {
@@ -139,12 +141,12 @@ function Dropout({ spec }: { spec: VizSpec }) {
     <FigureLayout
       side={
         <>
-          <Slider tex="p\ (\text{drop prob.})" value={p} min={0} max={0.9} step={0.05} onChange={(v) => { setP(v); reset(); }} />
-          <Toggle label={<>inverted dropout: scale kept units by <TeX>{'1/(1-p)'}</TeX></>} value={inv} onChange={(v) => { setInv(v); reset(); }} />
+          <Slider tex="p\ (\text{drop prob.})" value={p} min={0} max={0.9} step={0.05} onChange={(v) => { setP(v); reset(v, inv); }} />
+          <Toggle label={<>inverted dropout: scale kept units by <TeX>{'1/(1-p)'}</TeX></>} value={inv} onChange={(v) => { setInv(v); reset(p, v); }} />
           <div className="dl-row">
             <Btn primary onClick={() => draw(1)}>Sample a mask</Btn>
             <Btn onClick={() => draw(100)}>+100</Btn>
-            <Btn onClick={reset}>Reset</Btn>
+            <Btn onClick={() => reset()}>Reset</Btn>
           </div>
           <Readout
             rows={[
@@ -219,7 +221,7 @@ function LabelSmooth({ spec }: { spec: VizSpec }) {
   const dStar = eps > 0 ? Math.log(tT / tO) : Infinity;
   const pts = useMemo(() => Array.from({ length: 201 }, (_, i) => [(12 * i) / 200, ce((12 * i) / 200)] as [number, number]), [C, eps]); // eslint-disable-line react-hooks/exhaustive-deps
   const H = -(tT * Math.log(tT) + (C - 1) * (tO > 0 ? tO * Math.log(tO) : 0));
-  const W = 260, Hh = 170, bw = Math.min(22, (W - 30) / (C * 2.6));
+  const W = 440, Hh = 190, bw = Math.min(26, (W - 40) / (C * 2.6));
   const sy = (v: number) => Hh - 24 - v * (Hh - 44);
   return (
     <FigureLayout
@@ -247,7 +249,7 @@ function LabelSmooth({ spec }: { spec: VizSpec }) {
         </div>
       }
     >
-      <svg viewBox={`0 0 ${W} ${Hh}`} className="dl-graph" style={{ maxWidth: 420 }}>
+      <svg viewBox={`0 0 ${W} ${Hh}`} className="dl-graph" style={{ maxWidth: W }}>
         <line x1={20} x2={W - 6} y1={sy(0)} y2={sy(0)} className="dl-axis" />
         {[0.5, 1].map((v) => (
           <g key={v}>
@@ -270,12 +272,12 @@ function LabelSmooth({ spec }: { spec: VizSpec }) {
             </g>
           );
         })}
-        <rect x={W - 120} y={4} width={10} height={10} className="dl-bar-t" />
-        <text x={W - 106} y={13} className="dl-tick">
+        <rect x={W - 150} y={4} width={10} height={10} className="dl-bar-t" />
+        <text x={W - 136} y={13} className="dl-tick">
           target t
         </text>
-        <rect x={W - 60} y={4} width={10} height={10} className="dl-bar-p" />
-        <text x={W - 46} y={13} className="dl-tick">
+        <rect x={W - 75} y={4} width={10} height={10} className="dl-bar-p" />
+        <text x={W - 61} y={13} className="dl-tick">
           softmax p
         </text>
       </svg>

@@ -50,3 +50,6 @@ export const normPdf = (z: number) => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Mat
 export const colTeX = (v: number[], d = 2) => `\\begin{bmatrix}${v.map((x) => fmt(x, d)).join('\\\\')}\\end{bmatrix}`;
 /** Vector as a TeX row (parenthesised list). */
 export const rowTeX = (v: number[], d = 2) => `(${v.map((x) => fmt(x, d)).join(',\\ ')})`;
+
+/** A Readout value rendered as TeX. Braces keep the kit from reading a leading digit as a dollar amount. */
+export const tv = (tex: string) => '${' + tex + '}';

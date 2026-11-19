@@ -408,7 +408,9 @@ export function installBuiltins(I: Interp) {
     // use the decimal representation like CPython does
     const r = Number(v.toFixed(Math.max(0, Math.min(100, nd)) + 0));
     const exact = bankersRound(v * p) / p;
-    return Math.abs(r - v) <= Math.abs(exact - v) && nd >= 0 ? roundHalfEvenDecimal(v, nd) : exact;
+    const res = Math.abs(r - v) <= Math.abs(exact - v) && nd >= 0 ? roundHalfEvenDecimal(v, nd) : exact;
+    // CPython keeps the sign of a result that rounds to zero: round(-0.0, 2) and round(-0.001, 2) are -0.0
+    return res === 0 && (v < 0 || Object.is(v, -0)) ? -0 : res;
   });
   fn('divmod', function* (a) {
     return new PyTuple([yield* I.binop('//', a[0], a[1]), yield* I.binop('%', a[0], a[1])]);
@@ -1132,6 +1134,8 @@ function registerModules(I: Interp) {
     f(d, 'fabs', (a) => Math.abs(num(a[0])));
     f(d, 'pow', (a) => Math.pow(num(a[0]), num(a[1])));
     f(d, 'exp', (a) => Math.exp(num(a[0])));
+    f(d, 'erf', (a) => erf(num(a[0])));
+    f(d, 'erfc', (a) => erfc(num(a[0])));
     f(d, 'log', (a) => {
       const x = num(a[0]);
       if (x <= 0) I.raise('ValueError', 'math domain error');
@@ -1957,4 +1961,46 @@ function registerModules(I: Interp) {
 
   void floatRepr;
   void formatSpec;
+}
+
+
+// ---- error function (series for small |x|, continued fraction for the tail); ~1e-16 relative accuracy
+function erf(x: number): number {
+  if (Number.isNaN(x)) return NaN;
+  const ax = Math.abs(x);
+  if (ax < 2.5) {
+    // erf(x) = 2/sqrt(pi) * exp(-x^2) * sum_n 2^n x^(2n+1) / (1*3*...*(2n+1))   (all terms positive)
+    let term = ax, sum = ax;
+    for (let n = 1; n < 200; n++) {
+      term *= (2 * ax * ax) / (2 * n + 1);
+      sum += term;
+      if (term < sum * 1e-17) break;
+    }
+    const r = (2 / Math.sqrt(Math.PI)) * Math.exp(-ax * ax) * sum;
+    return x < 0 ? -r : r;
+  }
+  const r = 1 - erfcTail(ax);
+  return x < 0 ? -r : r;
+}
+function erfcTail(x: number): number {
+  // continued fraction (Lentz) for erfc, x >= 2.5
+  const tiny = 1e-300;
+  let f = x, C = x, D = 0;
+  for (let n = 1; n < 20000; n++) {
+    const an = n / 2;
+    D = x + an * D;
+    D = Math.abs(D) < tiny ? tiny : D;
+    C = x + an / C;
+    C = Math.abs(C) < tiny ? tiny : C;
+    D = 1 / D;
+    const delta = C * D;
+    f *= delta;
+    if (Math.abs(delta - 1) < 1e-16) break;
+  }
+  return Math.exp(-x * x) / (f * Math.sqrt(Math.PI));
+}
+function erfc(x: number): number {
+  if (Number.isNaN(x)) return NaN;
+  if (x < 0.5) return 1 - erf(x);
+  return erfcTail(x);
 }

@@ -43,7 +43,7 @@ export const MODULE: Module = {
           kind: 'viz',
           viz: { type: 'sd.pipeline' },
           task: md`Click each stage and read its questions and pitfalls. Which stage owns the pitfall "the label is computed from data that is only available after the prediction time"? Then set the interview length to 45 minutes and note how many minutes the framework leaves for models compared with data and metrics together.`,
-          caption: md`The minute allocation is a guide, not a rule: interviewers often steer you into one stage for a deep dive. The loop from monitoring back to data is the iteration stage.`,
+          caption: md`The minute allocation is only a guide: interviewers often steer you into one stage for a deep dive. The loop from monitoring back to data is the iteration stage.`,
         },
         {
           kind: 'text',
@@ -236,7 +236,7 @@ print(qps * cpu_seconds_per_request)`,
       cells: [
         {
           kind: 'text',
-          md: md`The prompt: *design the ranking for the home feed of a short-video app.* Clarifying gives the working assumptions used below, all stated as assumptions: 100 million daily active users, each opening the feed about 20 times a day; a catalogue of 50 million videos, a few hundred thousand new ones a day; a p99 budget of 200 ms for a page of results. The goal is long-term engagement, not clicks.`,
+          md: md`The prompt: *design the ranking for the home feed of a short-video app.* Clarifying gives the working assumptions used below, all stated as assumptions: 100 million daily active users, each opening the feed about 20 times a day; a catalogue of 50 million videos, a few hundred thousand new ones a day; a p99 budget of 200 ms for a page of results. The goal is long-term engagement; clicks are at best a proxy for it.`,
         },
         {
           kind: 'callout',
@@ -530,7 +530,7 @@ The prompt: *design an assistant that answers customer questions from the compan
         {
           kind: 'viz',
           viz: { type: 'sd.ragcost' },
-          task: md`All prices and speeds here are illustrative, not quotes. With the defaults, which single slider gives the largest cut in cost per request: fewer chunks, shorter chunks, or a shorter answer? Which one cuts the time to first token most? Then turn on prompt caching and see what changes.`,
+          task: md`All prices and speeds here are illustrative, not quotes. From the defaults, halve the chunk size; then restore it and halve the answer length instead. Which change saves more per request, and which one shortens the time to first token? Then turn on prompt caching and see which numbers move.`,
           caption: md`Time to first token is the retrieval path plus prefill of the whole prompt; the answer then streams at the decode speed. Input tokens are typically priced lower than output tokens but are far more numerous in RAG, so context length dominates cost unless answers are long.`,
         },
         {
@@ -622,7 +622,7 @@ A **feature store** reduces skew by defining each feature once and materializing
         {
           kind: 'explain',
           prompt: md`Your RAG support assistant has been live for a month. Reviewers find that 15% of answers are confidently wrong. Talk through how you would diagnose where the failures come from.`,
-          model: md`First, separate retrieval failures from generation failures. I would take a sample of the wrong answers and, for each one, check whether the passage containing the correct answer was in the prompt. If it was not, the problem is upstream: either the knowledge is missing from the corpus, the chunking split it, the query rewrite lost the intent, or the retriever and reranker ranked it too low; I would measure recall@5 on a labelled question set and inspect the misses by category. If the right passage was in the prompt and the answer was still wrong, the generation is unfaithful: I would tighten the instructions to answer only from cited passages, add a faithfulness check that compares claims with the passages, and allow the model to say it does not know. I would also check for stale articles that contradict newer ones, add the failure cases to the golden evaluation set, and track the error rate per intent so improvements are measured, not assumed.`,
+          model: md`First, separate retrieval failures from generation failures. I would take a sample of the wrong answers and, for each one, check whether the passage containing the correct answer was in the prompt. If it was not, the problem is upstream: either the knowledge is missing from the corpus, the chunking split it, the query rewrite lost the intent, or the retriever and reranker ranked it too low; I would measure recall@5 on a labelled question set and inspect the misses by category. If the right passage was in the prompt and the answer was still wrong, the generation is unfaithful: I would tighten the instructions to answer only from cited passages, add a faithfulness check that compares claims with the passages, and allow the model to say it does not know. I would also check for stale articles that contradict newer ones, add the failure cases to the golden evaluation set, and track the error rate per intent so that every change is measured.`,
         },
         {
           kind: 'recall',

@@ -65,9 +65,12 @@ export function MatGrid({
               if (has(cells, i, j)) cls.push('hx');
               if (has(dim, i, j)) cls.push('dim');
               if (onCell) cls.push('click');
-              const bg = heat && Number.isFinite(v) ? colorMap((v - lo) / (hi - lo || 1), heat) : undefined;
+              const t = (v - lo) / (hi - lo || 1);
+              const bg = heat && Number.isFinite(v) ? colorMap(t, heat) : undefined;
+              // strong fills get page-background text so the number stays readable in both themes
+              const strong = bg !== undefined && (heat === 'seq' ? t > 0.6 : Math.abs(t - 0.5) > 0.32);
               return (
-                <span key={i + '-' + j} className={cls.join(' ')} style={bg ? { background: bg } : undefined} onClick={onCell ? () => onCell(i, j) : undefined} role={onCell ? 'button' : undefined} tabIndex={onCell ? 0 : undefined} onKeyDown={onCell ? (e) => (e.key === 'Enter' || e.key === ' ') && onCell(i, j) : undefined}>
+                <span key={i + '-' + j} className={cls.join(' ')} style={bg ? { background: bg, color: strong ? 'var(--bg)' : undefined } : undefined} onClick={onCell ? () => onCell(i, j) : undefined} role={onCell ? 'button' : undefined} tabIndex={onCell ? 0 : undefined} onKeyDown={onCell ? (e) => (e.key === 'Enter' || e.key === ' ') && onCell(i, j) : undefined}>
                   {Number.isFinite(v) ? fmt(v, i, j) : v === -Infinity ? '−∞' : '·'}
                 </span>
               );

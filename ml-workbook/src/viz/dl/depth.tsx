@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { VizSpec } from '../../content/types';
 import { LinePlot, Slider, Readout, FigureLayout, SegControl, Toggle, TeX } from '../kit';
-import { fmt, sigTeX } from './util';
+import { fmt, sigTeX, tv } from './util';
 import { DACT, simulate, type DAct } from './deepsim';
 import './dl.css';
 
@@ -49,8 +49,8 @@ function SigmoidChain({ spec }: { spec: VizSpec }) {
           <Readout
             rows={[
               ["\\text{factor at top } w\\,\\varphi'(z_L)", fmt(factors[L - 1], 4)],
-              ['\\pd{h_L}{h_0} = \\prod_l w\\,\\varphi\'(z_l)', '$' + sigTeX(grads[0], 3)],
-              ...(act === 'sigmoid' ? ([['\\text{bound } (|w|/4)^L', '$' + sigTeX(bound, 3)]] as [string, string][]) : []),
+              ['\\pd{h_L}{h_0} = \\prod_l w\\,\\varphi\'(z_l)', tv(sigTeX(grads[0], 3))],
+              ...(act === 'sigmoid' ? ([['\\text{bound } (|w|/4)^L', tv(sigTeX(bound, 3))]] as [string, string][]) : []),
               ['z_1,\\ z_L', `${fmt(zs[0], 2)}, ${fmt(zs[L - 1], 2)}`],
             ]}
           />
@@ -104,7 +104,8 @@ function DepthSignal({ spec }: { spec: VizSpec }) {
   const ser = (a: number[]) => a.map((v, l) => [l, Math.max(-40, Math.min(40, L10(v)))] as [number, number]);
   const range = (arrs: number[][]) => {
     const all = arrs.flat().map((v) => Math.max(-40, Math.min(40, L10(v))));
-    return [Math.floor(Math.min(-1, ...all)), Math.ceil(Math.max(1, ...all))] as [number, number];
+    const lo = Math.floor(Math.min(-1, ...all)), hi = Math.ceil(Math.max(1, ...all));
+    return [lo, hi + (hi - lo) * 0.25] as [number, number];
   };
   const aR = range([plain.act, ...(resid ? [resid.act] : [])]);
   const gR = range([plain.grad, ...(resid ? [resid.grad] : [])]);
@@ -121,9 +122,9 @@ function DepthSignal({ spec }: { spec: VizSpec }) {
             rows={[
               [INITS[init].tex, ''],
               ['\\sigma_w', fmt(std, 4)],
-              ['\\text{RMS}(\\bh_L)', '$' + sigTeX(plain.act[depth], 2)],
-              ['\\text{grad at layer 0 / top}', '$' + sigTeX(plain.grad[0], 2)],
-              ...(resid ? ([['\\text{residual: grad 0 / top}', '$' + sigTeX(resid.grad[0], 2)]] as [string, string][]) : []),
+              ['\\text{RMS}(\\bh_L)', tv(sigTeX(plain.act[depth], 2))],
+              ['\\text{grad at layer 0 / top}', tv(sigTeX(plain.grad[0], 2))],
+              ...(resid ? ([['\\text{residual: grad 0 / top}', tv(sigTeX(resid.grad[0], 2))]] as [string, string][]) : []),
             ]}
           />
           <div className="muted small">One random network of width {WIDTH}. At finite width the curves wander by a factor of about 2 even when the variance is preserved on average.</div>

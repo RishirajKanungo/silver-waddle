@@ -282,7 +282,7 @@ $A^2 = P\begin{bmatrix} 25 & 0 \\ 0 & 4 \end{bmatrix}P^{-1} = \tfrac13\begin{bma
           kind: 'viz',
           viz: { type: 'la.pagerank', damping: 0.85 },
           task: md`Press Play. Which page ends with the highest score? Page D has no incoming links: explain why it settles at exactly $(1 - d)/4$. Then set $d = 1$ and replay: what happens to D, and is convergence faster or slower?`,
-          caption: md`At $d = 0.85$ the scores are about $(0.373, 0.196, 0.394, 0.038)$: C collects links from A, B and D. The link matrix has eigenvalues $1$, $-\tfrac12 \pm \tfrac12 i$ and $0$, so $|\lambda_2(G)| = 0.85/\sqrt2 \approx 0.60$. At $d = 1$ it is $0.71$, and D's score decays to $0$.`,
+          caption: md`At $d = 0.85$ the scores are about $(0.373, 0.196, 0.394, 0.038)$: C collects links from A, B and D. The link matrix has eigenvalues $1$, $-\tfrac12 \pm \tfrac12 i$ and $0$, so $|\lambda_2(G)| = 0.85/\sqrt2 \approx 0.60$. At $d = 1$ it is $0.71$, so convergence is slower, and D's score drops to $0$ after the first step because no page links to it.`,
         },
         {
           kind: 'text',

@@ -110,7 +110,7 @@ function Rank1Sum({ spec }: { spec: VizSpec }) {
   const cap = S.slice(0, k).reduce((s, x) => s + x * x, 0);
   const lay = layer(k - 1);
   const f1 = (v: number) => (Math.abs(v) < 0.05 ? '0' : v.toFixed(1));
-  const rng: [number, number] = [-1, 5.5];
+  const rng: [number, number] = [-1, 8.5];
   return (
     <FigureLayout
       side={
@@ -130,7 +130,7 @@ function Rank1Sum({ spec }: { spec: VizSpec }) {
       <div className="la2-grids">
         <MatGrid m={A} heat="seq" heatRange={rng} caption={<TeX>{'A'}</TeX>} />
         <MatGrid m={Ak} fmt={f1} heat="seq" heatRange={rng} caption={<TeX>{`A_{${k}} = \\sum_{i\\le ${k}} \\sigma_i\\mathbf{u}_i\\mathbf{v}_i^{\\top}`}</TeX>} />
-        <MatGrid m={lay} fmt={f1} heat="div" heatRange={[-3, 3]} caption={<TeX>{`\\sigma_{${k}}\\mathbf{u}_{${k}}\\mathbf{v}_{${k}}^{\\top}`}</TeX>} />
+        <MatGrid m={lay} fmt={f1} heat="div" heatRange={[-6, 6]} caption={<TeX>{`\\sigma_{${k}}\\mathbf{u}_{${k}}\\mathbf{v}_{${k}}^{\\top}`}</TeX>} />
       </div>
     </FigureLayout>
   );
@@ -274,7 +274,7 @@ function CondGD({ spec }: { spec: VizSpec }) {
   const rho = Math.max(Math.abs(1 - eta * mu), Math.abs(1 - eta * L));
   const need = rho >= 1 ? Infinity : rho === 0 ? 1 : Math.ceil(Math.log(1e-6) / (2 * Math.log(rho)));
   const levels = Array.from({ length: 9 }, (_, j) => f0 * 0.5 ** j * 1.2);
-  const vals = path.map((p, k) => [k, Math.max(1e-12, f(...p) / f0)] as [number, number]);
+  const vals = path.map((p, k) => [k, Math.min(1e3, Math.max(1e-9, f(...p) / f0))] as [number, number]);
   return (
     <FigureLayout
       side={
@@ -294,7 +294,7 @@ function CondGD({ spec }: { spec: VizSpec }) {
           </div>
         </>
       }
-      below={<LinePlot series={[{ pts: vals, color: 'var(--c-u)' }]} x={[0, K]} y={[1e-10, 10]} logY height={180} xlabel="iteration k" ylabel="f(x_k)/f(x_0)" />}
+      below={<LinePlot series={[{ pts: vals, color: 'var(--c-u)' }]} x={[0, K]} y={[1e-8, 10]} logY height={210} xlabel="iteration k" ylabel="f(x_k) / f(x_0)" />}
     >
       <Plane x={[-4, 4]} y={[-2.5, 2.5]} width={440} gridStep={1}>
         <Contours f={f} levels={levels} color="var(--c-contour)" width={1.2} n={90} />
@@ -337,7 +337,6 @@ function PcaCloud({ spec }: { spec: VizSpec }) {
     return [mean[0] + c * w[0], mean[1] + c * w[1]] as P2;
   });
   const handleAt: P2 = [mean[0] + 3 * w[0], mean[1] + 3 * w[1]];
-  const R = 5;
   return (
     <FigureLayout
       side={
@@ -358,7 +357,7 @@ function PcaCloud({ spec }: { spec: VizSpec }) {
       }
       below={<Bars data={[{ label: 'PC1', value: lv[0] / tot, color: 'var(--c-w)' }, { label: 'PC2', value: lv[1] / tot, color: 'var(--c-k)' }, { label: 'along w', value: varw / tot, color: 'var(--c-v)' }]} height={150} max={1} fmt={(v) => (100 * v).toFixed(1) + '%'} ylabel="share of variance" />}
     >
-      <Plane x={[-R, R]} y={[-R, R]} width={440}>
+      <Plane x={[-4, 6]} y={[-4.5, 5.5]} width={440}>
         <InfLine p={mean} d={w} color="var(--c-v)" width={1.5} opacity={0.6} />
         {pts.map((p, k) => (
           <Seg key={'s' + k} a={p} b={proj[k]} color="var(--c-v)" width={0.8} opacity={0.35} />
@@ -369,8 +368,8 @@ function PcaCloud({ spec }: { spec: VizSpec }) {
         {proj.map((p, k) => (
           <Point key={'q' + k} at={p} r={2} color="var(--c-v)" />
         ))}
-        <Arrow from={mean} to={[mean[0] + 2 * Math.sqrt(lv[0]) * q1[0], mean[1] + 2 * Math.sqrt(lv[0]) * q1[1]]} color="var(--c-w)" width={3.5} tex="\text{PC1}" labelAt={1.12} />
-        <Arrow from={mean} to={[mean[0] + 2 * Math.sqrt(Math.max(0, lv[1])) * q2[0], mean[1] + 2 * Math.sqrt(Math.max(0, lv[1])) * q2[1]]} color="var(--c-k)" width={3.5} tex="\text{PC2}" labelAt={1.25} />
+        <Arrow from={mean} to={[mean[0] + 2 * Math.sqrt(lv[0]) * q1[0], mean[1] + 2 * Math.sqrt(lv[0]) * q1[1]]} color="var(--c-w)" width={3.5} tex="\text{PC1}" labelAt={0.6} />
+        <Arrow from={mean} to={[mean[0] + 2 * Math.sqrt(Math.max(0, lv[1])) * q2[0], mean[1] + 2 * Math.sqrt(Math.max(0, lv[1])) * q2[1]]} color="var(--c-k)" width={3.5} tex="\text{PC2}" labelAt={0.6} />
         <Point at={mean} r={4.5} color="var(--fg)" />
         {!lock && <Handle at={handleAt} onChange={(p) => setWa(Math.atan2(p[1] - mean[1], p[0] - mean[0]))} color="var(--c-v)" tex="\mathbf{w}" label="direction w" />}
       </Plane>
@@ -401,8 +400,8 @@ function PcaPitfalls({ spec }: { spec: VizSpec }) {
       return p;
     }
     return Z.map(([a, b], k) => {
-      const t = (Math.PI * (k + 0.5)) / Z.length;
-      return [2.5 * Math.cos(t) + 0.08 * a, 2.5 * Math.sin(t) - 1.2 + 0.08 * b] as P2;
+      const t = -Math.PI / 4 + (1.5 * Math.PI * (k + 0.5)) / Z.length; // a 270° arc
+      return [2.5 * Math.cos(t) + 0.08 * a, 2.5 * Math.sin(t) - 0.5 + 0.08 * b] as P2;
     });
   }, [Z, mode, sfac, stdz]);
   const { mean, C } = cov2(pts);
@@ -438,7 +437,7 @@ function PcaPitfalls({ spec }: { spec: VizSpec }) {
               ? stdz
                 ? 'After standardizing, the unit no longer matters: PC1 is the same for every setting of the slider.'
                 : 'Measuring x₂ in smaller units multiplies its numbers, and so its variance; PC1 swings toward the x₂ axis.'
-              : 'One number (the position along the arc) describes every point, yet PC1 explains only part of the variance and the 1-D reconstructions (on the line) cut across the arc.'}
+              : 'One number (the position along the arc) describes every point, yet PC1 explains only two thirds of the variance, and points a quarter-turn apart on the arc are reconstructed at the same place on the line.'}
           </div>
         </>
       }

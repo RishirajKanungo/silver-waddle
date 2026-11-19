@@ -150,7 +150,7 @@ function RegConstraint({ spec }: { spec: VizSpec }) {
                 ? 'ŵ is inside the ball, so the constraint does nothing (λ = 0).'
                 : 'The solution is where the lowest loss contour first touches the ball.'}
           </div>
-          <div className="muted small">Drag ŵ (black). The dashed curve is the path of w* as t goes from 0 to the size of ŵ.</div>
+          <div className="muted small">Drag ŵ. The dashed curve is the path of w* as t goes from 0 to the size of ŵ.</div>
         </>
       }
     >

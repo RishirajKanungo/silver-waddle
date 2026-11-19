@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { VizSpec } from '../../content/types';
 import { LinePlot, Slider, Readout, FigureLayout, SegControl, Toggle, Btn } from '../kit';
-import { fmt, sig, sigTeX } from './util';
+import { fmt, sig, sigTeX, tv } from './util';
 import { CURVE_DATA } from './curvedata';
 import { SCENARIOS, startRun, type Scenario, type RunOut } from './curves';
 import './dl.css';
@@ -63,13 +63,13 @@ function LrSchedule({ spec }: { spec: VizSpec }) {
             rows={[
               [tt < o.warm ? '\\eta_t = \\eta_{\\max}\\,t/T_w' : '\\eta_t = ' + formula[sched], ''],
               ...(tt >= o.warm && sched !== 'constant' && sched !== 'wsd' ? ([['p = (t-T_w)/(T-T_w)', fmt(p, 3)]] as [string, string][]) : []),
-              ['\\eta_t', '$' + sigTeX(eta, 3)],
+              ['\\eta_t', tv(sigTeX(eta, 3))],
             ]}
           />
         </>
       }
     >
-      <LinePlot series={[{ pts, color: 'var(--c-u)' }]} x={[0, total]} y={[0, 10.5]} height={290} xlabel="step t" ylabel="η (×10⁻⁴)" vlines={[{ x: tt, color: 'var(--accent)' }, ...(o.warm > 0 ? [{ x: o.warm, color: 'var(--muted)' }] : [])]}>
+      <LinePlot series={[{ pts, color: 'var(--c-u)' }]} x={[0, total]} y={[0, Math.max(2, peakE4 * 1.15)]} height={290} xlabel="step t" ylabel="η (×10⁻⁴)" vlines={[{ x: tt, color: 'var(--accent)' }, ...(o.warm > 0 ? [{ x: o.warm, color: 'var(--muted)' }] : [])]}>
         {(sx, sy) => <circle cx={sx(tt)} cy={sy(eta * 1e4)} r={5} style={{ fill: 'var(--c-v)' }} />}
       </LinePlot>
     </FigureLayout>
@@ -148,7 +148,7 @@ function Floats({ spec }: { spec: VizSpec }) {
   const scaled = roundFmt(x * S, 5, 10);
   const back = scaled / S;
   // number line
-  const W = 500, L0 = -46, L1 = 40;
+  const W = 500, L0 = -46, L1 = 42;
   const X = (l: number) => 60 + ((l - L0) / (L1 - L0)) * (W - 70);
   const lg = Math.log10(Math.abs(x));
   return (
@@ -164,7 +164,7 @@ function Floats({ spec }: { spec: VizSpec }) {
           <Slider tex="\text{loss scale } 2^k" value={k} min={0} max={24} step={1} onChange={setK} fmt={(v) => '2^' + v} />
           <Readout
             title="machine epsilon (gap above 1)"
-            rows={FMTS.map((f) => [`\\text{${f.name}}`, '$' + `2^{-${f.mb}} \\approx ${sigTeX(range(f).eps, 3)}`] as [string, string])}
+            rows={FMTS.map((f) => [`\\text{${f.name}}`, tv(`2^{-${f.mb}} \\approx ${sigTeX(range(f).eps, 3)}`)] as [string, string])}
           />
         </>
       }
@@ -200,7 +200,7 @@ function Floats({ spec }: { spec: VizSpec }) {
       }
     >
       <svg viewBox={`0 0 ${W} 210`} className="dl-graph" style={{ maxWidth: W }}>
-        {[-40, -30, -20, -10, 0, 10, 20, 30, 40].map((t) => (
+        {[-40, -30, -20, -10, 0, 10, 20, 30].map((t) => (
           <g key={t}>
             <line x1={X(t)} x2={X(t)} y1={20} y2={170} className="dl-grid" />
             <text x={X(t)} y={186} textAnchor="middle" className="dl-tick">
@@ -235,6 +235,7 @@ function Floats({ spec }: { spec: VizSpec }) {
 // ------------------------------------------------------------------ dl.losscurves
 
 const ORDER: Scenario[] = ['overfit', 'high', 'bug', 'low', 'healthy'];
+const BUTTONS: Scenario[] = ['healthy', 'low', 'high', 'overfit', 'bug'];
 
 function Curves({ data, best, epochs, live }: { data: RunOut | { train: [number, number][]; val: [number, number][] }; best?: number; epochs: number; live?: boolean }) {
   const ymax = Math.min(2.5, Math.max(0.8, ...data.train.map((p) => p[1]), ...data.val.map((p) => p[1])) * 1.05);
@@ -319,7 +320,7 @@ function LossCurves({ spec }: { spec: VizSpec }) {
               Curve {(idx % ORDER.length) + 1} of {ORDER.length}. What is the most likely cause?
             </div>
             <div className="dl-choices">
-              {ORDER.map((s) => (
+              {BUTTONS.map((s) => (
                 <button key={s} className={pick ? (s === sc ? 'ok' : s === pick ? 'bad' : '') : ''} onClick={() => choose(s)} disabled={!!pick && s !== pick && s !== sc}>
                   {SCENARIOS[s].label}
                 </button>

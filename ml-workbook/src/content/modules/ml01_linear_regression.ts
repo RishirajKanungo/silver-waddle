@@ -6,7 +6,7 @@ export const MODULE: Module = {
   order: 1,
   title: 'Linear regression',
   summary: 'The linear model and the squared loss, the normal equations, gradient descent and feature scaling, basis features, and ridge, lasso and elastic-net regularization.',
-  relevance: md`Linear regression is the baseline for every regression problem and the template for the rest of supervised learning: a model, a loss derived from a noise model, an optimizer, and a regularizer. The final layer of most networks is a linear model, and weight decay in AdamW is the ridge penalty applied during optimization. Interviews commonly ask you to derive the closed form and the gradient, implement both in NumPy, explain why feature scaling matters, compare ridge and lasso, and list the assumptions of linear regression.`,
+  relevance: md`Linear regression is the baseline for every regression problem and the template for the rest of supervised learning: a model, a loss derived from a noise model, an optimizer, and a regularizer. The final layer of most networks is a linear model, and the weight decay used when training networks shrinks weights toward zero in the same way as the ridge penalty (exactly so for plain SGD). Interviews commonly ask you to derive the closed form and the gradient, implement both in NumPy, explain why feature scaling matters, compare ridge and lasso, and list the assumptions of linear regression.`,
   prereqs: ['la01'],
   areas: ['ml-breadth', 'ml-depth', 'ml-coding', 'math'],
   lessons: [
@@ -212,7 +212,7 @@ for degree in (1, 3, 5, 7):
       ],
       cards: [
         { id: 'ml01-1-c1', kind: 'concept', front: md`State the normal equations and when they have a unique solution.`, back: md`$X\T X\hat\bw = X\T\by$. Unique when the columns of $X$ (including the column of ones) are linearly independent; then $\hat\bw = (X\T X)^{-1}X\T\by$.` },
-        { id: 'ml01-1-c2', kind: 'cloze', text: md`Minimizing the MSE is maximum likelihood when the noise is {{}}.`, answers: ['gaussian'] },
+        { id: 'ml01-1-c2', kind: 'cloze', text: md`Minimizing the MSE is maximum likelihood when the noise is {{}}.`, answers: ['gaussian|normal'] },
         { id: 'ml01-1-c3', kind: 'compute', front: md`MSE of $\hat y = x$ on the points $(0, 1), (1, 1), (2, 4)$?`, answer: { kind: 'number', value: 5 / 3 }, back: md`Residuals $1, 0, 2$; squares $1, 0, 4$; MSE $= 5/3 \approx 1.667$.` },
         { id: 'ml01-1-c4', kind: 'concept', front: md`Why use \`lstsq\` (or \`solve\`) instead of \`inv(X.T @ X) @ X.T @ y\`?`, back: md`Forming $X\T X$ squares the condition number and inverting adds more rounding error and cost. \`lstsq\` factorizes $X$ itself (QR or SVD) and is the numerically stable choice.` },
         { id: 'ml01-1-c5', kind: 'cloze', text: md`With an intercept in the model, the least-squares residuals sum to {{}}.`, answers: ['0'] },
@@ -286,13 +286,19 @@ for degree in (1, 3, 5, 7):
           kind: 'viz',
           viz: { type: 'ml.lr-gd' },
           task: md`With **raw x**, set $\eta$ just below the stability limit $2/\lambda_{\max}$ shown in the panel and press **Play**. How many steps does it take to reach $10^{-3}$ of the starting error? Push $\eta$ past the limit. Then switch to **standardized x** and try $\eta = 0.3$ and $\eta = 0.5$.`,
-          caption: md`MSE contours over the two parameters for $x = 1, 2, \dots, 10$. With the raw feature, slope and intercept are strongly coupled, so the bowl is a narrow valley ($\kappa \approx 187$). Any step size stable for the steep direction crawls along the flat one. After standardizing, the contours are circles and $\kappa = 1$. You can drag the starting point (black).`,
+          caption: md`MSE contours over the two parameters for $x = 1, 2, \dots, 10$. With the raw feature, slope and intercept are strongly coupled, so the bowl is a narrow valley ($\kappa \approx 187$). Any step size stable for the steep direction crawls along the flat one. After standardizing, the contours are circles and $\kappa = 1$. You can drag the starting point.`,
         },
         {
           kind: 'callout',
           tone: 'theorem',
           title: 'Gradient descent on a quadratic',
           md: md`Let $H = \frac2n X\T X$ (the Hessian of the MSE) have eigenvalues $\lambda_{\max} \ge \dots \ge \lambda_{\min} > 0$. Because $\nabla L(\bw) = H(\bw - \hat\bw)$, gradient descent satisfies $$\bw_{t+1} - \hat\bw = (I - \eta H)(\bw_t - \hat\bw).$$ Along the $k$-th eigenvector the error is multiplied by $1 - \eta\lambda_k$ at every step. So GD converges for every start exactly when $0 < \eta < 2/\lambda_{\max}$. The best fixed step, $\eta = 2/(\lambda_{\max} + \lambda_{\min})$, gives the rate $\frac{\kappa - 1}{\kappa + 1}$ per step with $\kappa = \lambda_{\max}/\lambda_{\min}$, so the number of steps grows roughly in proportion to $\kappa$.`,
+        },
+        {
+          kind: 'callout',
+          tone: 'intuition',
+          title: 'A valley, not a bowl',
+          md: md`A step size small enough not to bounce between the steep walls of a narrow valley is too small to make progress along its floor. Rescaling the features makes the valley round, so a single step size suits every direction.`,
         },
         {
           kind: 'check',
@@ -745,7 +751,7 @@ for lam in (0.0, 1.0, 100.0):
       ],
       cards: [
         { id: 'ml01-3-c1', kind: 'concept', front: md`The ridge solution, and why it exists for every $\lambda > 0$.`, back: md`$\hat\bw = (X\T X + \lambda I)^{-1}X\T\by$. $X\T X + \lambda I$ is positive definite: $\bv\T(X\T X + \lambda I)\bv = \lVert X\bv\rVert^2 + \lambda\lVert\bv\rVert^2 > 0$ for $\bv \ne \bzero$.` },
-        { id: 'ml01-3-c2', kind: 'cloze', text: md`Of the L1 and L2 penalties, the {{}} penalty produces weights that are exactly zero.`, answers: ['L1'] },
+        { id: 'ml01-3-c2', kind: 'cloze', text: md`The {{}} penalty produces weights that are exactly zero.`, answers: ['L1|lasso'] },
         { id: 'ml01-3-c3', kind: 'compute', front: md`One feature, no intercept, $\sum x_iy_i = 10$, $\sum x_i^2 = 4$, $\lambda = 1$. Ridge $w = ?$`, answer: { kind: 'number', value: 2 }, back: md`$w = 10/(4 + 1) = 2$, versus $10/4 = 2.5$ without the penalty.` },
         { id: 'ml01-3-c4', kind: 'concept', front: md`Ridge and lasso as MAP estimates: which priors?`, back: md`Gaussian noise plus a Gaussian prior $\mathcal N(0, \tau^2)$ on each weight gives ridge with $\lambda = \sigma^2/\tau^2$. A Laplace prior gives the lasso.` },
         { id: 'ml01-3-c5', kind: 'concept', front: md`How do you choose $\lambda$, and what preprocessing is needed first?`, back: md`Standardize features (fit on training data only), leave the intercept unpenalized, fit on a log-spaced grid of $\lambda$, pick the lowest validation or cross-validation error, refit, and evaluate once on a held-out test set.` },

@@ -805,9 +805,11 @@ export class Interp {
         this.raise('TypeError', `bad operand type for unary ${e.op}: '${typeNameOf(a)}'`);
       }
       case 'bool': {
+        // `a and b and c`: the last operand is returned as-is, never truth-tested (it may be an ndarray)
         let v: PyVal = null;
-        for (const x of e.vals) {
-          v = yield* this.evalE(x, s);
+        for (let i = 0; i < e.vals.length; i++) {
+          v = yield* this.evalE(e.vals[i], s);
+          if (i === e.vals.length - 1) return v;
           const t = yield* this.truth(v);
           if (e.op === 'and' ? !t : t) return v;
         }

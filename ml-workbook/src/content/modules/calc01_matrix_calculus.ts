@@ -107,7 +107,7 @@ The partial derivatives are the special cases $\bu = \be_i$. The vector $\bu$ mu
             },
             { md: md`Combine with step 1: $\nabla f(\bp)\cdot\bt = 0$. The gradient is orthogonal to every tangent direction of the level set.` },
           ],
-          takeaway: md`On a contour plot, the gradient always crosses the contours at right angles, pointing toward higher values. Steepest descent therefore moves straight across contours, not along them.`,
+          takeaway: md`On a contour plot, the gradient always crosses the contours at right angles, pointing toward higher values. Steepest descent therefore moves straight across the contours.`,
         },
         {
           kind: 'check',

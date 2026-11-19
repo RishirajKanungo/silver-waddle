@@ -131,7 +131,12 @@ function ClfThreshold({ spec }: { spec: VizSpec }) {
         </div>
       }
     >
-      <Plane x={SX} y={[0, yTop]} width={460} height={230} grid={false} ticks={false} xLabel="score s">
+      <Plane x={SX} y={[-yTop * 0.1, yTop]} width={460} height={250} grid={false} axes={false}>
+        <Seg a={[SX[0], 0]} b={[SX[1], 0]} color="var(--axis)" width={1} />
+        {[-2, 0, 2, 4, 6].map((v) => (
+          <Label key={'t' + v} at={[v, -yTop * 0.055]} text={String(v)} color="var(--muted)" />
+        ))}
+        <Label at={[SX[1] - 0.05, yTop * 0.04]} text="score s" anchor="end" color="var(--muted)" />
         <Poly pts={region(dens('n'), SX[0], tc)} fill="var(--c-neg)" fillOpacity={0.12} />
         <Poly pts={region(dens('n'), tc, SX[1])} fill="var(--c-neg)" fillOpacity={0.45} />
         <Poly pts={region(dens('p'), SX[0], tc)} fill="var(--c-pos)" fillOpacity={0.12} />

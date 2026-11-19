@@ -213,6 +213,7 @@ for (const m of MODULES) {
     for (const l of m.lessons) {
       it(`lesson ${l.id} ${l.title}`, () => {
         expect(l.objectives.length, 'objectives').toBeGreaterThanOrEqual(2);
+        l.objectives.forEach((o, i) => checkMd(`${l.id} objective ${i}`, o));
         expect(l.cells.some(isGate), 'at least one checkpoint').toBe(true);
         expect(l.cards.length, 'cards').toBeGreaterThanOrEqual(3);
         l.cells.forEach((c, i) => checkCell(`${l.id} cell ${i} (${c.kind})`, c, m));

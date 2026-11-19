@@ -28,13 +28,27 @@ function Span3D({ spec }: { spec: VizSpec }) {
   const r = rankNum([u, v, w]);
   const dep = Math.abs(t) < 1e-9;
   const box: P3[] = ([[0, 0, 0], u, add(u, v), v] as P3[]).flatMap((p) => [p, add(p, w) as P3]);
-  const edges: [number, number][] = [[0, 2], [2, 4], [4, 6], [6, 0], [1, 3], [3, 5], [5, 7], [7, 1], [0, 1], [2, 3], [4, 5], [6, 7]];
+  const edges: [number, number][] = [
+    [0, 2],
+    [2, 4],
+    [4, 6],
+    [6, 0],
+    [1, 3],
+    [3, 5],
+    [5, 7],
+    [7, 1],
+    [0, 1],
+    [2, 3],
+    [4, 5],
+    [6, 7],
+  ];
   return (
     <FigureLayout
       side={
         <>
           <div className="small muted">
-            <TeX>{'\\mathbf{w} = a\\mathbf{u} + b\\mathbf{v} + t\\,\\hat{\\mathbf{n}}'}</TeX>, where <TeX>{'\\hat{\\mathbf{n}}'}</TeX> is perpendicular to the plane of <TeX>{'\\mathbf{u}, \\mathbf{v}'}</TeX>.
+            <TeX>{'\\mathbf{w} = a\\mathbf{u} + b\\mathbf{v} + t\\,\\hat{\\mathbf{n}}'}</TeX>, where <TeX>{'\\hat{\\mathbf{n}}'}</TeX> is perpendicular to the plane of{' '}
+            <TeX>{'\\mathbf{u}, \\mathbf{v}'}</TeX>.
           </div>
           <Slider tex="a" value={a} min={-1} max={1.5} step={0.25} onChange={setA} />
           <Slider tex="b" value={b} min={-1} max={1.5} step={0.25} onChange={setB} />
@@ -88,7 +102,10 @@ function Coords({ spec }: { spec: VizSpec }) {
   const [b1, setB1] = useState<P2>((spec.b1 as P2) ?? [2, 1]);
   const [b2, setB2] = useState<P2>((spec.b2 as P2) ?? [-1, 1]);
   const [x, setX] = useState<P2>((spec.x as P2) ?? [1, 2]);
-  const B: Mat = [[b1[0], b2[0]], [b1[1], b2[1]]];
+  const B: Mat = [
+    [b1[0], b2[0]],
+    [b1[1], b2[1]],
+  ];
   const d = det(B);
   const ok = Math.abs(d) > 1e-9;
   const c = ok ? (matvec(inv(B)!, x) as P2) : null;
@@ -156,7 +173,8 @@ function spaces3(A: Mat) {
 function NullCol3D({ spec }: { spec: VizSpec }) {
   const A = spec.matrix as Mat;
   const { pc, nullv } = useMemo(() => spaces3(A), [A]);
-  const c1 = A.map((r) => r[pc[0]]) as P3, c2 = A.map((r) => r[pc[1]]) as P3;
+  const c1 = A.map((r) => r[pc[0]]) as P3,
+    c2 = A.map((r) => r[pc[1]]) as P3;
   const nv = nullv[0] as P3;
   const [mode, setMode] = useState<'any' | 'solve'>((spec.mode as 'any' | 'solve') ?? 'any');
   const [x1, setX1] = useState(1);
@@ -177,7 +195,14 @@ function NullCol3D({ spec }: { spec: VizSpec }) {
         below={
           <div className="la-rr">
             <div className="la-btns" style={{ justifyContent: 'center' }}>
-              <SegControl value={mode} onChange={setMode} options={[{ v: 'any', label: 'any input x' }, { v: 'solve', label: 'solve Ax = b' }]} />
+              <SegControl
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { v: 'any', label: 'any input x' },
+                  { v: 'solve', label: 'solve Ax = b' },
+                ]}
+              />
             </div>
             <div className="la-mm">
               <div style={{ minWidth: 220, flex: '1 1 220px', maxWidth: 300 }}>
@@ -249,7 +274,10 @@ function NullCol3D({ spec }: { spec: VizSpec }) {
  * params: matrix (2×2, rank 1), x
  */
 function FourSpaces({ spec }: { spec: VizSpec }) {
-  const A = (spec.matrix as Mat) ?? [[1, 1], [2, 2]];
+  const A = (spec.matrix as Mat) ?? [
+    [1, 1],
+    [2, 2],
+  ];
   const [x, setX] = useState<P2>((spec.x as P2) ?? [2, 0]);
   const r = (Math.hypot(...A[0]) > 1e-9 ? A[0] : A[1]) as P2;
   const c = (Math.hypot(A[0][0], A[1][0]) > 1e-9 ? [A[0][0], A[1][0]] : [A[0][1], A[1][1]]) as P2;
@@ -283,10 +311,22 @@ function FourSpaces({ spec }: { spec: VizSpec }) {
               />
             </div>
             <div className="la-legend" style={{ justifyContent: 'center' }}>
-              <span><i className="la-sw" style={{ background: 'var(--c-u)' }} />row space</span>
-              <span><i className="la-sw" style={{ background: 'var(--c-err)' }} />null space</span>
-              <span><i className="la-sw" style={{ background: 'var(--c-v)' }} />column space</span>
-              <span><i className="la-sw" style={{ background: 'var(--c-k)' }} />left null space</span>
+              <span>
+                <i className="la-sw" style={{ background: 'var(--c-u)' }} />
+                row space
+              </span>
+              <span>
+                <i className="la-sw" style={{ background: 'var(--c-err)' }} />
+                null space
+              </span>
+              <span>
+                <i className="la-sw" style={{ background: 'var(--c-v)' }} />
+                column space
+              </span>
+              <span>
+                <i className="la-sw" style={{ background: 'var(--c-k)' }} />
+                left null space
+              </span>
             </div>
             <div className="muted small" style={{ textAlign: 'center' }}>
               Drag x. Its row-space part x_r decides Ax; its null-space part x_n is sent to 0.
@@ -330,7 +370,8 @@ function FourSpaces({ spec }: { spec: VizSpec }) {
  * params: m (rows, default 6), n (cols, default 6), r (initial rank, default 1), seed
  */
 function LowRank({ spec }: { spec: VizSpec }) {
-  const m = (spec.m as number) ?? 6, n = (spec.n as number) ?? 6;
+  const m = (spec.m as number) ?? 6,
+    n = (spec.n as number) ?? 6;
   const [r, setR] = useState((spec.r as number) ?? 1);
   const [d, setD] = useState(4096);
   const [lr, setLr] = useState(8);
@@ -346,7 +387,8 @@ function LowRank({ spec }: { spec: VizSpec }) {
   const Am = Af.slice(0, r);
   const W = matmul(B, Am);
   const rk = rankNum(W);
-  const full = d * d, lora = 2 * d * lr;
+  const full = d * d,
+    lora = 2 * d * lr;
   return (
     <div className="la-wide">
       <FigureLayout

@@ -65,7 +65,7 @@ function OnbCoords({ spec }: { spec: VizSpec }) {
             {ok ? (
               <>The two shadows add back up to <TeX>{'\\mathbf{x}'}</TeX>, and <TeX>{'c_1^2+c_2^2 = \\lVert\\mathbf{x}\\rVert^2'}</TeX> (Pythagoras).</>
             ) : (
-              <>The basis is not orthogonal: the shadows <TeX>{'c_i\\mathbf{q}_i'}</TeX> no longer add up to <TeX>{'\\mathbf{x}'}</TeX> (red dashed).</>
+              <>The basis is not orthogonal: the shadows <TeX>{'c_i\\mathbf{q}_i'}</TeX> no longer add up to <TeX>{'\\mathbf{x}'}</TeX> (orange dashed).</>
             )}
           </div>
         </>
@@ -79,7 +79,7 @@ function OnbCoords({ spec }: { spec: VizSpec }) {
         <Seg a={[0, 0]} b={p1} color="var(--c-i)" width={6} opacity={0.35} />
         <Seg a={[0, 0]} b={p2} color="var(--c-j)" width={6} opacity={0.35} />
         {mode === 'orthonormal' && <RightAngle p={[0, 0]} d1={q1} d2={q2} s={0.22} />}
-        {!ok && <Arrow to={rec} color="var(--c-err)" dashed width={2} />}
+        {!ok && <Arrow to={rec} color="var(--c-v)" dashed width={2} />}
         <Arrow to={q1} color="var(--c-i)" width={3} />
         <Arrow to={q2} color="var(--c-j)" width={3} />
         <Label at={[1.45 * q1[0], 1.45 * q1[1]]} tex="\mathbf{q}_1" color="var(--c-i)" />

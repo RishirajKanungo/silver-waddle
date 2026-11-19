@@ -568,7 +568,7 @@ Lloyd's algorithm alternates two steps from a given set of $K$ centroids:
 1. **Assign** each point to its nearest centroid.
 2. **Update** each centroid to the mean of the points assigned to it.
 
-Each step can only lower the **inertia** $\sum_i \lVert\bx_i - \bc_{z_i}\rVert^2$: assignment picks the closest centroid for every point, and the mean is the point that minimizes the sum of squared distances to a set. The inertia therefore decreases monotonically and the algorithm stops at a local minimum that depends on the initialization. Libraries default to k-means++ initialization and several restarts. In an interview, be ready to handle a centroid that loses all its points: the mean of an empty set is undefined.`,
+Neither step can raise the **inertia** $\sum_i \lVert\bx_i - \bc_{z_i}\rVert^2$: assignment picks the closest centroid for every point, and the mean is the point that minimizes the sum of squared distances to a set. The inertia is therefore non-increasing, and the algorithm stops at a local minimum that depends on the initialization. Libraries commonly default to k-means++ initialization, and keeping the best of several restarts is a common safeguard. In an interview, be ready to handle a centroid that loses all its points: the mean of an empty set is undefined.`,
         },
         {
           kind: 'viz',
@@ -1451,17 +1451,27 @@ def fold_split(fold, f):
     },
     {
       id: 'code01-p4',
-      title: 'One step of logistic regression by hand',
-      type: 'compute',
+      title: 'A logistic regression step, on paper and by hand',
+      type: 'code-on-paper',
       difficulty: 1,
-      minutes: 6,
-      statement: md`Data: $x = (1, 2)$, labels $y = (0, 1)$, one feature. Start at $w = 0$, $b = 0$ and take one full-batch gradient step on the mean binary cross-entropy with learning rate $1$. Enter $[w, b]$.`,
+      minutes: 10,
+      statement: md`(a) Write \`logreg_step(X, y, w, b, lr)\` on paper: one full-batch gradient step on the mean binary cross-entropy, returning the new \`(w, b)\`, with a shape comment on every line. State its time and memory cost for $n$ examples and $d$ features.
+
+(b) Run it by hand on one feature, $x = (1, 2)$, labels $y = (0, 1)$, from $w = 0$, $b = 0$ with learning rate $1$. Enter $[w, b]$.`,
       solution: [
-        md`At $w = b = 0$ both predicted probabilities are $\sigma(0) = 0.5$. The errors are $\bp - \by = (0.5, -0.5)$.`,
+        md`(a)` + py(`def logreg_step(X, y, w, b, lr):
+    z = X @ w + b                       # (n,)
+    p = 1 / (1 + np.exp(-z))            # (n,)
+    g = p - y                           # (n,): dL/dz_i times n
+    w = w - lr * (X.T @ g) / len(y)     # (d,)
+    b = b - lr * g.mean()               # scalar
+    return w, b`) + md`Time $O(nd)$ for the two matrix–vector products; extra memory $O(n)$ for \`z\`, \`p\`, \`g\`.`,
+        md`(b) At $w = b = 0$ both predicted probabilities are $\sigma(0) = 0.5$, so $\bg = \bp - \by = (0.5, -0.5)$.`,
         md`$\pd{L}{w} = \frac12(1 \cdot 0.5 + 2\cdot(-0.5)) = -0.25$ and $\pd{L}{b} = \frac12(0.5 - 0.5) = 0$.`,
         md`$w \leftarrow 0 - 1\cdot(-0.25) = 0.25$, $b \leftarrow 0$. The weight moves toward predicting 1 for larger $x$, as the data suggests.`,
       ],
       answer: { kind: 'vector', value: [0.25, 0] },
+      rubric: [md`Gradient written as \`X.T @ (p - y) / n\` with correct shapes`, md`Bias gradient is the mean of \`p - y\``, md`Complexity $O(nd)$ stated`, md`Hand computation gives $w = 0.25$, $b = 0$`],
       areas: ['ml-coding', 'ml-breadth'],
     },
     {
@@ -1496,16 +1506,24 @@ def fold_split(fold, f):
     },
     {
       id: 'code01-p7',
-      title: 'AUC by counting pairs',
-      type: 'compute',
+      title: 'AUC by counting pairs, and its cost',
+      type: 'code-on-paper',
       difficulty: 1,
-      minutes: 6,
-      statement: md`Scores of positives: $0.95, 0.7, 0.55, 0.3$. Scores of negatives: $0.8, 0.5, 0.45, 0.2, 0.1$. Compute the AUC.`,
+      minutes: 8,
+      statement: md`Scores of positives: $0.95, 0.7, 0.55, 0.3$. Scores of negatives: $0.8, 0.5, 0.45, 0.2, 0.1$.
+
+(a) Compute the AUC by counting pairs. Enter it.
+
+(b) Write the pair-counting version in vectorized NumPy and give its time and memory. When would you switch to the rank formula?`,
       solution: [
-        md`There are $4 \times 5 = 20$ pairs. Count negatives below each positive: $0.95$: 5; $0.7$: 4 (all but $0.8$); $0.55$: 4; $0.3$: 2 ($0.2, 0.1$).`,
-        md`$U = 5 + 4 + 4 + 2 = 15$, so $\text{AUC} = 15/20 = 0.75$.`,
+        md`(a) There are $4 \times 5 = 20$ pairs. Negatives below each positive: $0.95$: 5; $0.7$: 4 (all but $0.8$); $0.55$: 4; $0.3$: 2 ($0.2, 0.1$). $U = 15$, so $\text{AUC} = 15/20 = 0.75$.`,
+        md`(b)` + py(`def auc_pairs(s_pos, s_neg):
+    diff = s_pos[:, None] - s_neg[None, :]                 # (n_pos, n_neg)
+    return ((diff > 0).sum() + 0.5 * (diff == 0).sum()) / diff.size`),
+        md`Time and memory are both $O(n_+n_-)$. With $10^5$ positives and $10^6$ negatives that is $10^{11}$ comparisons and far too much memory, so switch to the rank formula, $O(n\log n)$ time and $O(n)$ memory, whenever $n_+n_-$ is large.`,
       ],
       answer: { kind: 'number', value: 0.75 },
+      rubric: [md`Pairs counted correctly, $15$ of $20$`, md`Broadcast difference with ties counted one half`, md`$O(n_+n_-)$ stated and the rank formula named as the scalable alternative`],
       areas: ['ml-coding', 'ml-breadth'],
     },
     {

@@ -20,13 +20,19 @@ function ticks(lo: number, hi: number, target = 5): number[] {
   for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) out.push(Math.round(v / step) * step);
   return out;
 }
-const fmtTick = (v: number) => {
-  const a = Math.abs(v);
-  if (a !== 0 && (a >= 1e5 || a < 1e-3)) return v.toExponential(0);
-  return String(Math.round(v * 1e4) / 1e4);
-};
+/** Tick labels: plain numbers normally; exponent form for very large/small values, with just
+ *  enough digits that neighbouring ticks never print the same label. */
+function tickLabels(vals: number[]): string[] {
+  const maxAbs = Math.max(...vals.map(Math.abs));
+  const expo = maxAbs !== 0 && (maxAbs >= 1e5 || maxAbs < 1e-3);
+  for (let k = 0; k <= 6; k++) {
+    const labels = vals.map((v) => (v === 0 ? '0' : expo ? v.toExponential(k) : String(Number(v.toFixed(Math.max(k, 0) + 4)))));
+    if (new Set(labels).size === labels.length || k === 6) return labels;
+  }
+  return vals.map(String);
+}
 
-export function LinePlot({ series, x, y, width = 520, height = 260, xlabel, ylabel, logX, logY, vlines = [], hlines = [], legend = true, children }: { series: Series[]; x?: [number, number]; y?: [number, number]; width?: number; height?: number; xlabel?: string; ylabel?: string; logX?: boolean; logY?: boolean; vlines?: { x: number; color?: string; label?: string }[]; hlines?: { y: number; color?: string; label?: string }[]; legend?: boolean; children?: (sx: (v: number) => number, sy: (v: number) => number) => ReactNode }) {
+export function LinePlot({ series, x, y, width = 520, height = 260, xlabel, ylabel, logX, logY, vlines = [], hlines = [], legend = true, children }: { series: Series[]; /** true/'tl' top-left, 'tr', 'bl', 'br', or false */ x?: [number, number]; y?: [number, number]; width?: number; height?: number; xlabel?: string; ylabel?: string; logX?: boolean; logY?: boolean; vlines?: { x: number; color?: string; label?: string }[]; hlines?: { y: number; color?: string; label?: string }[]; legend?: boolean | 'tl' | 'tr' | 'bl' | 'br'; children?: (sx: (v: number) => number, sy: (v: number) => number) => ReactNode }) {
   const clipId = 'lp' + useId().replace(/:/g, '');
   const tx = (v: number) => (logX ? Math.log10(v) : v);
   const ty = (v: number) => (logY ? Math.log10(v) : v);
@@ -44,22 +50,27 @@ export function LinePlot({ series, x, y, width = 520, height = 260, xlabel, ylab
   const sy = (v: number) => height - B - ((ty(v) - Y0) / (Y1 - Y0 || 1)) * (height - Tm - B);
   const xt = logX ? decades(xr) : ticks(xr[0], xr[1]);
   const yt = logY ? decades(yr) : ticks(yr[0], yr[1]);
+  const xl = tickLabels(xt), yl = tickLabels(yt);
+  const nLeg = series.filter((s) => s.label).length;
+  const legW = 22 + 7 * Math.max(0, ...series.map((s) => s.label?.length ?? 0));
+  const legendX = legend === 'tr' || legend === 'br' ? width - R - legW - 6 : L + 10;
+  const legendY = legend === 'bl' || legend === 'br' ? height - B - 10 - (nLeg - 1) * 16 : Tm + 12;
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="lineplot" style={{ maxWidth: width }}>
       <rect x={0} y={0} width={width} height={height} className="pl-bg" />
-      {yt.map((v) => (
+      {yt.map((v, i) => (
         <g key={'y' + v}>
           <line x1={L} x2={width - R} y1={sy(v)} y2={sy(v)} className="pl-grid" />
           <text x={L - 6} y={sy(v) + 4} textAnchor="end" className="pl-tick">
-            {fmtTick(v)}
+            {yl[i]}
           </text>
         </g>
       ))}
-      {xt.map((v) => (
+      {xt.map((v, i) => (
         <g key={'x' + v}>
           <line y1={Tm} y2={height - B} x1={sx(v)} x2={sx(v)} className="pl-grid" />
-          <text x={sx(v)} y={height - B + 15} textAnchor="middle" className="pl-tick">
-            {fmtTick(v)}
+          <text x={sx(v)} y={height - B + 15} textAnchor={sx(v) > width - R - 18 ? 'end' : sx(v) < L + 10 ? 'start' : 'middle'} className="pl-tick">
+            {xl[i]}
           </text>
         </g>
       ))}
@@ -103,7 +114,7 @@ export function LinePlot({ series, x, y, width = 520, height = 260, xlabel, ylab
           {series
             .filter((s) => s.label)
             .map((s, i) => (
-              <g key={i} transform={`translate(${L + 10}, ${Tm + 12 + i * 16})`}>
+              <g key={i} transform={`translate(${legendX}, ${legendY + i * 16})`}>
                 <line x1={0} x2={16} y1={0} y2={0} style={{ stroke: s.color ?? 'var(--c-u)', strokeWidth: 2.5, strokeDasharray: s.dashed ? '4 3' : undefined }} />
                 <text x={22} y={4} className="pl-legend">
                   {s.label}
@@ -118,8 +129,9 @@ export function LinePlot({ series, x, y, width = 520, height = 260, xlabel, ylab
 
 function decades([lo, hi]: [number, number]): number[] {
   const out: number[] = [];
-  for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) out.push(10 ** e);
-  return out;
+  for (let e = Math.ceil(Math.log10(lo) - 1e-9); e <= Math.floor(Math.log10(hi) + 1e-9); e++) out.push(10 ** e);
+  const step = Math.ceil(out.length / 7);
+  return out.filter((_, i) => i % step === 0);
 }
 
 export function Bars({ data, width = 520, height = 200, max, min = 0, fmt = (v: number) => String(Math.round(v * 1000) / 1000), ylabel }: { data: { label: string; value: number; color?: string; highlight?: boolean }[]; width?: number; height?: number; max?: number; min?: number; fmt?: (v: number) => string; ylabel?: string }) {

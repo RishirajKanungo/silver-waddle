@@ -32,7 +32,8 @@ type Block =
   | { k: 'table'; head: string[]; rows: string[][]; align: string[] };
 
 function blocks(src: string): Block[] {
-  const lines = src.replace(/\r/g, '').split('\n');
+  // in md`` (String.raw) content a backtick is written \` — treat it as a plain backtick everywhere
+  const lines = src.replace(/\r/g, '').replace(/\\`/g, '`').split('\n');
   const out: Block[] = [];
   let i = 0;
   while (i < lines.length) {

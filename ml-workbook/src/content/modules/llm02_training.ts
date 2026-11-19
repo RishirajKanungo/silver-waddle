@@ -312,7 +312,7 @@ For a fixed budget $C$ there is a tradeoff: a bigger model sees fewer tokens. Th
         },
         {
           kind: 'text',
-          md: md`**Compute-optimal is not the whole story.** The 20:1 rule minimizes *training* compute for a target loss. A model that will serve many requests costs compute at inference in proportion to $N$, so it can pay to train a smaller model on many more tokens than 20 per parameter; the loss keeps improving, just less efficiently per training FLOP. Many open-weight models released since 2023 are trained this way, well beyond the Chinchilla ratio.`,
+          md: md`**Training past the compute-optimal point.** The 20:1 rule minimizes *training* compute for a target loss. A model that will serve many requests costs compute at inference in proportion to $N$, so it can pay to train a smaller model on many more tokens than 20 per parameter; the loss keeps improving, just less efficiently per training FLOP. Many open-weight models released since 2023 are trained this way, well beyond the Chinchilla ratio.`,
         },
         {
           kind: 'check',

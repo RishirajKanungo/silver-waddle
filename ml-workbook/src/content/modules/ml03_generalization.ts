@@ -37,7 +37,7 @@ with the noise independent of everything else. A training set $\mathcal{D}$ of $
           title: 'Bias and variance of a learning procedure',
           md: md`Let $\bar f(\bx) = \E_{\mathcal{D}}[\hat f_{\mathcal{D}}(\bx)]$ be the average prediction over training sets. Then
 $$\text{Bias}(\bx) = \bar f(\bx) - f(\bx), \qquad \Var(\bx) = \E_{\mathcal{D}}\big[(\hat f_{\mathcal{D}}(\bx) - \bar f(\bx))^2\big].$$
-Bias measures how far the **average** model is from the truth. Variance measures how much **individual** models scatter around their average. Both belong to the procedure (model class, regularization, sample size), not to one fitted model.`,
+Bias measures how far the **average** model is from the truth. Variance measures how much **individual** models scatter around their average. Both are properties of the procedure (model class, regularization, sample size); a single fitted model has neither.`,
         },
         {
           kind: 'callout',
@@ -479,7 +479,7 @@ print("select inside CV:", np.mean(honest))`,
       cards: [
         { id: 'ml03-2-c1', kind: 'concept', front: md`What are the jobs of the training, validation and test sets?`, back: md`Training: fit parameters. Validation: compare models and choose hyperparameters. Test: estimate the error of the final choice, used once after all decisions.` },
         { id: 'ml03-2-c2', kind: 'compute', front: md`1,000 training rows, 5-fold CV. How many rows does each fold's model train on?`, answer: { kind: 'number', value: 800 }, back: md`Each model trains on $4$ of the $5$ folds: $4 \times 200 = 800$ rows.` },
-        { id: 'ml03-2-c3', kind: 'cloze', text: md`Several rows per patient: use a {{}} split so that no patient is on both sides.`, answers: ['grouped'] },
+        { id: 'ml03-2-c3', kind: 'cloze', text: md`Several rows per patient: use a {{}} split so that no patient is on both sides.`, answers: ['grouped|group'] },
         { id: 'ml03-2-c4', kind: 'concept', front: md`Name the four common forms of data leakage.`, back: md`Target leakage; preprocessing (scaling, imputation, selection, encoding) fitted on all data; duplicates or shared entities across splits; future information in time-ordered data.` },
         { id: 'ml03-2-c5', kind: 'concept', front: md`Why is the best validation score among many models optimistic, and what fixes the estimate?`, back: md`The maximum of noisy estimates is biased upward ($\E\max \ge \max\E$). Evaluate the single chosen model on an untouched test set, or use nested cross-validation.` },
       ],
@@ -688,7 +688,7 @@ Mitigations: keep a small randomized exploration slice of traffic; log the proba
       cards: [
         { id: 'ml03-3-c1', kind: 'concept', front: md`Why can an offline metric improve while the A/B test shows no gain?`, back: md`The offline data were collected under the old system (selection and position bias), the metric is only a proxy for the business outcome, and online effects such as latency, novelty and changed user behaviour are absent offline.` },
         { id: 'ml03-3-c2', kind: 'compute', front: md`Rule of thumb: users per arm for $\sigma^2 = 0.25$ and $\delta = 0.01$ ($\alpha = 0.05$, power 0.8)?`, answer: { kind: 'number', value: 40000 }, back: md`$n \approx 16 \times 0.25 / 0.0001 = 40{,}000$.` },
-        { id: 'ml03-3-c3', kind: 'cloze', text: md`Halving the minimum detectable effect multiplies the required sample size by {{}}.`, answers: ['4'] },
+        { id: 'ml03-3-c3', kind: 'cloze', text: md`Halving the minimum detectable effect multiplies the required sample size by {{}}.`, answers: ['4|four'] },
         { id: 'ml03-3-c4', kind: 'concept', front: md`Which distribution shift is invisible to input monitoring, and why?`, back: md`Concept drift: $p(y\mid\bx)$ changes while $p(\bx)$ can stay the same, so only fresh labels or outcome proxies reveal it.` },
         { id: 'ml03-3-c5', kind: 'concept', front: md`What is a feedback loop in a deployed model? Give one mitigation.`, back: md`The model's decisions shape its future training data (e.g. a recommender only observes clicks on items it showed). Mitigations: a randomized exploration slice, logging propensities and using inverse propensity weighting, an untouched holdout group.` },
       ],

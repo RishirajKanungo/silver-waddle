@@ -154,7 +154,7 @@ export function ModulePage({ id }: { id: string }) {
               <span className="ll-t">
                 <b>{l.title}</b>
                 <span className="muted small">
-                  ~{l.minutes} min · {l.objectives[0]}
+                  ~{l.minutes} min · <Md text={l.objectives[0]} inlineOnly />
                 </span>
               </span>
               {progress.lessonDone(l.id) ? <span className="status-pill s-solved">done</span> : <span className="status-pill">open</span>}

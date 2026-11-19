@@ -940,8 +940,9 @@ function toIdx(I: Interp, v: PyVal): Idx {
   if (v === null) return { k: 'new' };
   if (isEllipsis(v)) return { k: 'ell' };
   if (typeof v === 'boolean' || (v instanceof NPScalar && v.dtype === 'bool')) unsupported(I, 'indexing with a scalar boolean');
-  if (v instanceof PyList || v instanceof PyTuple || v instanceof NDArray) {
-    let a = toArr(I, v);
+  if (v instanceof PyList || v instanceof PyTuple || v instanceof NDArray || (v instanceof PyObj && v.typeName === 'range')) {
+    // a Python range indexes like the list of its integers (a[range(3)] == a[[0, 1, 2]])
+    let a = toArr(I, v, v instanceof PyObj && v.typeName === 'range' ? 'int64' : undefined);
     if (a.size === 0 && a.dtype === 'float64' && !(v instanceof NDArray)) a = copyArr(a, 'int64');
     if (isFl(a.dtype)) I.raise('IndexError', 'arrays used as indices must be of integer (or boolean) type');
     if (a.dtype === 'bool') return { k: 'bool', a };
@@ -3818,6 +3819,27 @@ function buildLinalg(I: Interp, d: Map<string, PyVal>) {
   d.set('LinAlgError', st.cls.LinAlgError);
   f('inv', (I, a) => linv(I, toArr(I, a[0])));
   f('det', (I, a) => ldet(I, toArr(I, a[0])));
+  f('cholesky', (I, a) => {
+    // lower-triangular L with A = L L^T (LAPACK dpotrf, unblocked)
+    const { n, batch, mats } = sqMats(I, toArr(I, a[0]));
+    const out = new Float64Array(mats.length * n * n);
+    mats.forEach((A, b) => {
+      const L = out.subarray(b * n * n, (b + 1) * n * n);
+      for (let j = 0; j < n; j++) {
+        let d = A[j * n + j];
+        for (let k = 0; k < j; k++) d -= L[j * n + k] * L[j * n + k];
+        if (!(d > 0)) linAlgError(I, 'Matrix is not positive definite');
+        const ljj = Math.sqrt(d);
+        L[j * n + j] = ljj;
+        for (let i = j + 1; i < n; i++) {
+          let v = A[i * n + j];
+          for (let k = 0; k < j; k++) v -= L[i * n + k] * L[j * n + k];
+          L[i * n + j] = v / ljj;
+        }
+      }
+    });
+    return mk(out, [...batch, n, n], 'float64');
+  });
   f('slogdet', (I, a) => {
     const { n, mats } = sqMats(I, toArr(I, a[0]));
     const [s, l] = slogdetCore(mats[0], n);

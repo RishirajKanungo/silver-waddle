@@ -1,7 +1,7 @@
 // Figures for evaluation utilities: ROC curve and AUC as ranking, stratified k-fold.
 import { useState } from 'react';
 import type { VizSpec } from '../../content/types';
-import { Plane, Handle, Point, Seg, Path, Poly, Label, Slider, Readout, FigureLayout, SegControl, MatGrid, TeX, type P2 } from '../kit';
+import { Plane, Handle, Point, Seg, Path, Poly, Label, Slider, Readout, FigureLayout, SegControl, MatGrid, type P2 } from '../kit';
 import { fx, isNumArr } from './common';
 
 // ------------------------------------------------------------------ sd.roc
@@ -131,7 +131,7 @@ function KFold({ spec }: { spec: VizSpec }) {
   const fold = foldIds(y, k, mode === 'strat');
   const n = y.length;
   const nPos = y.filter((v) => v === 1).length;
-  const cell = 20, gap = 3, left = 84, right = 96, top = 22;
+  const cell = 20, gap = 3, left = 54, right = 6, top = 22;
   const W = left + n * (cell + gap) + right, H = top + k * (cell + 12) + 6;
   const stats = Array.from({ length: k }, (_, f) => {
     const idx = fold.map((v, i) => (v === f ? i : -1)).filter((i) => i >= 0);
@@ -163,7 +163,7 @@ function KFold({ spec }: { spec: VizSpec }) {
     >
       <div style={{ width: '100%' }}>
       <div className="sd-scroll">
-        <svg viewBox={`0 0 ${W} ${H}`} className="sd-svg" style={{ maxWidth: W, minWidth: 380 }} role="img" aria-label="fold assignment grid">
+        <svg viewBox={`0 0 ${W} ${H}`} className="sd-svg" style={{ maxWidth: W }} role="img" aria-label="fold assignment grid">
           <rect width={W} height={H} className="pl-bg" />
           {y.map((v, i) => (
             <text key={'i' + i} x={left + i * (cell + gap) + cell / 2} y={14} textAnchor="middle" className="sd-ts sd-num">
@@ -174,24 +174,21 @@ function KFold({ spec }: { spec: VizSpec }) {
             const yy = top + f * (cell + 12);
             return (
               <g key={f}>
-                <text x={8} y={yy + cell / 2 + 4} className="sd-t">
-                  test fold {f + 1}
+                <text x={6} y={yy + cell / 2 + 4} className="sd-t">
+                  fold {f + 1}
                 </text>
                 {y.map((v, i) => {
                   const test = fold[i] === f;
                   const col = v === 1 ? 'var(--c-pos)' : 'var(--c-neg)';
                   return <rect key={i} x={left + i * (cell + gap)} y={yy} width={cell} height={cell} rx={3} style={{ fill: test ? col : 'var(--surface2)', stroke: test ? col : v === 1 ? 'var(--c-pos)' : 'var(--line)', strokeWidth: test ? 0 : v === 1 ? 1.5 : 1 }} />;
                 })}
-                <text x={left + n * (cell + gap) + 6} y={yy + cell / 2 + 4} className="sd-t sd-num">
-                  {stats[f].pos} pos / {stats[f].size}
-                </text>
               </g>
             );
           })}
         </svg>
       </div>
       <div className="muted small" style={{ marginTop: 6 }}>
-        Samples in index order; positives have an orange outline even when they are in the training part. <TeX>{'\\text{Row } f'}</TeX> shows which samples form test fold <TeX>f</TeX>.
+        Samples in index order. In row f, the filled squares are test fold f and the pale squares are its training set; positives keep an orange outline.
       </div>
       </div>
     </FigureLayout>

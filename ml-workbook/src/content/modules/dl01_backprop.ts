@@ -598,7 +598,7 @@ If the factors are mostly below 1 in magnitude, the product shrinks geometricall
         {
           kind: 'numeric',
           q: md`Ten sigmoid layers all sit at $z = 0$ with weight 1. By what factor is the gradient multiplied between the output and the input?`,
-          answer: { kind: 'number', value: 9.5367431640625e-7 },
+          answer: { kind: 'number', value: 9.5367431640625e-7, tol: 5e-9 },
           inputHint: 'e.g. 0.25^10',
           explain: md`Each layer contributes $1 \cdot \sigma'(0) = 1/4$, so the factor is $4^{-10} = 1/1{,}048{,}576 \approx 9.5\times10^{-7}$. In the figure the units do not stay at $z = 0$ (their inputs are about 0.6 to 0.7), so the factor is even smaller.`,
         },
@@ -865,7 +865,7 @@ for name, std in [("std 0.01", 0.01), ("Xavier", np.sqrt(1 / n)), ("He", np.sqrt
         md`Forward: $\dfrac{e^{0.01} - 1}{0.01} \approx 1.0050167$, error about $5.0\times10^{-3}$, roughly 300 times larger.`,
         md`Taylor: $f(\pm\varepsilon) = f \pm \varepsilon f' + \tfrac{\varepsilon^2}{2}f'' \pm \tfrac{\varepsilon^3}{6}f''' + \dots$. In the central difference the even terms cancel, leaving error $\tfrac{\varepsilon^2}{6}f''' = \tfrac{10^{-4}}{6}$. The forward difference keeps $\tfrac{\varepsilon}{2}f'' = 0.005$.`,
       ],
-      answer: { kind: 'number', value: 1.6666750000338126e-5, tol: 1e-3 },
+      answer: { kind: 'number', value: 1.6666750000338126e-5, tol: 1e-7 },
     },
     {
       id: 'dl01-p9',

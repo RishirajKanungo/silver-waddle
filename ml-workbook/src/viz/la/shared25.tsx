@@ -110,7 +110,8 @@ export const gcdN = (a: number, b: number): number => {
  */
 export function rankNum(A: Mat, tol = 1e-7): number {
   const a = A.map((r) => [...r]);
-  const m = a.length, n = a[0]?.length ?? 0;
+  const m = a.length,
+    n = a[0]?.length ?? 0;
   const big = Math.max(1, ...a.flat().map(Math.abs));
   let r = 0;
   for (let c = 0; c < n && r < m; c++) {
