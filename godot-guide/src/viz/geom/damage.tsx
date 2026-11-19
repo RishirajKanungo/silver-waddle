@@ -49,11 +49,11 @@ static func subtractive(atk: int, defence: int) -> int:
 
 
 static func divisive(atk: int, defence: int, k: float = ${k.toFixed(1)}) -> int:
-	return roundi(atk * k / (k + defence))  # ${vals[2].raw.toFixed(2)} -> ${vals[2].dmg}
+	return maxi(roundi(atk * k / (k + defence)), 1)  # ${vals[2].raw.toFixed(2)} -> ${vals[2].dmg}
 
 
 static func relative(atk: int, defence: int) -> int:
-	return roundi(float(atk * atk) / float(atk + defence))  # ${vals[3].raw.toFixed(2)} -> ${vals[3].dmg}`;
+	return maxi(roundi(float(atk * atk) / float(atk + defence)), 1)  # ${vals[3].raw.toFixed(2)} -> ${vals[3].dmg}`;
 
   return (
     <FigureLayout

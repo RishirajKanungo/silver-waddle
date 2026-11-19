@@ -177,11 +177,12 @@ export function ParticleLab({ spec }: { spec: VizSpec }) {
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {
-    clear(ctx, '#7a6a4f');
+    clear(ctx, '#5a8f4e');
     const ts = SHEETS['tiles_overworld'];
     if (ts) {
-      const dirt = ts.tiles?.dirt ?? ts.tiles?.path ?? ts.tiles?.grass ?? 0;
-      for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) drawFrame(ctx, 'tiles_overworld', dirt, x, y);
+      const t = ts.tiles ?? {};
+      const grass = [t.grass ?? 0, t.grass2 ?? t.grass ?? 0, t.grass3 ?? t.grass ?? 0];
+      for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) drawFrame(ctx, 'tiles_overworld', grass[((x * 7 + y * 13) / 16) % 3 | 0], x, y);
     }
     const drawDust = (p: P, ox: number, oy: number, life: number) => {
       const k = p.age / life;
@@ -189,7 +190,7 @@ export function ParticleLab({ spec }: { spec: VizSpec }) {
       if (SHEETS['fx_dust']) {
         const a = SHEETS['fx_dust'].anims?.play;
         const fr = a ? a.frames[Math.min(a.frames.length - 1, Math.floor(k * a.frames.length))] : 0;
-        drawFrame(ctx, 'fx_dust', fr, x, y, { anchored: true, alpha: 1 - k * 0.6 });
+        drawFrame(ctx, 'fx_dust', fr, x, y, { anchored: true, alpha: k < 0.5 ? 1 : 2 * (1 - k) }); // colour ramp: opaque, then fade
       } else {
         const r = 1.5 + 2.5 * k * p.s;
         ctx.fillStyle = `rgba(235,225,205,${(1 - k) * 0.8})`;

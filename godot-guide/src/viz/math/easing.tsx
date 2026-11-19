@@ -125,7 +125,7 @@ tween.parallel().tween_property($Panel, "scale", Vector2.ONE, ${gf(dur, 2)}) \\
       }
       below={
         <div className="math-stack">
-          <svg viewBox="0 0 320 64" className="math-track" role="img" aria-label="Kai moving with the easing, a linear ghost and a popping panel">
+          <svg viewBox="0 0 320 64" className="math-track" style={{ maxWidth: 520 }} role="img" aria-label="Kai moving with the easing, a linear ghost and a popping panel">
             <rect x={0} y={0} width={320} height={64} className="pl-bg" />
             <line x1={X(0)} x2={X(1)} y1={52} y2={52} className="pl-axis" />
             <line x1={X(1)} x2={X(1)} y1={14} y2={56} className="pl-grid" />

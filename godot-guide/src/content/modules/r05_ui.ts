@@ -1083,7 +1083,7 @@ func set_hp(current: int, maximum: int, instant: bool = false) -> void:
 \`\`\`gdscript
 # scripts/autoload/audio.gd (autoload "Audio")
 extends Node
-@onready var ui_player: AudioStreamPlayer = $UiPlayer
+@onready var ui_player: AudioStreamPlayer = get_node("UiPlayer")
 
 func play_ui(stream: AudioStream) -> void:
 	ui_player.stream = stream

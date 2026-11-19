@@ -121,7 +121,7 @@ func _physics_process(delta: float) -> void:
       <Plane x={[0, 200]} y={[-30, 40]} width={480} grid={false} axes={false} ariaLabel="spring follower: drag the target">
         <Seg a={[0, 0]} b={[200, 0]} color="var(--line)" width={2} />
         <Seg a={[s.x, -8]} b={[target, -8]} color="var(--c-v)" width={1.5} dashed opacity={0.7} />
-        <PlaneSprite at={[s.x, 0]} id="slime" frame={animFrame('slime', 'idle', s.t)} k={2.4} sx={sx} sy={1 / sx} />
+        <PlaneSprite at={[s.x, 0]} id="slime" frame={animFrame('slime', 'idle', s.t)} k={3} sx={sx} sy={1 / sx} />
         <Seg a={[target, -14]} b={[target, 30]} color="var(--c-err)" width={1.5} dashed />
         <Handle at={[target, -14]} onChange={(pt) => setTarget(pt[0])} bounds={{ x: [5, 195], y: [-14, -14] }} color="var(--c-err)" text="target" label="spring target" />
       </Plane>

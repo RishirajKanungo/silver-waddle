@@ -559,10 +559,10 @@ main { min-width: 0; }
 .cb-lang { color: var(--muted); }
 .cb-copy { padding: 2px 10px; font-size: 12px; }
 .cb-body { display: grid; grid-template-columns: auto minmax(0, 1fr); }
-.cb-gutter { display: flex; flex-direction: column; padding: 10px 8px 10px 10px; text-align: right; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--muted); user-select: none; border-right: 1px solid var(--line); }
-.cb-code { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.6; tab-size: 4; }
+.cb-gutter { display: flex; flex-direction: column; padding: 10px 8px 10px 10px; text-align: right; font-family: var(--mono); font-size: 12px; line-height: 20px; color: var(--muted); user-select: none; border-right: 1px solid var(--line); }
+.cb-code { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 20px; tab-size: 4; }
 .cb-code code, .md-code code { background: none; padding: 0; font-size: inherit; }
-.codeblock.compact .cb-code { max-height: 420px; }
+.codeblock.compact .cb-body { max-height: 420px; overflow-y: auto; }
 .hl-kw { color: var(--syn-kw); font-weight: 500; }
 .hl-str { color: var(--syn-str); }
 .hl-num, .hl-lit { color: var(--syn-num); }

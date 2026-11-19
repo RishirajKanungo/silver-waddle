@@ -1,0 +1,51 @@
+import { md, type InterviewQ } from '../content/types';
+
+export const QUESTIONS: InterviewQ[] = [
+  {
+    id: 'r02-q1',
+    module: 'r02',
+    area: 'systems',
+    level: 2,
+    q: md`How would you make abilities data-driven so designers can add new ones without programmers?`,
+    answer: md`Describe an ability as a Resource with targeting (who, which area shape and size), timing (cast time, interruptible), costs, and an ordered list of small effect Resources: damage, heal, apply status, add pressure. Each effect class has one method, \`apply(user, target)\`, and only the fields it needs. A new ability is a new \`.tres\` built in the Inspector; a new kind of behaviour is one new effect class that every existing ability and item can use. Keep effects stateless, because they are shared data, and keep per-cast state in the code running the cast. The same effects drive items (a potion is one heal effect), enemy attacks and tooltips (\`describe()\`).`,
+    pitfalls: [md`One class with every possible field, which grows with each new idea.`, md`Inheritance hierarchies that cannot express "damage and heal".`, md`Storing per-cast state in shared effect resources.`],
+    followups: [md`How would you add an effect that depends on the target's current HP?`],
+  },
+  {
+    id: 'r02-q2',
+    module: 'r02',
+    area: 'math',
+    level: 2,
+    q: md`How do you test whether an enemy is inside a cone-shaped attack, and why that way?`,
+    answer: md`Take the vector from the attacker to the enemy, reject it if it is longer than the cone, then compare the dot product of its normalized form with the unit aim direction against the cosine of the half-angle: inside if $\hat{\mathbf{v}}\cdot\hat{\mathbf{d}} \ge \cos\alpha$. This works because the dot of unit vectors is the cosine of the angle between them, and cosine decreases from 0° to 180°, so a smaller angle means a larger cosine. It avoids \`acos\` and the sign and wrap-around issues of signed angles, and the cosine of the half-angle can be computed once. The same test answers "is the player in front of this enemy" for AI and backstabs.`,
+    pitfalls: [md`Comparing angles from \`angle_to\`, which are signed and wrap.`, md`Forgetting to normalize, so the dot depends on distance.`],
+  },
+  {
+    id: 'r02-q3',
+    module: 'r02',
+    area: 'systems',
+    level: 2,
+    q: md`Skill trees or swappable gems (like materia) for character growth: how do you choose?`,
+    answer: md`Ask what the game needs from growth. Skill trees make choices permanent, which builds per-character identity and makes each decision weighty, but they need designed nodes per character, a respec story, and a large interface. Swappable gems make experimentation free, work for any character, and double as loot and shop content, but characters can blur together because anyone can equip anything. For a small team, gems plus a few fixed per-character elements (signature weapon abilities, unique limit moves) give most of the identity at a fraction of the content cost. Prototype both on paper with your actual party and count the content each needs.`,
+    pitfalls: [md`Choosing a tree because big games have one, then lacking content to fill it.`, md`Gems that make every character play the same.`],
+  },
+  {
+    id: 'r02-q4',
+    module: 'r02',
+    area: 'systems',
+    level: 2,
+    q: md`How do you choose an XP curve and check it against the content?`,
+    answer: md`Pick a shape (a power curve $aL^k$ is a good default; m05 compares shapes), then simulate: list the fights in each area with their XP, feed them through the curve, and read the level at the end of each area. Compare with target levels chosen from the encounters you want to be fair. Adjust $a$ to move everything and $k$ to separate early from late game. Then check enemies at the expected levels with hits-to-kill and hits-to-fall. A power curve with rising encounter XP is forgiving: players who are behind need fewer fights per level and catch up, players who are ahead slow down. Rerun the simulation whenever you add fights or change rewards.`,
+    pitfalls: [md`Tuning bosses by feel at the developer's own (over-levelled) save.`, md`Forgetting that one large reward can give several levels.`],
+    followups: [md`How would you add catch-up XP for a character who joins late?`],
+  },
+  {
+    id: 'r02-q5',
+    module: 'r02',
+    area: 'combat',
+    level: 1,
+    q: md`What design questions does a cast time raise?`,
+    answer: md`A cast time turns a choice into a risk: the player commits, waits, and can be punished. You need to decide whether hits interrupt the cast (and whether the cost is refunded), whether targets are locked when the cast starts or chosen when it lands, whether the area is shown during the cast, and how time scaling (tactical slow-motion) affects it. Locking targets at the start is predictable and rewards good timing; choosing at the end rewards enemies that dodge. Interruptible long casts make support characters fragile, which can be the point, but then the tank's job of drawing attention must work. Whatever you choose, show it: a cast bar and the area outline tell the player the rules.`,
+    pitfalls: [md`Long, interruptible casts with no way to protect the caster.`, md`Hidden rules about when targets are chosen.`],
+  },
+];

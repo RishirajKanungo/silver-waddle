@@ -203,11 +203,15 @@ export function PlatformerLab({ spec }: { spec: VizSpec }) {
     };
     for (const b of SOLIDS.slice(0, 3)) block(b);
     for (const [x, y, w] of ONE_WAY) {
-      rect(ctx, x, y, w, 3, '#cf9058');
-      rect(ctx, x, y + 3, w, 1, '#64392c');
-      for (let xx = x + 3; xx < x + w; xx += 10) rect(ctx, xx, y + 4, 1, 4, '#64392c');
+      if (tp && tp.oneway_m !== undefined) {
+        const n = Math.ceil(w / 16);
+        for (let k = 0; k < n; k++) drawFrame(ctx, 'tiles_platform', k === 0 ? tp.oneway_l ?? tp.oneway_m : k === n - 1 ? tp.oneway_r ?? tp.oneway_m : tp.oneway_m, x + Math.min(k * 16, w - 16), y);
+      } else {
+        rect(ctx, x, y, w, 3, '#cf9058');
+        rect(ctx, x, y + 3, w, 1, '#64392c');
+      }
     }
-    text(ctx, 'one-way', ONE_WAY[0][0] + 6, ONE_WAY[0][1] - 3, '#1a1424');
+    text(ctx, 'one-way', ONE_WAY[0][0] + 8, ONE_WAY[0][1] + 24, '#1a1424');
     rect(ctx, plat.x, PLAT.y, PLAT.w, PLAT.h, '#514c68');
     rect(ctx, plat.x, PLAT.y, PLAT.w, 2, '#c0bed4');
     text(ctx, 'moving', plat.x + 2, PLAT.y + 16, '#1a1424');
@@ -216,9 +220,9 @@ export function PlatformerLab({ spec }: { spec: VizSpec }) {
     drawChar(ctx, 'hero', anim, s.t, s.x, s.y, { flip: s.flip });
     // jump height ruler at the start ledge
     const gy = 148;
-    rect(ctx, 8, gy - jumpHeight, 6, 1, '#1a1424');
-    rect(ctx, 10, gy - jumpHeight, 1, jumpHeight, '#1a1424');
-    text(ctx, `h=${jumpHeight}`, 16, gy - jumpHeight + 3, '#1a1424');
+    rect(ctx, 6, gy - jumpHeight, 6, 1, '#1a1424');
+    rect(ctx, 8, gy - jumpHeight, 1, jumpHeight, '#1a1424');
+    text(ctx, `h=${jumpHeight}`, 6, gy - jumpHeight - 3, '#1a1424');
     drawTimeline(tl.current, log, ROWS, th);
   };
 

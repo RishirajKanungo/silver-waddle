@@ -236,6 +236,12 @@ function SheetGrid({ sheet, frames, current }: { sheet: string; frames: number[]
       ctx.strokeRect((f % cols) * fw * s + 1, Math.floor(f / cols) * fh * s + 1, fw * s - 2, fh * s - 2);
     }
     ctx.lineWidth = 1;
+    // keep the current frame's row in view inside the scrolling box
+    const box = c.parentElement;
+    if (box) {
+      const y = Math.floor(current / cols) * fh * s;
+      if (y < box.scrollTop || y + fh * s > box.scrollTop + box.clientHeight) box.scrollTop = Math.max(0, y - fh * s);
+    }
   }, [sheet, frames, current, fw, fh, cols, rows]);
   return (
     <div className="geom-sheet">

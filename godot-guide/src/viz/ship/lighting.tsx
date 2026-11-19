@@ -37,8 +37,8 @@ function sampleGradient(stops: [number, string][], t: number): [number, number, 
 }
 
 const TORCHES: [number, number][] = [
-  [72, 30],
-  [248, 30],
+  [72, 24],
+  [248, 24],
 ];
 const DOOR = { x: 152, y: 16, w: 16, h: 18 };
 
@@ -47,22 +47,37 @@ function drawRoom(ctx: CanvasRenderingContext2D, room: Room, t: number) {
   const def = SHEETS[sheet];
   clear(ctx, room === 'dungeon' ? '#3d3a4a' : '#5a8f4e');
   if (def) {
-    const floor = room === 'dungeon' ? (def.tiles?.floor ?? 0) : (def.tiles?.grass ?? 0);
-    const wall = room === 'dungeon' ? (def.tiles?.wall ?? def.tiles?.wall_top ?? 1) : (def.tiles?.cliff ?? def.tiles?.tree ?? def.tiles?.grass ?? 0);
-    for (let y = 0; y < H; y += 16)
-      for (let x = 0; x < W; x += 16) drawFrame(ctx, sheet, y < 32 ? wall : floor, x, y);
+    const t = def.tiles ?? {};
+    if (room === 'dungeon') {
+      for (let y = 0; y < H; y += 16)
+        for (let x = 0; x < W; x += 16) {
+          const k = (x * 7 + y * 13) / 16;
+          const tile = y === 0 ? (t.wall_top_b ?? 0) : y === 16 ? (t.wall_face ?? 0) : k % 5 === 0 ? (t.floor2 ?? t.floor ?? 0) : (t.floor ?? 0);
+          drawFrame(ctx, sheet, tile, x, y);
+        }
+    } else {
+      const grass = [t.grass ?? 0, t.grass2 ?? t.grass ?? 0, t.grass3 ?? t.grass ?? 0];
+      for (let y = 0; y < H; y += 16)
+        for (let x = 0; x < W; x += 16) drawFrame(ctx, sheet, y === 16 ? (t.fence_m ?? grass[0]) : grass[((x * 7 + y * 13) / 16) % 3 | 0], x, y);
+    }
   } else {
     if (room === 'dungeon') rect(ctx, 0, 0, W, 32, '#26232f');
     else rect(ctx, 0, 0, W, 32, '#3f6b38');
   }
   // door
-  rect(ctx, DOOR.x, DOOR.y, DOOR.w, DOOR.h, '#14121a');
-  rect(ctx, DOOR.x - 2, DOOR.y - 2, DOOR.w + 4, 2, '#8a7a5a');
+  if (room === 'dungeon' && def?.tiles?.door_open !== undefined) drawFrame(ctx, sheet, def.tiles.door_open, DOOR.x, DOOR.y);
+  else {
+    rect(ctx, DOOR.x, DOOR.y, DOOR.w, DOOR.h, '#14121a');
+    rect(ctx, DOOR.x - 2, DOOR.y - 2, DOOR.w + 4, 2, '#8a7a5a');
+  }
   if (room === 'dungeon')
     for (const [x, y] of TORCHES) {
-      rect(ctx, x - 1, y, 3, 8, '#6b4a2a');
-      const f = 2 + Math.round(valueNoise(t * 9, x) * 2);
-      rect(ctx, x - 1, y - f, 3, f, '#ffcf5a');
+      if (def?.tiles?.torch !== undefined) drawFrame(ctx, sheet, Math.floor(t * 6) % 2 ? (def.tiles.torch_f2 ?? def.tiles.torch) : def.tiles.torch, x - 8, y - 8);
+      else {
+        rect(ctx, x - 1, y, 3, 8, '#6b4a2a');
+        const f = 2 + Math.round(valueNoise(t * 9, x) * 2);
+        rect(ctx, x - 1, y - f, 3, f, '#ffcf5a');
+      }
     }
 }
 

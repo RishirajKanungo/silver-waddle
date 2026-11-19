@@ -78,8 +78,8 @@ export function SnapLab({ spec }: { spec: VizSpec }) {
         else rect(ctx, (x + groundPx) * k, y * k, 16 * k, 16 * k, ((x / 16) & 1) ^ ((y / 16) & 1) ? '#4f9e3e' : '#57a845');
       }
     const d0 = Math.floor(-groundPx / 8) * 8 - 8;
-    for (let x = d0; x < d0 + VW + 16; x += 8) rect(ctx, (x + groundPx) * k, 38 * k, k, k, '#1a1424');
-    const sy = 36;
+    for (let x = d0; x < d0 + VW + 16; x += 8) rect(ctx, (x + groundPx) * k, 32 * k, k, k, '#1a1424');
+    const sy = 30;
     if (SHEETS['hero']) drawFrame(ctx, 'hero', animFrame('hero', 'walk_side', st.t), spritePx * k, sy * k, { anchored: true, scale: k });
     else rect(ctx, (spritePx - 6) * k, (sy - 18) * k, 12 * k, 18 * k, '#2e4a9c');
   };
@@ -105,15 +105,16 @@ export function SnapLab({ spec }: { spec: VizSpec }) {
       ctx.drawImage(low.current, 0, 0, W, H);
     }
     // error strip: drawn position minus true position, last 150 frames
-    const y0 = H - 22;
-    rect(ctx, 0, y0 - 18, W, 40, 'rgba(10,8,20,0.78)');
+    const y0 = H - 17;
+    rect(ctx, 0, y0 - 15, W, 32, 'rgba(10,8,20,0.78)');
     rect(ctx, 0, y0, W, 1, 'rgba(255,255,255,0.25)');
-    text(ctx, 'drawn - true (px): +1', 4, y0 - 10, '#c0bed4');
-    text(ctx, '-1', 4, y0 + 18, '#c0bed4');
+    text(ctx, '+1', 4, y0 - 6, '#c0bed4');
+    text(ctx, '-1', 4, y0 + 14, '#c0bed4');
+    text(ctx, 'drawn - true', W - 4, y0 - 6, '#c0bed4', 'right');
     for (let i = 0; i < errHist.length; i++) {
       const e = errHist[i];
       const back = i > 0 && relHist[i] - relHist[i - 1] < -0.01 && relHist[i] - relHist[i - 1] > -5;
-      rect(ctx, 40 + i * 1.8, y0 - e * 12, 2, 2, back ? '#ff6b6b' : '#ffd65a');
+      rect(ctx, 24 + i * 1.8, y0 - e * 11, 2, 2, back ? '#ff6b6b' : '#ffd65a');
     }
   };
 

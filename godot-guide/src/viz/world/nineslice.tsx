@@ -12,8 +12,8 @@ const PX = 16, PY = 14; // panel's top-left corner (game px)
 const LINES = ['Items', 'Equip', 'Shards', 'Save', 'Resume'];
 
 export function NineSliceFigure(_: { spec: VizSpec }) {
-  const [w, setW] = useState(120);
-  const [h, setH] = useState(72);
+  const [w, setW] = useState(150);
+  const [h, setH] = useState(76);
   const [m, setM] = useState(8);
   const [c, setC] = useState(6);
   const [mode, setMode] = useState<'nine' | 'stretch'>('nine');

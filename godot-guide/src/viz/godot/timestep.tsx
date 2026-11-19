@@ -14,9 +14,9 @@ import './godot.css';
 
 const W = 320, H = 168;
 const LANES = [
-  { y: 44, sheet: 'slime', anim: 'idle', label: 'x += speed / 60   (_process, no delta)' },
-  { y: 84, sheet: 'hero', anim: 'walk_side', label: 'x += speed * delta   (_process)' },
-  { y: 124, sheet: 'bat', anim: 'fly', label: 'x += speed * delta   (_physics_process)' },
+  { y: 0, sheet: 'slime', anim: 'idle', dy: 0, label: 'x += speed / 60  (_process)' },
+  { y: 44, sheet: 'hero', anim: 'walk_side', dy: 0, label: 'x += speed * delta  (_process)' },
+  { y: 88, sheet: 'bat', anim: 'fly', dy: -10, label: 'x += speed * delta  (_physics)' },
 ];
 const TICK = 1 / 60;
 const WINDOW = 0.25; // seconds of history in the timeline strip
@@ -110,25 +110,27 @@ export function Timestep({ spec }: { spec: VizSpec }) {
     ctx.fillRect(0, 0, W, H);
     const tiles = SHEETS['tiles_overworld'];
     LANES.forEach((L, i) => {
-      if (tiles) for (let x = 0; x < W; x += 16) drawFrame(ctx, 'tiles_overworld', tiles.tiles?.grass ?? 0, x, L.y - 20);
-      else rect(ctx, 0, L.y - 20, W, 16, i % 2 ? '#4f7f45' : '#5a8f4e');
-      rect(ctx, 0, L.y - 4, W, 8, 'rgba(0,0,0,0.25)');
-      text(ctx, L.label, 4, L.y - 24, '#ffffff');
+      const y0 = L.y, feet = y0 + 40;
+      rect(ctx, 0, y0, W, 44, i % 2 ? '#2a352b' : '#323f33');
+      if (tiles) for (let gy = y0 + 12; gy < y0 + 44; gy += 16) for (let x = 0; x < W; x += 16) drawFrame(ctx, 'tiles_overworld', tiles.tiles?.grass ?? 0, x, gy);
+      else rect(ctx, 0, y0 + 12, W, 32, '#5a8f4e');
       const wrap = (x: number) => (((x % (W + 32)) + W + 32) % (W + 32)) - 16;
-      for (const tx of s.trail[i]) rect(ctx, wrap(tx), L.y + 1, 1, 3, 'rgba(255,255,255,0.8)');
+      for (const tx of s.trail[i]) rect(ctx, wrap(tx), feet + 1, 1, 3, 'rgba(255,255,255,0.9)');
       const px = wrap(s.x[i]);
-      if (SHEETS[L.sheet]) drawFrame(ctx, L.sheet, animFrame(L.sheet, L.anim, s.vt), px, L.y, { anchored: true });
-      else rect(ctx, px - 6, L.y - 14, 12, 14, '#d8c35a');
-      text(ctx, `${s.speed[i].toFixed(0)} px/s`, W - 4, L.y + 12, '#ffd65a', 'right');
+      if (SHEETS[L.sheet]) drawFrame(ctx, L.sheet, animFrame(L.sheet, L.anim, s.vt), px, feet + L.dy, { anchored: true });
+      else rect(ctx, px - 6, feet - 14, 12, 14, '#d8c35a');
+      rect(ctx, 0, y0, W, 11, 'rgba(0,0,0,0.55)');
+      text(ctx, L.label, 3, y0 + 8, '#ffffff');
+      text(ctx, `${s.speed[i].toFixed(0)} px/s`, W - 3, y0 + 8, '#ffd65a', 'right');
     });
     // timeline strip: rendered frames above, physics ticks below
-    const ty = H - 20;
-    rect(ctx, 0, ty - 4, W, 24, 'rgba(0,0,0,0.55)');
-    const sx = (t: number) => W - 6 - ((s.vt - t) / WINDOW) * (W - 12);
-    for (const f of s.frames) rect(ctx, sx(f), ty, 1, 6, '#ffd65a');
-    for (const f of s.ticks) rect(ctx, sx(f), ty + 9, 1, 6, '#7fd8ff');
-    text(ctx, 'frames', 3, ty + 6, '#ffd65a');
-    text(ctx, 'physics', 3, ty + 15, '#7fd8ff');
+    const ty = H - 30;
+    rect(ctx, 0, ty - 6, W, 36, '#15181f');
+    const sx = (t: number) => W - 6 - ((s.vt - t) / WINDOW) * (W - 52);
+    for (const f of s.frames) rect(ctx, sx(f), ty, 1, 8, '#ffd65a');
+    for (const f of s.ticks) rect(ctx, sx(f), ty + 13, 1, 8, '#7fd8ff');
+    text(ctx, 'frames', 3, ty + 7, '#ffd65a');
+    text(ctx, 'physics', 3, ty + 20, '#7fd8ff');
   };
 
   useFrameLoop(canvasRef, (dt) => {

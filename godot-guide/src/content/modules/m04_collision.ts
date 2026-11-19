@@ -202,7 +202,7 @@ export const MODULE: Module = {
 
 - **To pick shapes.** A circle and a box behave differently at corners, and they differ in cost.
 - **To write cheap custom checks.** 200 bullets against a boss's weak point do not each need a physics node.
-- **To understand the failures.** A fast fireball that passes through a wall is not a bug in Godot; it is what discrete tests do.
+- **To understand the failures.** A fast fireball that passes through a wall is the expected result of a discrete test, in Godot as in any engine.
 
 All coordinates here are Godot's: x grows to the right, **y grows downward**, units are game pixels.`,
         },

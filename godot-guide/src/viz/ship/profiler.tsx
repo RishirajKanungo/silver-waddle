@@ -35,7 +35,7 @@ function simulate(f: Fixes): Frame[] {
     let cause: Cause = 'none';
     script.push(['Player._physics_process', 0.35 + rng.next() * 0.1]);
     // enemy AI: every enemy raycasts to the player and searches a group each frame
-    const aiEach = f.staggerAi ? 0.2 : 0.8;
+    const aiEach = f.staggerAi ? 0.12 : 0.45;
     script.push([`Enemy._physics_process ×${enemies}`, enemies * aiEach * (0.9 + rng.next() * 0.2)]);
     script.push(['HUD._process', 0.25 + rng.next() * 0.05]);
     // a wave every 1.5 s: 3 enemies spawn on one frame
@@ -56,7 +56,7 @@ function simulate(f: Fixes): Frame[] {
     // sparks and dust: each emitter is its own draw call and its own particle system to update
     const emitters = i >= 250 && i < 320 ? (f.fewerEmitters ? 6 : 70) : 6;
     const drawCalls = 38 + enemies * 2 + emitters;
-    const render = 1.6 + drawCalls * 0.055 + (emitters > 20 ? 6.5 : 0) + rng.next() * 0.3;
+    const render = 1.6 + drawCalls * 0.055 + (emitters > 20 ? 5 : 0) + rng.next() * 0.3;
     const scriptTotal = script.reduce((a, [, ms]) => a + ms, 0);
     const total = scriptTotal + physics + render;
     if (cause === 'none' && total > BUDGET) cause = emitters > 20 ? 'draw' : 'ai';
@@ -172,9 +172,6 @@ export function ProfilerLab({ spec }: { spec: VizSpec }) {
             </text>
           </g>
         ))}
-        <text x={W - 6} y={sy(BUDGET) - 3} textAnchor="end" className="muted">
-          60 fps budget
-        </text>
         {frames.map((f, i) => {
           const x = L + i * bw;
           const sc = f.script.reduce((a, [, ms]) => a + ms, 0);
@@ -201,6 +198,8 @@ export function ProfilerLab({ spec }: { spec: VizSpec }) {
           <text x={67} y={0}>physics</text>
           <rect x={120} y={-8} width={8} height={8} style={{ fill: 'var(--c-v)' }} />
           <text x={131} y={0}>render</text>
+          <line x1={178} x2={194} y1={-4} y2={-4} className="ax" strokeDasharray="3 3" />
+          <text x={198} y={0}>16.7 ms = 60 fps budget</text>
         </g>
       </svg>
     </FigureLayout>

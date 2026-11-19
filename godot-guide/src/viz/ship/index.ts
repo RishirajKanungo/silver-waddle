@@ -6,6 +6,10 @@ import { MixerLab } from './mixer';
 import { ScopeCalc } from './scope';
 import { ProfilerLab } from './profiler';
 import { TestsLab } from './tests';
+import { ScreenFit } from './screenfit';
+import { SteamPipe } from './steampipe';
+import { LaunchPlanner } from './launch';
+import { RevenueCalc } from './revenue';
 
 const oneOf = (name: string, v: unknown, ok: readonly unknown[]) => (v === undefined || ok.includes(v) ? null : `${name} must be one of ${ok.join(', ')}`);
 
@@ -44,5 +48,24 @@ export const VIZ: Record<string, VizDef> = {
     component: TestsLab,
     validate: (s) => (s.seed === undefined || typeof s.seed === 'boolean' ? null : 'seed must be a boolean'),
     doc: 'Mutation-testing lab for the damage formula: add GUT test cases and see which of five one-line bugs they catch; generates the GUT test file. seed:false starts with no tests.',
+  },
+  'ship.screenfit': {
+    component: ScreenFit,
+    validate: (s) => oneOf('screen', s.screen, ['deck', 'laptop', 'fhd', 'qhd', 'mac', 'uhd']),
+    doc: 'How a 320×180 viewport fills real screens with integer or fractional scaling: scale, bars, uneven pixels, physical HUD text size (mm) on e.g. a 7" Steam Deck; shows the project.godot display settings.',
+  },
+  'ship.steampipe': {
+    component: SteamPipe,
+    doc: 'SteamPipe diagram: export to local folders, steamcmd upload to depots creates a build, set builds live on beta/default; shows the app_build VDF and what default/beta/Deck players get.',
+  },
+  'ship.launch': {
+    component: LaunchPlanner,
+    validate: (s) => (s.months === undefined || (typeof s.months === 'number' && s.months > 0) ? null : 'months must be a positive number'),
+    doc: 'Launch timeline planner: launch date, Next Fest date, Coming Soon lead, demo lead → dates for fee, page review, page live, demo, build review; checks configurable Steamworks rules. months = default months to launch.',
+  },
+  'ship.revenue': {
+    component: RevenueCalc,
+    validate: (s) => (s.price === undefined || typeof s.price === 'number') && (s.units === undefined || typeof s.units === 'number') ? null : 'price and units must be numbers',
+    doc: 'Steam revenue calculator: price, copies, regional pricing, discounts, VAT, refunds → adjusted gross, Valve share tiers (30/25/20%), Steam Direct fee recoup, net. price, units set the start.',
   },
 };

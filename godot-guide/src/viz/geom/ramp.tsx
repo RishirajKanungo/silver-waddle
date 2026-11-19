@@ -7,6 +7,7 @@ import { Slider, Readout, FigureLayout, Toggle } from '../kit';
 import { CodeBlock } from '../../ui/GameCells';
 import { SHEETS, sheetCanvas } from '../../art';
 import { firstFrame } from './util';
+import { RAMPS, PAL_HEX } from '../../art/data/lib';
 
 type RGB = [number, number, number];
 const hsv2rgb = (h: number, s: number, v: number): RGB => {
@@ -120,18 +121,33 @@ export function PaletteRamp({ spec }: { spec: VizSpec }) {
     return [...seen.values()].sort((a, b) => rgb2hsv(a)[0] - rgb2hsv(b)[0]);
   }, [def, frame]);
   const [pick, setPick] = useState(-1);
-  const pickIdx = pick >= 0 && pick < spriteColors.length ? pick : spriteColors.findIndex((c) => rgb2hsv(c)[1] > 0.35 && rgb2hsv(c)[2] > 0.3);
-  // the source ramp: every sprite colour with a similar hue and some saturation, dark to light
-  const source = useMemo(() => {
-    if (pickIdx < 0) return [] as RGB[];
-    const [h0] = rgb2hsv(spriteColors[pickIdx]);
-    return spriteColors
-      .filter((c) => {
-        const [h, s] = rgb2hsv(c);
-        return s > 0.2 && Math.abs(((h - h0 + 540) % 360) - 180) < 22;
-      })
-      .sort((a, b) => luma(a) - luma(b));
-  }, [spriteColors, pickIdx]);
+  // The course's art is authored with named ramps (src/art/data/lib.ts). A clicked colour selects
+  // the ramp it belongs to that has the most colours in this sprite; without a match, fall back to
+  // colours of a similar hue and saturation.
+  const key = (c: RGB) => hex(c).toLowerCase();
+  const rampOf = (c: RGB): RGB[] => {
+    const present = new Map(spriteColors.map((x) => [key(x), x]));
+    let best: RGB[] = [];
+    for (const ramp of Object.values(RAMPS)) {
+      const cols = (ramp as readonly number[]).map((i) => PAL_HEX[i].toLowerCase());
+      if (!cols.includes(key(c))) continue;
+      const inSprite = cols.map((h) => present.get(h)).filter((x): x is RGB => !!x);
+      if (inSprite.length > best.length) best = inSprite;
+    }
+    if (best.length > 1) return [...new Set(best)].sort((a, b) => luma(a) - luma(b));
+    const [h0, s0] = rgb2hsv(c);
+    return spriteColors.filter((x) => {
+      const [h, sat] = rgb2hsv(x);
+      return Math.abs(((h - h0 + 540) % 360) - 180) < 12 && Math.abs(sat - s0) < 0.25;
+    }).sort((a, b) => luma(a) - luma(b));
+  };
+  // default: the most saturated blue-ish colour (Kai's tunic)
+  const defaultIdx = spriteColors.findIndex((c) => {
+    const [h, sat, v] = rgb2hsv(c);
+    return h > 200 && h < 240 && sat > 0.4 && v > 0.5;
+  });
+  const pickIdx = pick >= 0 && pick < spriteColors.length ? pick : defaultIdx;
+  const source = useMemo(() => (pickIdx < 0 ? ([] as RGB[]) : rampOf(spriteColors[pickIdx])), [spriteColors, pickIdx]); // eslint-disable-line react-hooks/exhaustive-deps
   const mapping = useMemo(() => {
     const m = new Map<string, RGB>();
     source.forEach((c, i) => {
@@ -173,7 +189,7 @@ ${pairs.map(([a], i) => `uniform vec4 from_${i} : source_color = ${glsl(a)};  //
 ${pairs.map(([, b], i) => `uniform vec4 to_${i} : source_color = ${glsl(b)};  // ${hex(b)}`).join('\n')}
 
 vec3 swap(vec3 c, vec3 from_c, vec3 to_c) {
-	return distance(c, from_c) < 0.01 ? to_c : c;
+	return distance(c, from_c) < 0.02 ? to_c : c;
 }
 
 void fragment() {

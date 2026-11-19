@@ -5,6 +5,9 @@ import { DashLab } from './dash';
 import { FeelLab } from './feel';
 import { HeightLab } from './height';
 import { PlatformerLab } from './platformer';
+import { AutotileLab } from './autotile';
+import { YSortLab } from './ysort';
+import { CameraLab } from './camera';
 
 const oneOf = (key: string, vals: string[]) => (s: Record<string, unknown>) => (s[key] === undefined || vals.includes(s[key] as string) ? null : `${key} must be one of ${vals.join(', ')}`);
 
@@ -26,5 +29,19 @@ export const MOTION_VIZ: Record<string, VizDef> = {
   'core.platformer': {
     component: PlatformerLab,
     doc: 'Side-view platformer controller: gravity from height and times, coyote time, jump buffer, variable height, apex hang, fall cap, one-way and moving platforms, with a frame timeline of when jumps were accepted.',
+  },
+  'core.autotile': {
+    component: AutotileLab,
+    validate: oneOf('mode', ['corners', 'sides', 'blob']),
+    doc: "Terrain autotiling: paint water on grass and see each cell's peering bits and chosen tile. mode 'corners' (Match Corners, real 15+1 water tiles), 'sides' (Match Sides, 16) or 'blob' (Match Corners and Sides, 47).",
+  },
+  'core.ysort': {
+    component: YSortLab,
+    doc: 'Playable Y-sort lab: walk Kai around a tree, rock and villager with y_sort_enabled on/off and the tree origin at the trunk base or the sprite centre; shows sort lines and the live draw order.',
+  },
+  'core.camera': {
+    component: CameraLab,
+    validate: oneOf('mode', ['follow', 'screens']),
+    doc: "Camera2D lab in a 640x360 room: position smoothing, drag margins, look-ahead, limits, pixel-snapped drawing, debug overlay and minimap. mode 'follow' or 'screens' (screen by screen).",
   },
 };
