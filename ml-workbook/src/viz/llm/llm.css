@@ -1,0 +1,32 @@
+/* Figures for Part V (Transformers & LLMs). Class names are prefixed llm-. */
+.llm-attn .mg-c.hr { box-shadow: inset 0 0 0 2px var(--accent); }
+.llm-attn .mg-c { min-width: 2.6em; }
+.llm-tok { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); background: var(--surface); border-radius: 4px; padding: 1px 6px; cursor: pointer; color: var(--fg); }
+.llm-tok.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.llm-tbl { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.llm-tbl th, .llm-tbl td { padding: 2px 7px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.llm-tbl th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.llm-tbl td:first-child, .llm-tbl th:first-child { text-align: left; }
+.llm-tbl td.mono { font-family: var(--mono); }
+.llm-tbl tr.on td { background: var(--accent-soft); font-weight: 600; }
+.llm-tbl tr.off td { color: var(--muted); opacity: 0.6; }
+.llm-wrap { overflow-x: auto; max-width: 100%; }
+.llm-note { font-size: 13px; line-height: 1.45; }
+.llm-svg { width: 100%; height: auto; display: block; user-select: none; }
+.llm-svg text { font-family: var(--sans); font-size: 12px; fill: var(--fg); }
+.llm-svg text.m { fill: var(--muted); font-size: 11px; }
+.llm-svg text.mono { font-family: var(--mono); }
+.llm-svg .click { cursor: pointer; }
+.llm-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.llm-chunks { font-family: var(--sans); font-size: 14px; line-height: 2; }
+.llm-chunks .w { padding: 2px 1px; border-radius: 3px; }
+.llm-chunks .ans { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; text-decoration-color: var(--c-err); }
+.llm-formula { font-size: 12.5px; color: var(--muted); }
+.llm-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; width: 100%; }
+.llm-merge { font-family: var(--mono); font-size: 13px; }
+.llm-merge .sym { display: inline-block; border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; margin: 1px; background: var(--surface2); }
+.llm-merge .sym.new { border-color: var(--c-v); background: color-mix(in oklab, var(--c-v) 16%, var(--surface)); }
+.llm-samples { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+.llm-grid2.llm-wide { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+.llm-svg.llm-big text { font-size: 14px; }
+.llm-svg.llm-big text.m { font-size: 12.5px; }

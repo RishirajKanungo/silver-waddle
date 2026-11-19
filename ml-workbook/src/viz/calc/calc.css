@@ -1,0 +1,38 @@
+/* calc.* figures */
+.calc-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.calc-msg { font-size: 13px; line-height: 1.45; }
+.calc-msg b { font-weight: 600; }
+.calc-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.calc-row button { padding: 3px 9px; font-size: 12.5px; }
+.calc-twin { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.calc-twin > div { flex: 1 1 230px; min-width: 0; max-width: 260px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.calc-twin-k { font-size: 12px; color: var(--muted); font-family: var(--sans); }
+.calc-stack { display: flex; flex-direction: column; gap: 6px; width: 100%; align-items: center; }
+.calc-stack > svg { max-width: 520px; }
+.calc-plotk { font-size: 12px; color: var(--muted); font-family: var(--sans); align-self: flex-start; margin: 2px 0 -2px 4px; }
+.calc-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+.calc-graph text { font-family: var(--sans); }
+.calc-node { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.calc-node.on { stroke: var(--accent); stroke-width: 2.5; }
+.calc-node.done { stroke: var(--fg); }
+.calc-node-k { fill: var(--fg); font-size: 13px; font-weight: 600; }
+.calc-node-op { fill: var(--muted); font-size: 11.5px; }
+.calc-node-val { fill: var(--c-u); font-size: 12px; font-family: var(--mono); }
+.calc-node-adj { fill: var(--c-v); font-size: 12px; font-family: var(--mono); }
+.calc-edge { stroke: var(--axis); stroke-width: 1.5; fill: none; }
+.calc-edge.fwd { stroke: var(--c-u); stroke-width: 2.5; }
+.calc-edge.bwd { stroke: var(--c-v); stroke-width: 2.5; }
+.calc-edge-k { fill: var(--c-v); font-size: 11.5px; font-family: var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.calc-step { font-size: 13px; line-height: 1.45; min-height: 3.2em; }
+.calc-bars text { font-family: var(--sans); }
+.calc-bar-hit { fill: transparent; cursor: ns-resize; }
+.calc-tree text { font-family: var(--sans); }
+.calc-tree-n { font-size: 13px; font-weight: 600; fill: var(--fg); }
+.calc-tree-p { font-size: 11.5px; fill: var(--muted); }
+.calc-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; }
+.calc-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.calc-legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; }
+.calc-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.calc-table td, .calc-table th { padding: 2px 4px; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.calc-table th { font-family: var(--sans); font-weight: 600; color: var(--muted); }
+.calc-table td:first-child, .calc-table th:first-child { text-align: left; font-family: var(--sans); }

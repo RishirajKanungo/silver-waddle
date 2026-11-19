@@ -1,0 +1,44 @@
+/* Figures of modules la02–la05. Class names are prefixed la-. */
+.la-presets { display: flex; flex-wrap: wrap; gap: 5px; }
+.la-presets button { padding: 3px 8px; font-size: 12.5px; }
+.la-presets button.on { background: var(--accent-soft); border-color: var(--accent); }
+.la-btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.la-btns button { padding: 4px 10px; font-size: 13px; }
+.la-tex { font-size: 13.5px; overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.la-tex .katex-display { margin: 0.3em 0; }
+.la-note { font-size: 13px; line-height: 1.45; }
+.la-note b { font-weight: 600; }
+.la-ok { color: var(--ok); font-weight: 600; }
+.la-bad { color: var(--bad); font-weight: 600; }
+.la-warn { color: var(--warn); font-weight: 600; }
+
+/* two drawings side by side (stack on phones) */
+.la-two { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: 100%; }
+.la-panel { flex: 1 1 300px; min-width: 0; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.la-panel-title { font-size: 12.5px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+
+/* matrix product row: A · B = C */
+.la-mm { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; width: 100%; }
+.la-mm-op { font-size: 20px; color: var(--muted); }
+.la-mm-col { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.la-mm-name { font-size: 12.5px; color: var(--muted); }
+.la-box { background: var(--surface2); border-radius: var(--radius); padding: 8px 10px; width: 100%; box-sizing: border-box; }
+
+/* row-reduction stepper */
+.la-rr { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.la-rr-mat { display: flex; justify-content: center; font-size: 17px; overflow-x: auto; min-height: 92px; align-items: center; }
+.la-rr-ops { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13.5px; }
+.la-rr-ops select, .la-rr-ops input { padding: 3px 6px; font-size: 13px; }
+.la-rr-ops input { width: 64px; }
+.la-rr-hist { display: flex; flex-direction: column; gap: 2px; font-size: 13px; max-height: 190px; overflow-y: auto; }
+.la-rr-hist .who { font-size: 11px; color: var(--muted); margin-left: 6px; }
+.la-rr-hist .eff { font-size: 11.5px; color: var(--muted); margin-left: 6px; }
+.la-rr-msg { font-size: 13px; color: var(--bad); min-height: 1em; }
+
+.la-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+.la-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+
+/* figures with no side panel use the full width (FigureLayout reserves the side column otherwise) */
+.la-wide > .fig > .fig-main { grid-template-columns: minmax(0, 1fr); }
+.la-rr-ops select { padding: 2px 3px; }
+.la-rr-ops input { width: 52px; padding: 2px 5px; }

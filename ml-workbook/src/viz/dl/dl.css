@@ -1,0 +1,52 @@
+/* Deep-learning figures (src/viz/dl). Class names are prefixed dl-. */
+.dl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dl-row button { padding: 4px 10px; font-size: 13px; }
+.dl-full { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.dl-dots circle { stroke: var(--surface); stroke-width: 1; }
+.dl-note { font-size: 13px; line-height: 1.45; }
+.dl-ok { color: var(--ok); font-weight: 600; }
+.dl-bad { color: var(--bad); font-weight: 600; }
+.dl-kv { font-family: var(--mono); font-size: 12.5px; }
+.dl-graph { width: 100%; height: auto; display: block; }
+.dl-gnode circle { fill: var(--surface); stroke: var(--fg); stroke-width: 1.6; }
+.dl-gnode.on circle { stroke: var(--accent); stroke-width: 3; fill: var(--accent-soft); }
+.dl-gnode.dim { opacity: 0.45; }
+.dl-gname { fill: var(--muted); font: 600 12.5px var(--sans); }
+.dl-gval { fill: var(--fg); font: 600 13px var(--mono); }
+.dl-ggrad { fill: var(--c-err); font: 600 12.5px var(--mono); }
+.dl-gedge line { stroke: var(--muted); stroke-width: 1.5; }
+.dl-gedge polygon { fill: var(--muted); }
+.dl-gedge.on line { stroke: var(--accent); stroke-width: 3; }
+.dl-gedge.on polygon { fill: var(--accent); }
+.dl-gedge.back line { stroke: var(--c-err); stroke-width: 3; }
+.dl-gedge.back polygon { fill: var(--c-err); }
+.dl-gedge.dim { opacity: 0.35; }
+.dl-elabel { fill: var(--fg); font: 11.5px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.dl-eglabel { fill: var(--c-err); font: 600 11.5px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.dl-legend-t { fill: var(--muted); font: 11.5px var(--sans); }
+.dl-steptex { min-height: 2.4em; padding: 6px 10px; background: var(--surface2); border-radius: var(--radius); overflow-x: auto; font-size: 14px; }
+.dl-stack { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.dl-warn { color: var(--warn); font-weight: 600; }
+.dl-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.dl-table th, .dl-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.dl-table th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.dl-grid { stroke: var(--grid); stroke-width: 1; }
+.dl-tick { fill: var(--muted); font: 11px var(--sans); }
+.dl-flabel { fill: var(--fg); font: 600 13px var(--mono); }
+.dl-sub { fill: color-mix(in oklab, var(--c-u) 30%, transparent); }
+.dl-norm { fill: var(--c-u); }
+.dl-marker { stroke: var(--c-v); stroke-width: 2.5; }
+.dl-marker2 { stroke: var(--c-k); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.dl-choices { display: flex; flex-direction: column; gap: 6px; }
+.dl-choices button { text-align: left; padding: 6px 10px; font-size: 13.5px; }
+.dl-choices button.ok { border-color: var(--ok); background: var(--ok-soft); }
+.dl-choices button.bad { border-color: var(--bad); background: var(--bad-soft); }
+.dl-top { align-items: flex-start; }
+.dl-axis { stroke: var(--axis); stroke-width: 1.3; }
+.dl-unit { fill: var(--surface); stroke: var(--c-u); stroke-width: 2; }
+.dl-unit.out { stroke: var(--c-w); }
+.dl-dline { stroke: var(--c-u); opacity: 0.55; }
+.dl-dline.off { stroke: var(--muted); stroke-dasharray: 3 3; }
+.dl-x { stroke: var(--c-err); stroke-width: 2.5; }
+.dl-bar-t { fill: var(--c-w); }
+.dl-bar-p { fill: var(--c-v); }

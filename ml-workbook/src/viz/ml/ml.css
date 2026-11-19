@@ -1,0 +1,21 @@
+/* Styles for the ml01–ml02 figures (src/viz/ml). */
+.ml-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.ml-btns button { padding: 4px 10px; font-size: 13px; }
+.ml-plots { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; justify-content: center; }
+.ml-plot { flex: 1 1 220px; max-width: 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ml-plot-wide { flex: 1 1 100%; max-width: 100%; }
+.ml-plot-title { font-size: 12px; color: var(--muted); text-align: center; }
+.ml-panel-plot { width: 100%; }
+.ml-panel-plot .plane { max-width: 100%; }
+.ml-legend { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--surface2); border-radius: var(--radius); }
+.ml-legend-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; font-size: 13px; }
+.ml-legend-row .ml-key { display: inline-flex; align-items: center; gap: 6px; }
+.ml-swatch { display: inline-block; width: 14px; height: 4px; border-radius: 2px; }
+.ml-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.ml-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.ml-mono { font-family: var(--mono); font-size: 12px; word-break: break-word; line-height: 1.45; }
+.ml-note { font-size: 13px; line-height: 1.45; }
+.ml-note.ml-warn { color: var(--warn); }
+.ml-note.ml-ok { color: var(--ok); }
+.ml-cm { display: flex; justify-content: center; }
+.ml-stack { display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center; }

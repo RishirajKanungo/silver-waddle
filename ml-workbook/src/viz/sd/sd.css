@@ -1,0 +1,38 @@
+/* Figures for Part VI (system design and ML coding). Class names are prefixed sd-. */
+.sd-svg { width: 100%; height: auto; display: block; }
+.sd-svg text { font-family: var(--sans); }
+.sd-t { fill: var(--fg); font-size: 13px; }
+.sd-ts { fill: var(--muted); font-size: 11.5px; }
+.sd-tb { fill: var(--fg); font-size: 13px; font-weight: 600; }
+.sd-num { font-variant-numeric: tabular-nums; }
+.sd-box { fill: var(--surface2); stroke: var(--line); stroke-width: 1.2; }
+.sd-box.on { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.sd-click { cursor: pointer; }
+.sd-click:focus { outline: none; }
+.sd-click:focus-visible .sd-box { stroke: var(--accent); stroke-width: 2.5; }
+.sd-panel { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.sd-panel h4 { margin: 4px 0 0; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.sd-panel ul { margin: 0; padding-left: 18px; }
+.sd-panel li { margin: 2px 0; line-height: 1.4; }
+.sd-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; width: 100%; }
+@media (max-width: 720px) { .sd-cols { grid-template-columns: 1fr; } }
+.sd-note { font-size: 12.5px; color: var(--muted); }
+.sd-warn { font-size: 12.5px; color: var(--warn); font-weight: 600; }
+.sd-bad { color: var(--bad); font-weight: 600; }
+.sd-ok { color: var(--ok); font-weight: 600; }
+.sd-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.sd-sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.sd-ring { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 2px solid var(--c-w); }
+.sd-table { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; width: 100%; }
+.sd-table th, .sd-table td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sd-table th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+.sd-table td:first-child, .sd-table th:first-child { text-align: left; }
+.sd-table tr.hl td { background: var(--accent-soft); }
+.sd-table .nan { color: var(--bad); font-weight: 600; }
+.sd-mats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.sd-op { font-size: 18px; color: var(--muted); padding: 0 2px; }
+.sd-mat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sd-mat .sd-shape { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.sd-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.sd-btns button { font-size: 12.5px; padding: 4px 9px; }
+.sd-scroll { overflow-x: auto; max-width: 100%; }
