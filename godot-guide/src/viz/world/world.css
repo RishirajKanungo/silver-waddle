@@ -74,11 +74,11 @@
 .world-tl-scrub input { flex: 1; accent-color: var(--accent); }
 
 /* save inspector */
-.world-json { font-family: var(--mono); font-size: 12px; line-height: 1.45; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 0; max-height: 300px; overflow: auto; white-space: pre; tab-size: 4; color: var(--fg); }
+.world-json { font-family: var(--mono); font-size: 12px; line-height: 1.45; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 0; max-height: 300px; overflow: auto; white-space: pre; tab-size: 2; color: var(--fg); }
 .world-json .chg { background: var(--warn-soft); color: var(--fg); border-radius: 2px; }
 .world-json .del { background: var(--bad-soft); text-decoration: line-through; }
 .world-json .add { background: var(--ok-soft); }
-.world-save-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; }
+.world-save-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; width: 100%; }
 @media (max-width: 640px) { .world-save-grid { grid-template-columns: minmax(0, 1fr); } }
 .world-slots { display: flex; flex-direction: column; gap: 4px; }
 .world-slot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; align-items: center; text-align: left; padding: 5px 8px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); cursor: pointer; }
@@ -96,3 +96,4 @@
 .world-canvas:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
 .world-g-end { fill: var(--surface); stroke: var(--axis); stroke-width: 1.3; }
 .world-g-end.taken { fill: var(--ok); stroke: var(--ok); }
+.world-k.code { text-transform: none; letter-spacing: 0; font-family: var(--mono); }

@@ -515,7 +515,7 @@ export function SaveInspector({ spec }: { spec: VizSpec }) {
         </div>
         <div className="world-save-grid">
           <div className="world-panel">
-            <div className="world-k">
+            <div className="world-k code">
               {showingMig ? `migrating: version ${String(mig.data.version)}` : fmt === 'json' ? 'JSON.stringify(GameState.to_dict(), "\\t")' : 'the same state as a ConfigFile'}
             </div>
             {mode === 'slots' && !showingMig && <SegControl label="format" value={fmt} options={[{ v: 'json', label: 'JSON' }, { v: 'cfg', label: 'ConfigFile' }]} onChange={setFmt} />}

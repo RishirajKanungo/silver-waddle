@@ -499,7 +499,7 @@ Saving a derived value creates a second copy that can disagree with the first af
           kind: 'viz',
           viz: { type: 'rpg.save_inspector', mode: 'live' },
           task: md`Walk Kai with the arrows and press **F** next to things: open the chest, pick up the coins, talk to the elder. Watch which JSON lines change (highlighted). Walk through the door on the right into the north road, open its chest, and come back: the village chest is still open because its id is in \`opened\`. Then press **Save** to slot 1, open another chest, and **Load** slot 1.`,
-          caption: md`The JSON is exactly what \`JSON.stringify(GameState.to_dict(), "\\t")\` would write, updated every time state changes. Nothing in the room scene is saved: on load, each chest and coin asks \`GameState.is_opened(persist_id)\` in its \`_ready\`, as in the listing below.`,
+          caption: md`The JSON is exactly what \`JSON.stringify(GameState.to_dict(), "\t")\` would write, updated every time state changes. Nothing in the room scene is saved: on load, each chest and coin asks \`GameState.is_opened(persist_id)\` in its \`_ready\`, as in the listing below.`,
         },
         { kind: 'code', file: 'scripts/autoload/game_state.gd', code: GAME_STATE, note: md`\`to_dict()\` copies (\`duplicate\`) so a save in progress cannot be changed under it, and so a loaded dictionary never aliases the live state. \`from_dict\` uses \`get\` with defaults everywhere: a save missing a key (an older save, a hand-edited one) still loads.` },
         {
@@ -570,7 +570,7 @@ The weakness: rename or move the node in the editor and the id changes, so old s
               md`Hitting the wall plays a short break effect, removes its collision, and adds its id to \`GameState.opened\`.`,
               md`Re-entering the room shows the wall already broken, with no effect and no collision.`,
               md`Duplicating the wall in the editor gives the copy its own id automatically.`,
-              md`\`print(JSON.stringify(GameState.to_dict(), "\\t"))\` shows the wall's id under \`opened\`.`,
+              md`\`print(JSON.stringify(GameState.to_dict(), "\t"))\` shows the wall's id under \`opened\`.`,
             ],
             hints: [
               md`The wall is a \`StaticBody2D\` with a c05 \`Hurtbox\` child: connect its \`hurt\` signal.`,
@@ -688,7 +688,7 @@ With **Project Settings → Application → Config → Use Custom User Dir** on,
 
 Opening the save file for writing truncates it immediately. If the game dies between that moment and the last byte, the only copy is now half a file. The fix costs four lines: write the new save to \`slot_1.json.tmp\`, close it, rename the current \`slot_1.json\` to \`slot_1.json.bak\`, rename the temporary file to \`slot_1.json\`. At every instant, at least one complete save exists on disk. On load, if the main file is missing or does not parse, read the \`.bak\`.`,
         },
-        { kind: 'code', file: 'scripts/save_system.gd', code: SAVE_SYSTEM, note: md`\`save_slot\` stores a small \`meta\` dictionary next to the game data, so the slot menu can show room and play time. \`JSON.stringify(data, "\\t")\` indents with tabs, which makes saves readable while you debug; pass no indent for a smaller file in release. \`format_playtime\` relies on integer division of ints, which GDScript performs (and warns about, harmlessly).` },
+        { kind: 'code', file: 'scripts/save_system.gd', code: SAVE_SYSTEM, note: md`\`save_slot\` stores a small \`meta\` dictionary next to the game data, so the slot menu can show room and play time. \`JSON.stringify(data, "\t")\` indents with tabs, which makes saves readable while you debug; pass no indent for a smaller file in release. \`format_playtime\` relies on integer division of ints, which GDScript performs (and warns about, harmlessly).` },
         {
           kind: 'check',
           q: md`The game crashes *after* \`DirAccess.rename_absolute(path, bak)\` but *before* the final rename. What does the next \`read_json(path)\` return?`,
