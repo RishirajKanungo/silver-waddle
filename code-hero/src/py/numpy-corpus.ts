@@ -789,4 +789,23 @@ import numpy as np
 Q = np.array([[1., -2.], [3., 4.]])
 print(Q[np.array([1, 1]), range(2)], Q[range(2)], np.arange(10)[range(1, 8, 3)])
 `,
+  tri_indices: `
+import numpy as np
+print(np.triu_indices(3, k=1))
+print(np.tril_indices(3))
+r, c = np.triu_indices(4, 1)
+D = np.arange(16).reshape(4, 4)
+print(D[r, c], D[np.tril_indices(4, -1)], np.triu_indices(2, 0, 3))
+`,
+  float16_scalars: `
+import numpy as np
+for v in [0, 1e-4, 9e-5, 0.1, 0.3333, 1.0, 100, 1000, 2047, 2048, 2049, 4096, 10000, 65504, 65519, 65520, -0.5, 6e-8, 2.9e-8, 3e-8, 3.07e-5, 1e-5, 1.5, 0.000655, 123.4, 999.9, 1e-8, -7.2e-6]:
+    x = np.float16(v); print(repr(v), '->', str(x), repr(x), float(x))
+grad = 1e-8
+print(np.float16(grad))
+S = 2.0 ** 16
+scaled = np.float16(grad * S)
+print(scaled, float(scaled) / S)
+print(type(scaled).__name__, isinstance(scaled, np.floating))
+`,
 };

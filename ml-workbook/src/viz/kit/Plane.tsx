@@ -315,7 +315,7 @@ export function Heat({ f, res = 48, range, scheme = 'seq', opacity = 0.55 }: { f
   return (
     <g style={{ opacity }}>
       {cells.map((c, i) => (
-        <rect key={i} x={c.x} y={c.y} width={c.w} height={c.h} style={{ fill: colorMap((c.v - lo) / (hi - lo || 1), scheme) }} />
+        <rect key={i} x={c.x} y={c.y} width={c.w} height={c.h} shapeRendering="crispEdges" style={{ fill: colorMap((c.v - lo) / (hi - lo || 1), scheme) }} />
       ))}
     </g>
   );

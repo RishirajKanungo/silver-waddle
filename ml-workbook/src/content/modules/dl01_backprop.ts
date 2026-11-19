@@ -291,7 +291,7 @@ For softmax with cross-entropy, $\boldsymbol\delta_2 = \bp - \by$; for squared e
           kind: 'numeric',
           q: md`In the network of the figure ($\bx = (1, 2)$, $W_1 = \begin{bmatrix}1 & 1\\1 & -1\end{bmatrix}$, $\boldsymbol\delta_1 = (2, 0)$), compute the gradient with respect to the **input**, $\partial L/\partial\bx = W_1\T\boldsymbol\delta_1$.`,
           answer: { kind: 'vector', value: [2, 2] },
-          explain: md`$W_1\T\boldsymbol\delta_1 = \begin{bmatrix}1 & 1\\1 & -1\end{bmatrix}\begin{bmatrix}2\\0\end{bmatrix} = (2, 2)$. Input gradients are not used to update weights, but they are how adversarial examples and saliency maps are computed.`,
+          explain: md`$W_1\T\boldsymbol\delta_1 = \begin{bmatrix}1 & 1\\1 & -1\end{bmatrix}\begin{bmatrix}2\\0\end{bmatrix} = (2, 2)$. Input gradients update no weights; adversarial examples and saliency maps are computed from them.`,
         },
         {
           kind: 'derive',

@@ -41,12 +41,49 @@ export class NDArray extends PyObj {
 }
 
 export class NPScalar extends PyObj {
+  /** a numpy.float16 scalar: the value is stored exactly (as a double) and printed with half precision */
+  half = false;
   constructor(public v: number, public dtype: DType) {
     super();
   }
   get typeName() {
-    return 'numpy.' + this.dtype;
+    return 'numpy.' + (this.half ? 'float16' : this.dtype);
   }
+}
+
+/** round a double to the nearest IEEE half-precision value (ties to even) */
+export function toHalf(x: number): number {
+  if (!Number.isFinite(x) || x === 0) return x;
+  const a = Math.abs(x);
+  if (a >= 65520) return x > 0 ? Infinity : -Infinity;
+  let e = Math.floor(Math.log2(a));
+  if (2 ** e > a) e--;
+  if (2 ** (e + 1) <= a) e++;
+  const q = e < -14 ? 2 ** -24 : 2 ** (e - 10); // spacing of half values near a
+  const n = a / q;
+  let r = Math.round(n);
+  if (Math.abs(n - Math.trunc(n) - 0.5) < 1e-12 && r % 2 === 1) r -= 1; // ties to even
+  return Math.sign(x) * r * q;
+}
+
+/** numpy's str() of a float16 scalar: shortest unique digits; positional for 1e-4 <= |x| < 1e3 */
+function halfStr(v: number): string {
+  if (Number.isNaN(v)) return 'nan';
+  if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
+  if (v === 0) return Object.is(v, -0) ? '-0.0' : '0.0';
+  let p = 1;
+  while (p < 6 && toHalf(Number(v.toPrecision(p))) !== v) p++;
+  const d = Number(v.toPrecision(p));
+  const a = Math.abs(v);
+  if (a >= 1e-4 && a < 1e3) {
+    const t = String(d);
+    return /[.e]/.test(t) ? t : t + '.0';
+  }
+  const [m, ex] = d.toExponential(p - 1).split('e');
+  const mant = m.includes('.') ? m.replace(/0+$/, '').replace(/\.$/, '') : m;
+  const sign = ex[0] === '-' ? '-' : '+';
+  const digits = ex.replace(/^[+-]/, '').padStart(2, '0');
+  return `${mant}e${sign}${digits}`;
 }
 
 export class NPDtype extends PyObj {
@@ -1622,6 +1659,7 @@ export function arrayStr(I: Interp, a: NDArray): string {
 }
 
 export function scalarStr(s: NPScalar): string {
+  if (s.half) return halfStr(s.v);
   if (s.dtype === 'bool') return s.v ? 'True' : 'False';
   if (s.dtype === 'int64') return intStr(s.v);
   if (s.dtype === 'complex128') return s.v === 0 && !Object.is(s.v, -0) ? '0j' : '(' + floatRepr(s.v).replace(/\.0$/, '') + '+0j)';
@@ -1632,7 +1670,7 @@ export function scalarRepr(I: Interp, s: NPScalar): string {
   if (legacy) return scalarStr(s);
   if (s.dtype === 'bool') return s.v ? 'np.True_' : 'np.False_';
   const str = scalarStr(s);
-  return `np.${s.dtype}(${s.dtype === 'complex128' ? str.replace(/^\((.*)\)$/, '$1') : str})`;
+  return `np.${s.half ? 'float16' : s.dtype}(${s.dtype === 'complex128' ? str.replace(/^\((.*)\)$/, '$1') : str})`;
 }
 
 /** element strings for the trace visualizer (numpy str() formatting of each element) */
@@ -2419,6 +2457,23 @@ const BINARY_NAMES = [
   'equal', 'not_equal', 'less', 'less_equal', 'greater', 'greater_equal', 'logical_and', 'logical_or', 'logical_xor', 'bitwise_and', 'bitwise_or', 'bitwise_xor', 'left_shift', 'right_shift',
 ];
 
+/** np.triu_indices(n, k=0, m=None) / np.tril_indices: row-major (row, col) index arrays */
+function triIndices(I: Interp, a: PyVal[], kw: Map<string, PyVal>, upper: boolean): PyVal {
+  const n = toInt(I, a[0] ?? kw.get('n')!);
+  const kv = a[1] ?? kw.get('k');
+  const k = kv === undefined || kv === null ? 0 : toInt(I, kv);
+  const mv = a[2] ?? kw.get('m');
+  const m = mv === undefined || mv === null ? n : toInt(I, mv);
+  const rows: number[] = [], cols: number[] = [];
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < m; j++)
+      if (upper ? j - i >= k : j - i <= k) {
+        rows.push(i);
+        cols.push(j);
+      }
+  return new PyTuple([mk(new Float64Array(rows), [rows.length], 'int64'), mk(new Float64Array(cols), [cols.length], 'int64')]);
+}
+
 const F: Record<string, NpFn> = {
   array: (I, a, kw) => {
     const A = parseArgs(I, 'array', a, kw, ['object', 'dtype=', 'copy=', 'order=', 'subok=', 'ndmin=', 'like=']);
@@ -2676,6 +2731,8 @@ const F: Record<string, NpFn> = {
     return flat(binUfunc(I, 'equal', x, y)).every((v) => v !== 0);
   },
   triu: (I, a, kw) => triMask(I, toArr(I, a[0]), a[1] !== undefined || kw.has('k') ? toInt(I, a[1] ?? kw.get('k')!) : 0, true),
+  triu_indices: (I, a, kw) => triIndices(I, a, kw, true),
+  tril_indices: (I, a, kw) => triIndices(I, a, kw, false),
   tril: (I, a, kw) => triMask(I, toArr(I, a[0]), a[1] !== undefined || kw.has('k') ? toInt(I, a[1] ?? kw.get('k')!) : 0, false),
   diag: (I, a, kw) => diagFn(I, toArr(I, a[0]), a[1] !== undefined || kw.has('k') ? toInt(I, a[1] ?? kw.get('k')!) : 0),
   diagonal: (I, a, kw) => {
@@ -5116,7 +5173,7 @@ export function npClassOf(I: Interp, v: PyObj): PyClass | null {
   const st = npStates.get(I);
   if (!st) return null;
   if (v instanceof NDArray) return st.cls.ndarray;
-  if (v instanceof NPScalar) return st.cls[scalarClassName(v.dtype)];
+  if (v instanceof NPScalar) return st.cls[v.half ? 'float16' : scalarClassName(v.dtype)];
   if (v instanceof NPDtype) return st.cls['dt_' + v.name];
   return null;
 }
@@ -5218,8 +5275,15 @@ export function registerNumpy(I: Interp) {
     for (const [n, dn] of [['float64', 'Float64DType'], ['int64', 'Int64DType'], ['bool', 'BoolDType'], ['complex128', 'Complex128DType']])
       cls['dt_' + n] = makeClass(I, dn, [T.object], 'numpy.dtypes', () => new NPDtype(n as DType));
     cls.dtype = makeClass(I, 'dtype', [T.object], 'numpy', (a) => new NPDtype(dtypeArg(I, a[0]) ?? 'float64'));
-    for (const n of ['float32', 'float16', 'int32', 'int16', 'int8', 'uint8', 'uint16', 'uint32', 'uint64', 'complex64', 'str_', 'object_'])
+    for (const n of ['float32', 'int32', 'int16', 'int8', 'uint8', 'uint16', 'uint32', 'uint64', 'complex64', 'str_', 'object_'])
       cls[n] = makeClass(I, n, [cls.generic], 'numpy', () => unsupported(I, `numpy.${n}`));
+    // float16: scalars only (construct, print, convert back); enough to show half-precision rounding and underflow
+    cls.float16 = makeClass(I, 'float16', [cls.floating], 'numpy', (a) => {
+      if (a[0] instanceof NDArray && a[0].ndim > 0) unsupported(I, 'float16 arrays');
+      const sc = new NPScalar(toHalf(toFloat(I, a[0] ?? 0)), 'float64');
+      sc.half = true;
+      return sc;
+    });
     cls.LinAlgError = makeClass(I, 'LinAlgError', [T.ValueError], 'numpy.linalg', undefined, 'exception');
     cls.AxisError = makeClass(I, 'AxisError', [T.ValueError, T.IndexError], 'numpy.exceptions', undefined, 'exception');
     cls.UFuncTypeError = makeClass(I, 'UFuncTypeError', [T.TypeError], 'numpy._core._exceptions', undefined, 'exception');

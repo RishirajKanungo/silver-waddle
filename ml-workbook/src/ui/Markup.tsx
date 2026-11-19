@@ -54,9 +54,13 @@ function blocks(src: string): Block[] {
     }
     if (t.startsWith('$$')) {
       let body = t.slice(2);
-      if (body.trim().endsWith('$$') && body.trim().length > 2) {
-        out.push({ k: 'math', tex: body.trim().slice(0, -2) });
-        i++;
+      const close = body.indexOf('$$');
+      if (close >= 0) {
+        // $$ … $$ on one line, possibly followed by text that continues as a paragraph
+        out.push({ k: 'math', tex: body.slice(0, close).trim() });
+        const rest = body.slice(close + 2).trim();
+        if (rest) lines[i] = rest;
+        else i++;
         continue;
       }
       i++;

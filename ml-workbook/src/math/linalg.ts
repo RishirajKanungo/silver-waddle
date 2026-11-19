@@ -74,11 +74,28 @@ export function inv(A: Mat): Mat | null {
   return T(cols as Mat);
 }
 
-/** Numerical rank via SVD */
-export const rank = (A: Mat, tol = 1e-9) => {
-  const { S } = svd(A);
-  return S.filter((s) => s > tol * Math.max(1, S[0] ?? 0)).length;
-};
+/** Numerical rank by Gaussian elimination with full pivoting (robust for small integer-ish matrices;
+ *  singular values from AᵀA would square the rounding noise). */
+export function rank(A: Mat, tol?: number): number {
+  const a = A.map((r) => [...r]);
+  const m = a.length, n = a[0]?.length ?? 0;
+  const maxAbs = Math.max(0, ...a.flat().map(Math.abs));
+  const eps = tol ?? Math.max(m, n) * maxAbs * 1e-12;
+  let r = 0;
+  const usedCol = new Array(n).fill(false);
+  for (; r < Math.min(m, n); r++) {
+    let pi = -1, pj = -1, best = eps;
+    for (let i = r; i < m; i++) for (let j = 0; j < n; j++) if (!usedCol[j] && Math.abs(a[i][j]) > best) [best, pi, pj] = [Math.abs(a[i][j]), i, j];
+    if (pi < 0) break;
+    [a[r], a[pi]] = [a[pi], a[r]];
+    usedCol[pj] = true;
+    for (let i = r + 1; i < m; i++) {
+      const f = a[i][pj] / a[r][pj];
+      if (f !== 0) for (let j = 0; j < n; j++) a[i][j] -= f * a[r][j];
+    }
+  }
+  return r;
+}
 
 /** Real eigenvalues of a 2×2 (null when complex) */
 export function eig2(A: Mat): { values: [number, number]; vectors: [Vec, Vec] } | null {

@@ -140,7 +140,7 @@ export function Readout({ rows, title }: { rows: [string, ReactNode][]; title?: 
 export function FigureLayout({ children, side, below }: { children: ReactNode; side?: ReactNode; below?: ReactNode }) {
   return (
     <div className="fig">
-      <div className="fig-main">
+      <div className={'fig-main' + (side ? '' : ' no-side')}>
         <div className="fig-draw">{children}</div>
         {side && <div className="fig-side">{side}</div>}
       </div>

@@ -290,7 +290,7 @@ main { min-width: 0; }
 .viz-error { color: var(--bad); font-size: 13px; padding: 8px; }
 .fig { display: flex; flex-direction: column; gap: 10px; }
 .fig-main { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; align-items: start; }
-.fig-main:has(.fig-side:empty) { grid-template-columns: minmax(0, 1fr); }
+.fig-main.no-side, .fig-main:has(.fig-side:empty) { grid-template-columns: minmax(0, 1fr); }
 .fig-draw { min-width: 0; display: flex; justify-content: center; }
 .fig-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; font-size: 13.5px; }
 .fig-below { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }

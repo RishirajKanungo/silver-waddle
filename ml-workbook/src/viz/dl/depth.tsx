@@ -42,28 +42,51 @@ function SigmoidChain({ spec }: { spec: VizSpec }) {
     <FigureLayout
       side={
         <>
-          <SegControl value={act} onChange={setAct} options={[{ v: 'sigmoid', label: 'sigmoid' }, { v: 'tanh', label: 'tanh' }, { v: 'relu', label: 'ReLU' }]} />
+          <SegControl
+            value={act}
+            onChange={setAct}
+            options={[
+              { v: 'sigmoid', label: 'sigmoid' },
+              { v: 'tanh', label: 'tanh' },
+              { v: 'relu', label: 'ReLU' },
+            ]}
+          />
           <Slider label="depth L" value={L} min={1} max={30} step={1} onChange={setL} fmt={(v) => String(v)} />
           <Slider tex="w" value={w} min={-6} max={6} step={0.1} onChange={setW} />
           <Slider tex="b" value={b} min={-3} max={3} step={0.1} onChange={setB} />
           <Readout
             rows={[
               ["\\text{factor at top } w\\,\\varphi'(z_L)", fmt(factors[L - 1], 4)],
-              ['\\pd{h_L}{h_0} = \\prod_l w\\,\\varphi\'(z_l)', tv(sigTeX(grads[0], 3))],
+              ["\\pd{h_L}{h_0} = \\prod_l w\\,\\varphi'(z_l)", tv(sigTeX(grads[0], 3))],
               ...(act === 'sigmoid' ? ([['\\text{bound } (|w|/4)^L', tv(sigTeX(bound, 3))]] as [string, string][]) : []),
               ['z_1,\\ z_L', `${fmt(zs[0], 2)}, ${fmt(zs[L - 1], 2)}`],
             ]}
           />
           <div className="small">
-            {act === 'sigmoid' && <>Since <TeX>{"\\sigma'\\le 1/4"}</TeX>, each layer multiplies the gradient by at most <TeX>{'|w|/4'}</TeX>. With <TeX>{'|w| < 4'}</TeX> the product shrinks geometrically.</>}
-            {act === 'tanh' && <><TeX>{"\\tanh'(0) = 1"}</TeX>, so near zero the factor is about <TeX>{'w'}</TeX>; large <TeX>{'|w|'}</TeX> pushes <TeX>{'z'}</TeX> into saturation where the factor collapses.</>}
-            {act === 'relu' && <>For an active unit the factor is exactly <TeX>{'w'}</TeX>: the product is <TeX>{'w^{L}'}</TeX>, which explodes for <TeX>{'|w|>1'}</TeX>, vanishes for <TeX>{'|w|<1'}</TeX>, and is 0 once a unit is off.</>}
+            {act === 'sigmoid' && (
+              <>
+                Since <TeX>{"\\sigma'\\le 1/4"}</TeX>, each layer multiplies the gradient by at most <TeX>{'|w|/4'}</TeX>. With <TeX>{'|w| < 4'}</TeX> the product shrinks geometrically.
+              </>
+            )}
+            {act === 'tanh' && (
+              <>
+                <TeX>{"\\tanh'(0) = 1"}</TeX>, so near zero the factor is about <TeX>{'w'}</TeX>; large <TeX>{'|w|'}</TeX> pushes <TeX>{'z'}</TeX> into saturation where the factor collapses.
+              </>
+            )}
+            {act === 'relu' && (
+              <>
+                For an active unit the factor is exactly <TeX>{'w'}</TeX>: the product is <TeX>{'w^{L}'}</TeX>, which explodes for <TeX>{'|w|>1'}</TeX>, vanishes for <TeX>{'|w|<1'}</TeX>, and is 0 once a unit is off.
+              </>
+            )}
           </div>
         </>
       }
     >
       <LinePlot
-        series={[{ pts: series, color: 'var(--c-err)' }, { pts: series, color: 'var(--c-err)', scatter: true }]}
+        series={[
+          { pts: series, color: 'var(--c-err)' },
+          { pts: series, color: 'var(--c-err)', scatter: true },
+        ]}
         x={[0, L]}
         y={[Math.floor(lo), Math.ceil(hi)]}
         height={290}
@@ -104,7 +127,8 @@ function DepthSignal({ spec }: { spec: VizSpec }) {
   const ser = (a: number[]) => a.map((v, l) => [l, Math.max(-40, Math.min(40, L10(v)))] as [number, number]);
   const range = (arrs: number[][]) => {
     const all = arrs.flat().map((v) => Math.max(-40, Math.min(40, L10(v))));
-    const lo = Math.floor(Math.min(-1, ...all)), hi = Math.ceil(Math.max(1, ...all));
+    const lo = Math.floor(Math.min(-1, ...all)),
+      hi = Math.ceil(Math.max(1, ...all));
     return [lo, hi + (hi - lo) * 0.25] as [number, number];
   };
   const aR = range([plain.act, ...(resid ? [resid.act] : [])]);
@@ -113,7 +137,16 @@ function DepthSignal({ spec }: { spec: VizSpec }) {
     <FigureLayout
       side={
         <>
-          <SegControl value={act} onChange={setAct} options={[{ v: 'linear', label: 'linear' }, { v: 'tanh', label: 'tanh' }, { v: 'sigmoid', label: 'sigmoid' }, { v: 'relu', label: 'ReLU' }]} />
+          <SegControl
+            value={act}
+            onChange={setAct}
+            options={[
+              { v: 'linear', label: 'linear' },
+              { v: 'tanh', label: 'tanh' },
+              { v: 'sigmoid', label: 'sigmoid' },
+              { v: 'relu', label: 'ReLU' },
+            ]}
+          />
           <SegControl value={init} onChange={setInit} options={(Object.keys(INITS) as Init[]).map((k) => ({ v: k, label: INITS[k].label }))} />
           <Slider label="depth" value={depth} min={2} max={40} step={1} onChange={setDepth} fmt={(v) => String(v)} />
           <Slider label="gain × std" value={gain} min={0.25} max={3} step={0.05} onChange={setGain} />
@@ -132,24 +165,27 @@ function DepthSignal({ spec }: { spec: VizSpec }) {
       }
     >
       <div className="dl-stack">
-      <LinePlot
-        series={[{ pts: ser(plain.act), color: 'var(--c-u)', label: resid ? 'plain' : 'activation RMS' }, ...(resid ? [{ pts: ser(resid.act), color: 'var(--c-w)', label: 'residual h + φ(Wh)' }] : [])]}
-        x={[0, depth]}
-        y={aR}
-        height={190}
-        xlabel="layer l (forward)"
-        ylabel="log₁₀ activation RMS"
-        hlines={[{ y: 0, color: 'var(--muted)' }]}
-      />
-          <LinePlot
-            series={[{ pts: ser(plain.grad), color: 'var(--c-err)', label: resid ? 'plain' : 'gradient RMS, relative to the top layer' }, ...(resid ? [{ pts: ser(resid.grad), color: 'var(--c-w)', label: 'residual h + φ(Wh)' }] : [])]}
-            x={[0, depth]}
-            y={gR}
-            height={190}
-            xlabel="layer l (backward: from the top down)"
-            ylabel="log₁₀ grad RMS"
-            hlines={[{ y: 0, color: 'var(--muted)' }]}
-          />
+        <LinePlot
+          series={[{ pts: ser(plain.act), color: 'var(--c-u)', label: resid ? 'plain' : 'activation RMS' }, ...(resid ? [{ pts: ser(resid.act), color: 'var(--c-w)', label: 'residual h + φ(Wh)' }] : [])]}
+          x={[0, depth]}
+          y={aR}
+          height={190}
+          xlabel="layer l (forward)"
+          ylabel="log₁₀ activation RMS"
+          hlines={[{ y: 0, color: 'var(--muted)' }]}
+        />
+        <LinePlot
+          series={[
+            { pts: ser(plain.grad), color: 'var(--c-err)', label: resid ? 'plain' : 'gradient RMS, relative to the top layer' },
+            ...(resid ? [{ pts: ser(resid.grad), color: 'var(--c-w)', label: 'residual h + φ(Wh)' }] : []),
+          ]}
+          x={[0, depth]}
+          y={gR}
+          height={190}
+          xlabel="layer l (backward: from the top down)"
+          ylabel="log₁₀ grad RMS"
+          hlines={[{ y: 0, color: 'var(--muted)' }]}
+        />
       </div>
     </FigureLayout>
   );
