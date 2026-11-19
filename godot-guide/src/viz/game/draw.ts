@@ -40,7 +40,7 @@ export function text(ctx: CanvasRenderingContext2D, s: string, x: number, y: num
       if (idx !== undefined) {
         ctx.save();
         // tint by drawing the glyph as a mask
-        drawFrame(ctx, 'font_pixel', idx, cx, y - font.frameH + 2, { flash: 1, flashColor: color });
+        drawFrame(ctx, 'font_pixel', idx, cx, y - font.frameH + 1, { flash: 1, flashColor: color });
         ctx.restore();
       }
       cx += w;

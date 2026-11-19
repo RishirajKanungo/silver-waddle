@@ -1,0 +1,123 @@
+/* Figures for the Godot foundations part. Colours come from the theme variables. */
+.godot-col { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
+.godot-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.godot-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.godot-yes { color: var(--ok); font-weight: 600; }
+.godot-no { color: var(--bad); font-weight: 600; }
+.godot-note.godot-no, .godot-note.godot-yes { font-weight: 500; }
+.godot-loupe { width: 100%; max-width: 480px; height: auto; image-rendering: pixelated; border-radius: 4px; border: 1px solid var(--line); align-self: center; }
+.godot-overview { width: 100%; max-width: 232px; height: auto; border-radius: 4px; }
+.godot-sprite { width: 96px; height: auto; image-rendering: pixelated; border-radius: 4px; border: 1px solid var(--line); }
+.godot-svg { width: 100%; max-width: 520px; height: auto; display: block; align-self: center; }
+.godot-svg text { font-family: var(--sans); fill: var(--fg); }
+.godot-svg .godot-svg-small { font-size: 10.5px; fill: var(--muted); }
+.godot-svg .godot-svg-mono { font-family: var(--mono); font-size: 11px; fill: var(--fg); }
+.godot-field { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.godot-field select, .godot-bits select, .godot-pm-row select, .godot-inspector select, .godot-inspector input, .godot-inspector textarea {
+  font: inherit; font-size: 12.5px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; max-width: 100%;
+}
+
+/* layers */
+.godot-bits { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; background: var(--surface); overflow-x: auto; }
+.godot-bits-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; }
+.godot-kind { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.godot-bit-table { border-collapse: collapse; font-size: 12px; }
+.godot-bit-table th { font-weight: 500; color: var(--muted); padding: 0 2px; vertical-align: bottom; }
+.godot-layer-no { display: block; font-family: var(--mono); font-size: 11px; }
+.godot-layer-name { display: block; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10.5px; height: 76px; text-align: left; margin: 0 auto; }
+.godot-row-k { font-family: var(--mono); font-size: 11.5px; padding-right: 6px; white-space: nowrap; }
+.godot-bit { width: 26px; height: 26px; padding: 0; font-family: var(--mono); font-size: 12px; border-radius: 4px; }
+.godot-bit.on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.godot-val { font-family: var(--mono); padding-left: 8px; text-align: right; min-width: 32px; }
+
+/* numbers */
+.godot-tile { fill: var(--surface2); stroke: var(--line); }
+.godot-tile.on { fill: var(--accent-soft); stroke: var(--accent); }
+.godot-bad-span { fill: var(--bad); opacity: 0.35; }
+.godot-axis0 { stroke: var(--axis); stroke-dasharray: 3 2; }
+.godot-marker { stroke: var(--c-v); stroke-width: 2; }
+.godot-marker-dot { fill: var(--c-v); }
+.godot-floatbar { display: flex; flex-wrap: wrap; gap: 3px; max-width: 520px; }
+.godot-floatbar span { width: 12px; height: 12px; border-radius: 2px; background: var(--fg); opacity: 0.75; }
+.godot-floatbar span.off { background: var(--c-v); opacity: 1; }
+
+/* trees */
+.godot-tree { display: flex; flex-direction: column; gap: 2px; width: 100%; font-size: 13px; border: 1px solid var(--line); border-radius: var(--radius); padding: 6px; background: var(--surface); }
+.godot-tree-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; text-align: left; padding: 3px 6px; border-radius: 4px; border: 1px solid transparent; background: transparent; font: inherit; color: var(--fg); min-height: 28px; }
+button.godot-tree-row { cursor: pointer; }
+button.godot-tree-row:hover { background: var(--surface2); }
+.godot-tree-row.active { background: var(--accent-soft); border-color: var(--accent); }
+.godot-tree-row.from { box-shadow: inset 3px 0 0 var(--c-v); }
+.godot-tree-row.inside .godot-tree-name { color: var(--muted); font-style: italic; }
+.godot-tree-row.gone { opacity: 0.3; text-decoration: line-through; }
+.godot-tree-row.floating { opacity: 0.6; border-style: dashed; border-color: var(--line); }
+.godot-tree-row.noscript .godot-tree-name { color: var(--muted); }
+.godot-tree-name { font-weight: 600; font-family: var(--mono); font-size: 12.5px; }
+.godot-tree-type { font-size: 11.5px; color: var(--muted); }
+.godot-tree-count { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.godot-chip { font-size: 10.5px; padding: 0 6px; border-radius: 9px; background: var(--surface2); color: var(--fg); border: 1px solid var(--line); line-height: 17px; }
+.godot-chip.dim { color: var(--muted); }
+.godot-chip.scene { border-color: var(--c-u); color: var(--c-u); }
+.godot-chip.group { border-color: var(--c-w); color: var(--c-w); }
+.godot-chip.ready { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.godot-chip.from { border-color: var(--c-v); color: var(--c-v); }
+.godot-call { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 600; }
+.godot-phase { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); }
+.godot-callnote { font-size: 13.5px; padding: 8px 10px; border-radius: var(--radius); background: var(--surface2); min-height: 3.2em; }
+.godot-callnote b { font-family: var(--mono); font-size: 12.5px; }
+.godot-log { margin: 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--line); border-radius: var(--radius); }
+.godot-log li { padding: 2px 6px; border-bottom: 1px solid var(--line); }
+.godot-log li.on { background: var(--accent-soft); }
+.godot-log-n, .godot-ln { color: var(--muted); display: inline-block; min-width: 2.2em; user-select: none; }
+.godot-led { width: 9px; height: 9px; border-radius: 50%; background: var(--line); flex: none; }
+.godot-led.on { background: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+.godot-pm-row.stopped .godot-tree-name { color: var(--muted); }
+
+/* await */
+.godot-tick { stroke: var(--line); }
+.godot-tick.on { stroke: var(--muted); }
+.godot-dot { fill: var(--line); }
+.godot-dot.on { fill: var(--ok); }
+.godot-run { fill: var(--accent); }
+.godot-wait { stroke: var(--c-v); stroke-width: 2; stroke-dasharray: 4 3; }
+.godot-playhead { stroke: var(--c-u); stroke-width: 1.5; }
+.godot-scrub { width: 100%; max-width: 520px; accent-color: var(--accent); align-self: center; }
+.godot-split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
+@media (max-width: 640px) { .godot-split { grid-template-columns: minmax(0, 1fr); } }
+.godot-listing, .godot-output { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.55; background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 0; overflow-x: auto; }
+.godot-listing div { padding: 0 8px; white-space: pre; border-left: 3px solid transparent; }
+.godot-listing div.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.godot-output { padding: 6px 8px; min-height: 5em; }
+.godot-output::before { content: 'Output'; display: block; font-family: var(--sans); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+/* signal flow */
+.godot-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.godot-box.auto { fill: var(--surface2); }
+.godot-box.file { fill: var(--code-bg); stroke-dasharray: 4 3; }
+.godot-box.hot { stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft); }
+.godot-box.err { stroke: var(--bad); stroke-width: 2.5; fill: var(--bad-soft); }
+.godot-svg .godot-box-title { font-size: 12.5px; font-weight: 600; font-family: var(--mono); fill: var(--fg); }
+.godot-edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.godot-edge.signal { stroke: var(--c-w); }
+.godot-edge.call { stroke: var(--c-u); }
+.godot-edge.physics { stroke: var(--muted); stroke-dasharray: 2 3; }
+.godot-edge.hot { stroke-width: 3.5; }
+.godot-edge.off { stroke: var(--line); stroke-dasharray: 5 4; }
+.godot-arrowhead { fill: var(--muted); }
+.godot-svg .godot-edge-label { font-family: var(--mono); font-size: 10px; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.godot-svg .godot-edge-label.hot { fill: var(--accent); font-weight: 600; }
+.godot-stack { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.godot-stack li { padding: 4px 8px; border-left: 3px solid var(--line); background: var(--surface2); border-radius: 0 4px 4px 0; }
+.godot-stack li.on { border-left-color: var(--accent); }
+.godot-stack li.err { border-left-color: var(--bad); background: var(--bad-soft); }
+
+/* inspector */
+.godot-inspector { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: 13px; }
+.godot-insp-head { padding: 5px 10px; font-weight: 600; font-family: var(--mono); font-size: 12.5px; border-bottom: 1px solid var(--line); background: var(--surface2); }
+.godot-insp-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 26px; gap: 8px; align-items: center; padding: 3px 10px; border-bottom: 1px solid var(--line); }
+.godot-insp-row:last-child { border-bottom: none; }
+.godot-insp-k { color: var(--muted); font-size: 12.5px; text-transform: capitalize; }
+.godot-insp-k.changed { color: var(--fg); font-weight: 600; }
+.godot-insp-v input, .godot-insp-v textarea, .godot-insp-v select { width: 100%; box-sizing: border-box; }
+.godot-insp-v .ctl-slider { grid-template-columns: 0 minmax(60px, 1fr) 46px; gap: 4px; }
+.godot-revert { padding: 0; width: 24px; height: 24px; font-size: 13px; }

@@ -1,0 +1,51 @@
+/* Figures for state machines, components, combat feel and enemy AI (src/viz/arch). */
+.arch-diagram { width: 100%; max-width: 520px; height: auto; display: block; font-family: var(--sans); }
+.arch-diagram text { font-size: 12px; fill: var(--fg); }
+.arch-diagram .arch-small { font-size: 10.5px; fill: var(--muted); font-family: var(--mono); }
+.arch-node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.arch-node text { font-weight: 600; }
+.arch-node.on rect { fill: var(--accent); stroke: var(--accent); }
+.arch-node.on text { fill: var(--surface); }
+.arch-node.bad rect { fill: var(--bad-soft); stroke: var(--bad); }
+.arch-node.bad.on rect { fill: var(--bad); stroke: var(--bad); }
+.arch-node.dim { opacity: 0.45; }
+.arch-group { fill: none; stroke: var(--line); stroke-dasharray: 4 3; }
+.arch-edge { fill: none; stroke: var(--axis); stroke-width: 1.3; }
+.arch-edge-label { font-size: 10.5px; fill: var(--muted); font-family: var(--mono); }
+.arch-edge.flash { stroke: var(--accent); stroke-width: 3; animation: arch-flash 0.9s ease-out forwards; }
+.arch-edge-label.flash { fill: var(--accent); font-weight: 700; animation: arch-flash-t 0.9s ease-out forwards; }
+@keyframes arch-flash { from { stroke-width: 3.5; opacity: 1; } to { stroke-width: 1.3; opacity: 0.55; } }
+@keyframes arch-flash-t { from { opacity: 1; } to { opacity: 0.75; } }
+.arch-arrow { fill: var(--axis); }
+.arch-arrow-on { fill: var(--accent); }
+
+.arch-panel { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--surface2); border-radius: var(--radius); font-size: 13px; }
+.arch-panel-title { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.arch-row { display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.arch-row .k { color: var(--muted); }
+.arch-row.true .v { color: var(--accent); font-weight: 700; }
+.arch-row.bad { color: var(--bad); }
+.arch-row.bad .k { color: var(--bad); }
+.arch-chip { display: inline-block; padding: 0 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
+.arch-chip.on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+
+.arch-log { font-family: var(--mono); font-size: 11.5px; line-height: 1.45; max-height: 132px; min-height: 92px; overflow: hidden; background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; width: 100%; box-sizing: border-box; }
+.arch-log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arch-log .muted { color: var(--muted); }
+.arch-log .sig { color: var(--syn-def); }
+.arch-log .bad { color: var(--bad); }
+
+.arch-tree { font-family: var(--mono); font-size: 12px; line-height: 1.5; }
+.arch-tree label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.arch-tree .fixed { color: var(--muted); padding-left: 22px; }
+
+.arch-timeline { width: 100%; max-width: 640px; height: auto; display: block; border-radius: 4px; background: var(--surface2); }
+.arch-below-full { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.arch-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+.arch-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.arch-sel { display: flex; gap: 6px; flex-wrap: wrap; }
+.arch-note { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.arch-step { font-size: 13.5px; line-height: 1.45; min-height: 3em; }
+.arch-step b { color: var(--accent); }
+.arch-step.stop b { color: var(--bad); }
+.arch-hitcard { font-family: var(--mono); font-size: 12px; }

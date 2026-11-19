@@ -444,8 +444,6 @@ export function line(img: Img, x0: number, y0: number, x1: number, y1: number, c
 /** Points of a Bresenham line. */
 export function linePts(x0: number, y0: number, x1: number, y1: number): [number, number][] {
   const pts: [number, number][] = [];
-  const tmp = new Img(1, 1);
-  void tmp;
   x0 = Math.round(x0);
   y0 = Math.round(y0);
   x1 = Math.round(x1);

@@ -101,14 +101,14 @@ export function encodeWAV(samples: Float32Array, sampleRate = SAMPLE_RATE): Buff
 
 // ---------------------------------------------------------------------------------------------- load
 /** Import every data module that exports ART (helper modules without ART are skipped). */
-export async function loadModules(): Promise<{ file: string; art: ArtModule }[]> {
+export async function loadModules(): Promise<{ file: string; art: ArtModule; icon?: () => RGBAImage }[]> {
   const files = readdirSync(DATA_DIR)
     .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
     .sort();
-  const out: { file: string; art: ArtModule }[] = [];
+  const out: { file: string; art: ArtModule; icon?: () => RGBAImage }[] = [];
   for (const f of files) {
-    const m = (await import(pathToFileURL(join(DATA_DIR, f)).href)) as { ART?: ArtModule };
-    if (m.ART) out.push({ file: f, art: m.ART });
+    const m = (await import(pathToFileURL(join(DATA_DIR, f)).href)) as { ART?: ArtModule; PROJECT_ICON?: () => RGBAImage };
+    if (m.ART) out.push({ file: f, art: m.ART, icon: m.PROJECT_ICON });
   }
   return out;
 }
@@ -219,7 +219,9 @@ async function main() {
   }
   writeFileSync(join(STARTER, 'assets/LICENSE.txt'), LICENSE);
   writeFileSync(join(STARTER, 'assets/README.md'), readme(sheets, sounds));
-  // the project icon is defined as a sheet with id "icon" if present; otherwise skip
+  // the project icon (res://icon.png) comes from the module that exports PROJECT_ICON
+  const iconMod = mods.find((m) => m.icon);
+  if (iconMod?.icon) writeFileSync(join(STARTER, 'icon.png'), encodePNG(iconMod.icon()));
   console.log(`exported ${sheets.length} sheets and ${sounds.length} sounds (${(bytes / 1024).toFixed(0)} KiB) to ${STARTER}`);
 }
 

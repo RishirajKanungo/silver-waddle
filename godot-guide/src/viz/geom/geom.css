@@ -1,0 +1,85 @@
+/* geom figures: collision, RPG numbers, pixel art. Colours come from the theme variables. */
+.geom-svg { width: 100%; max-width: 520px; height: auto; display: block; border-radius: 4px; user-select: none; }
+.geom-shape { fill-opacity: 0.18; stroke-width: 1.5; cursor: grab; }
+.geom-shape:active { cursor: grabbing; }
+.geom-arrow { stroke-width: 1.8; fill: none; }
+.geom-tag { font: 600 9px var(--sans); fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; }
+.geom-wall { fill: var(--muted); opacity: 0.55; }
+.geom-wall.drag { opacity: 0.75; cursor: grab; }
+.geom-knob { fill: var(--surface); stroke: var(--c-u); stroke-width: 2; cursor: grab; }
+.geom-yes { color: var(--ok); }
+.geom-no { color: var(--bad); }
+.geom-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.geom-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.geom-btns button { padding: 4px 10px; font-size: 13px; }
+.geom-checks { display: flex; flex-direction: column; gap: 4px; }
+.geom-select { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13.5px; }
+.geom-select select { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--fg); min-width: 0; }
+
+/* tables */
+.geom-table { border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.geom-table th, .geom-table td { padding: 4px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.geom-table th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+
+/* layers and masks */
+.geom-layers { gap: 12px; }
+.geom-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.geom-legend b { color: var(--fg); }
+.geom-scroll { overflow-x: auto; min-width: 0; }
+.geom-bits, .geom-matrix { border-collapse: collapse; font-family: var(--sans); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.geom-bits th, .geom-bits td { padding: 1px 1px; text-align: center; }
+.geom-bits thead th { color: var(--muted); font-weight: 600; font-size: 11.5px; padding: 2px 3px; }
+.geom-bits td:nth-child(10), .geom-bits thead tr:first-child th:nth-child(3) { padding-right: 10px; }
+.geom-objname { text-align: left !important; white-space: nowrap; cursor: pointer; padding-right: 8px !important; font-weight: 500; }
+.geom-node { display: block; font-size: 10.5px; color: var(--muted); font-weight: 400; font-family: var(--mono); }
+.geom-idx { display: inline-block; min-width: 16px; font-family: var(--mono); color: var(--muted); font-size: 11px; }
+.geom-bits tr.sel .geom-objname { color: var(--accent); }
+.geom-bits tr.hl { background: var(--accent-soft); }
+.geom-bit { width: 18px; height: 18px; padding: 0; border-radius: 3px; border: 1px solid var(--line); background: var(--surface); display: inline-block; vertical-align: middle; cursor: pointer; }
+.geom-bit.on { background: var(--c-u); border-color: var(--c-u); }
+.geom-bit.mask.on { background: var(--c-v); border-color: var(--c-v); }
+.geom-bit.na { border: none; background: none; color: var(--muted); cursor: default; line-height: 18px; }
+.geom-int { font-family: var(--mono); font-size: 12px; min-width: 30px; text-align: right !important; padding: 0 6px !important; }
+.geom-matrix th, .geom-matrix td { padding: 0; text-align: center; }
+.geom-matrix thead th { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 22px; font-weight: 500; }
+.geom-matrix tbody th { text-align: left; white-space: nowrap; padding-right: 8px; font-weight: 500; cursor: pointer; }
+.geom-corner { font-family: var(--sans) !important; text-align: left !important; font-size: 11px; width: auto !important; }
+.geom-rel { width: 22px; height: 20px; border: 1px solid var(--line); font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.geom-rel.block { background: color-mix(in oklab, var(--c-u) 22%, var(--surface)); color: var(--c-u); }
+.geom-rel.detect { background: color-mix(in oklab, var(--c-v) 22%, var(--surface)); color: var(--c-v); }
+.geom-rel.na { color: var(--muted); background: var(--surface2); }
+.geom-rel.self { background: var(--surface2); }
+.geom-rel.changed { outline: 2px solid var(--bad); outline-offset: -2px; }
+.geom-diffs { font-size: 13px; padding: 8px 10px; border-radius: var(--radius); background: var(--ok-soft); }
+.geom-diffs.bad { background: var(--bad-soft); }
+.geom-diffs ul { margin: 4px 0 0; padding-left: 18px; }
+.geom-diffs li.extra::marker { content: '+ '; }
+.geom-diffs li.missing::marker { content: '− '; }
+
+/* loot */
+.geom-loot-edit { display: flex; flex-direction: column; gap: 4px; }
+.geom-loot-edit label { display: grid; grid-template-columns: minmax(0, 1fr) 64px 48px; gap: 6px; align-items: center; font-size: 13px; }
+.geom-loot-edit input { width: 100%; font: inherit; font-family: var(--mono); font-size: 12.5px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--fg); }
+.geom-share { font-family: var(--mono); font-size: 12px; text-align: right; color: var(--muted); }
+
+/* animation */
+.geom-holds { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; }
+.geom-holds div { display: flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+.geom-holds div.on { background: var(--accent-soft); }
+.geom-holds span { color: var(--muted); min-width: 22px; }
+.geom-holds b { min-width: 18px; text-align: center; }
+.geom-holds button { padding: 0 7px; font-size: 13px; line-height: 20px; }
+.geom-sheet { display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; }
+.geom-sheet-scroll { overflow: auto; max-height: 280px; background: var(--surface2); border-radius: 4px; padding: 4px; }
+.geom-sheet-scroll canvas { display: block; image-rendering: pixelated; max-width: none; }
+
+/* palette ramps */
+.geom-ramp { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 0; }
+.geom-ramp-row { display: flex; flex-direction: column; gap: 3px; }
+.geom-swatches { display: flex; flex-wrap: wrap; gap: 3px; }
+.geom-swatch { width: 54px; height: 34px; border-radius: 4px; border: 1px solid var(--line); display: inline-flex; align-items: flex-end; justify-content: center; padding: 0; }
+.geom-swatch i { font-style: normal; font-family: var(--mono); font-size: 9.5px; background: rgba(0, 0, 0, 0.45); color: #fff; padding: 0 3px; border-radius: 2px; margin-bottom: 2px; }
+.geom-swatches.small .geom-swatch { width: 22px; height: 22px; cursor: pointer; }
+.geom-swatches.small .geom-swatch.in { outline: 2px solid var(--accent); outline-offset: 1px; }
+.geom-swatches.small .geom-swatch.on { outline: 3px solid var(--fg); }
+.geom-pixels { image-rendering: pixelated; max-width: 100%; height: auto; display: block; background: var(--surface2); border-radius: 4px; }

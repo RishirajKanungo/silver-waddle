@@ -1,0 +1,17 @@
+.combat-battle { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 640px; margin: 0 auto; }
+.combat-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+.combat-muted { color: var(--muted); font-size: 12.5px; }
+.combat-keys { display: flex; flex-direction: column; gap: 4px; }
+.combat-keys-menu { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.combat-log { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.5; min-height: 4.5em; }
+.combat-svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--sans); }
+.combat-svg text { fill: var(--fg); }
+.combat-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.combat-btns button { font-size: 12.5px; padding: 3px 8px; }
+.combat-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.combat-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.combat-table td, .combat-table th { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: left; }
+.combat-table th { color: var(--muted); font-weight: 600; }
+.combat-table .on { color: var(--ok); font-weight: 600; }
+.combat-table .slow { color: var(--warn); font-weight: 600; }
+.combat-table .off { color: var(--bad); font-weight: 600; }

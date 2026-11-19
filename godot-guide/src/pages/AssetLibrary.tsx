@@ -32,10 +32,10 @@ export function AssetLibrary() {
       </div>
       {GROUPS.filter(([g]) => g === tab).map(([g, kinds]) => {
         const ids = sheets.filter((s) => kinds.includes(s.kind)).map((s) => s.id);
-        return ids.length ? <AssetsPanel key={g} ids={ids} /> : <p key={g} className="muted">No assets in this group yet.</p>;
+        return ids.length ? <AssetsPanel key={g} ids={ids} title={null} /> : <p key={g} className="muted">No assets in this group yet.</p>;
       })}
-      {tab === 'Sound' && <AssetsPanel ids={sounds.filter((s) => s.kind === 'sfx').map((s) => s.id)} />}
-      {tab === 'Music' && <AssetsPanel ids={sounds.filter((s) => s.kind === 'music').map((s) => s.id)} />}
+      {tab === 'Sound' && <AssetsPanel ids={sounds.filter((s) => s.kind === 'sfx').map((s) => s.id)} title={null} />}
+      {tab === 'Music' && <AssetsPanel ids={sounds.filter((s) => s.kind === 'music').map((s) => s.id)} title={null} />}
     </div>
   );
 }

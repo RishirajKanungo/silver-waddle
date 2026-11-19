@@ -1,0 +1,10 @@
+# Godot 4: the .godot/ folder is a cache the editor rebuilds (imported textures, shader caches, UIDs).
+# Keep the *.import sidecar files next to each asset in version control: they hold the import settings.
+.godot/
+
+# Exports and OS clutter
+/build/
+/export/
+*.tmp
+.DS_Store
+Thumbs.db

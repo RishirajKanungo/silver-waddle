@@ -640,3 +640,7 @@ main { min-width: 0; }
 .feature-table td:first-child { min-width: 150px; }
 .mod-chip { display: inline-block; font-family: var(--pixel); font-size: 14px; padding: 0 6px; margin: 0 3px 3px 0; border: 1px solid var(--line); border-radius: 4px; }
 .game-page .prose h3 { margin-top: 24px; }
+
+/* light UI art and the font need a dark backdrop to be visible */
+.asset-card.dark .sheet-view, .asset-card.dark .anim-prev { background: #2b2d3a; }
+.asset-card.dark .anim-prev figcaption { color: #c9cbd6; }

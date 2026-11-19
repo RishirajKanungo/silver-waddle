@@ -87,9 +87,11 @@ function AssetCard({ id }: { id: string }) {
       </div>
     );
   if (!def) return <div className="asset-card missing">Unknown asset {id}</div>;
-  const anims = Object.keys(def.anims ?? {});
+  // tilesets always show the sheet (their anims, if any, are water/torch frames)
+  const anims = def.kind === 'tileset' ? [] : Object.keys(def.anims ?? {});
+  const dark = def.kind === 'ui' || def.kind === 'font';
   return (
-    <div className="asset-card">
+    <div className={'asset-card' + (dark ? ' dark' : '')}>
       <div className="asset-head">
         <b>{def.title}</b>
         <span className="asset-kind">
@@ -127,10 +129,10 @@ function AssetCard({ id }: { id: string }) {
   );
 }
 
-export function AssetsPanel({ ids, note }: { ids: string[]; note?: string }) {
+export function AssetsPanel({ ids, note, title = 'Assets for this lesson' }: { ids: string[]; note?: string; title?: string | null }) {
   return (
     <section className="assets">
-      <div className="cell-k">Assets for this lesson</div>
+      {title && <div className="cell-k">{title}</div>}
       {note && <Md text={note} className="assets-note" />}
       <div className="asset-grid">
         {ids.map((id) => (
