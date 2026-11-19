@@ -591,6 +591,23 @@ export function binUfunc(I: Interp, name: string, a: NDArray, b: NDArray): NDArr
       return zip2(I, a, b, Math.atan2, 'float64');
     case 'hypot':
       return zip2(I, a, b, Math.hypot, 'float64');
+    case 'logaddexp':
+      // numpy's npy_logaddexp: log(exp(x) + exp(y)) without overflow
+      return zip2(I, a, b, (x, y) => {
+        if (x === y) return x + Math.LN2;
+        const t = x - y;
+        if (t > 0) return x + log1pCR(expCR(-t));
+        if (t <= 0) return y + log1pCR(expCR(t));
+        return t;
+      }, 'float64');
+    case 'logaddexp2':
+      return zip2(I, a, b, (x, y) => {
+        if (x === y) return x + 1;
+        const t = x - y;
+        if (t > 0) return x + log1pCR(powCR(2, -t)) / Math.LN2;
+        if (t <= 0) return y + log1pCR(powCR(2, t)) / Math.LN2;
+        return t;
+      }, 'float64');
     case 'equal':
       return zip2(I, a, b, (x, y) => (x === y ? 1 : 0), 'bool');
     case 'not_equal':
@@ -2397,7 +2414,7 @@ const UNARY_NAMES = [
   'isnan', 'isinf', 'isfinite', 'signbit',
 ];
 const BINARY_NAMES = [
-  'add', 'subtract', 'multiply', 'divide', 'true_divide', 'floor_divide', 'remainder', 'mod', 'power', 'maximum', 'minimum', 'fmax', 'fmin', 'arctan2', 'hypot',
+  'add', 'subtract', 'multiply', 'divide', 'true_divide', 'floor_divide', 'remainder', 'mod', 'power', 'maximum', 'minimum', 'fmax', 'fmin', 'arctan2', 'hypot', 'logaddexp', 'logaddexp2',
   'equal', 'not_equal', 'less', 'less_equal', 'greater', 'greater_equal', 'logical_and', 'logical_or', 'logical_xor', 'bitwise_and', 'bitwise_or', 'bitwise_xor', 'left_shift', 'right_shift',
 ];
 

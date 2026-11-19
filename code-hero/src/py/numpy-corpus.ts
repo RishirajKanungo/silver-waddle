@@ -769,4 +769,12 @@ a = np.zeros((2, 2))
 print(type(a).__name__, type(a.sum()).__name__, type(a.dtype), np.ndarray, isinstance(a, np.ndarray), isinstance(1.0, np.ndarray))
 print(np.float64.__name__, np.array([1]).dtype.type, np.int64(1).dtype, a.dtype.type(3))
 `,
+  logaddexp: `
+import numpy as np
+a = np.array([-2.0, 0.0, 1.5, 100.0, -1000.0])
+b = np.array([1.0, 0.0, -3.25, 99.0, -999.5])
+print(np.logaddexp(a, b))
+print(np.logaddexp(a, 0.5), np.logaddexp(2.0, 3.0))
+print(np.logaddexp2(a, b))
+`,
 };
