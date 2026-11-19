@@ -815,6 +815,7 @@ export class Interp {
       }
       case 'cmp': {
         let left = yield* this.evalE(e.first, s);
+        if (e.ops.length === 1) return yield* this.compare(e.ops[0], left, yield* this.evalE(e.rest[0], s));
         for (let i = 0; i < e.ops.length; i++) {
           const right = yield* this.evalE(e.rest[i], s);
           const ok = yield* this.compare(e.ops[i], left, right);
@@ -1729,7 +1730,8 @@ export class Interp {
         break;
       case '*': {
         const seq = typeof a === 'string' || a instanceof PyList || a instanceof PyTuple ? a : typeof b === 'string' || b instanceof PyList || b instanceof PyTuple ? b : null;
-        const n = seq === a ? b : a;
+        const n0 = seq === a ? b : a;
+        const n = n0 instanceof NPScalar && n0.dtype !== 'float64' ? BigInt(n0.v) : n0;
         if (seq !== null && (typeof n === 'bigint' || typeof n === 'boolean')) {
           const k = Math.max(0, Number(toBig(n)));
           if (typeof seq === 'string') return seq.repeat(k);

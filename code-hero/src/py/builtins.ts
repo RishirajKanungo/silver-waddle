@@ -9,7 +9,7 @@ import {
   floatRepr, isNum, toBig, toNum, typeNameOf,
 } from './values';
 import { formatSpec } from './format';
-import { NDArray, NPScalar, npAbs, npClassOf, npCopy, npLen, npRound, npToNumber, registerNumpy } from './numpy';
+import { NDArray, NPScalar, npAbs, npClassOf, npCopy, npLen, npRound, npToNumber, npToPy, registerNumpy } from './numpy';
 
 type Kw = Map<string, PyVal>;
 
@@ -260,7 +260,7 @@ export function installBuiltins(I: Interp) {
   fn('callable', (a) => a[0] instanceof PyFunc || a[0] instanceof PyBuiltin || a[0] instanceof PyClass || a[0] instanceof PyBoundMethod || (a[0] instanceof PyInstance && !!a[0].cls.lookup('__call__')));
   fn('id', (a) => BigInt(a[0] !== null && typeof a[0] === 'object' ? 140000000000000 + a[0].id * 16 : Math.abs(hashPrim(a[0]))));
   fn('hash', (a) => {
-    const v = I.hashable(a[0]);
+    const v = I.hashable(a[0] instanceof NPScalar ? npToPy(a[0]) : a[0]);
     if (typeof v === 'bigint') return v;
     if (typeof v === 'boolean') return v ? 1n : 0n;
     if (typeof v === 'number' && Number.isInteger(v)) return BigInt(v);
