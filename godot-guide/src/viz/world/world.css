@@ -28,7 +28,7 @@
 .world-flow-link { stroke: var(--line); stroke-width: 2; }
 .world-flow-link.on { stroke: var(--accent); }
 .world-flow-label { font-size: 8.5px; fill: var(--fg); }
-.world-flow-label.sub { fill: var(--muted); }
+.world-flow-label.sub { fill: var(--muted); font-size: 7px; }
 @keyframes world-pulse { from { stroke-width: 4; } to { stroke-width: 2; } }
 .world-quest-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 10px; }
 @media (max-width: 560px) { .world-quest-grid { grid-template-columns: minmax(0, 1fr); } }

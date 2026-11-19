@@ -10,6 +10,8 @@ import { ScreenFit } from './screenfit';
 import { SteamPipe } from './steampipe';
 import { LaunchPlanner } from './launch';
 import { RevenueCalc } from './revenue';
+import { MilestoneGraph } from './milestones';
+import { TriageLab } from './triage';
 
 const oneOf = (name: string, v: unknown, ok: readonly unknown[]) => (v === undefined || ok.includes(v) ? null : `${name} must be one of ${ok.join(', ')}`);
 
@@ -67,5 +69,14 @@ export const VIZ: Record<string, VizDef> = {
     component: RevenueCalc,
     validate: (s) => (s.price === undefined || typeof s.price === 'number') && (s.units === undefined || typeof s.units === 'number') ? null : 'price and units must be numbers',
     doc: 'Steam revenue calculator: price, copies, regional pricing, discounts, VAT, refunds → adjusted gross, Valve share tiers (30/25/20%), Steam Direct fee recoup, net. price, units set the start.',
+  },
+  'ship.milestones': {
+    component: MilestoneGraph,
+    validate: (s) => oneOf('plan', s.plan, ['slice', 'roadmap']),
+    doc: "Milestone dependency graph: select a milestone to read its acceptance criteria, mark it done when its prerequisites are done; shows what is unblocked, weeks left and the critical path. plan: 'slice' (M1–M12) or 'roadmap' (after the slice).",
+  },
+  'ship.triage': {
+    component: TriageLab,
+    doc: 'Bug-bash triage: ten slice bug reports; choose severity and frequency, priority comes from a matrix; P1/P2 must be fixed before the release candidate; compare with a model triage.',
   },
 };

@@ -24,6 +24,8 @@ interface Edge {
   label: string;
   kind: 'signal' | 'call' | 'physics';
   toggle?: boolean;
+  /** sideways shift in px, for two edges between the same boxes */
+  off?: number;
 }
 interface Step {
   box: string;
@@ -41,15 +43,15 @@ function scenario(sc: Sc, on: Record<string, boolean>, hud: boolean, parentOk: b
   const steps: Step[] = [];
   if (sc === 'updown') {
     boxes = [
-      { id: 'player', label: parentOk ? 'Player' : 'TestRoom', sub: parentOk ? 'CharacterBody2D (parent)' : 'Node2D (no Player)', x: 30, y: 30 },
-      { id: 'sword', label: 'Sword', sub: 'Node2D (child)', x: 30, y: 170 },
-      { id: 'slime', label: 'Slime Hurtbox', sub: 'Area2D', x: 340, y: 170 },
-      { id: 'hud', label: 'ATB bar', sub: 'HUD', x: 340, y: 30 },
+      { id: 'player', label: parentOk ? 'Player' : 'TestRoom', sub: parentOk ? 'CharacterBody2D' : 'Node2D, no Player', x: 100, y: 30 },
+      { id: 'sword', label: 'Sword', sub: 'Node2D, child', x: 100, y: 170 },
+      { id: 'slime', label: 'Slime Hurtbox', sub: 'Area2D', x: 370, y: 170 },
+      { id: 'hud', label: 'ATB bar', sub: 'HUD', x: 370, y: 30 },
     ];
     edges = [
-      { id: 'down', from: 'player', to: 'sword', label: 'sword.swing()', kind: 'call' },
+      { id: 'down', from: 'player', to: 'sword', label: 'sword.swing()', kind: 'call', off: -24 },
       { id: 'hit', from: 'slime', to: 'sword', label: 'area_entered', kind: 'physics' },
-      { id: 'up', from: 'sword', to: 'player', label: on.getParent ? 'get_parent().on_hit()' : 'hit_landed signal', kind: on.getParent ? 'call' : 'signal' },
+      { id: 'up', from: 'sword', to: 'player', label: on.getParent ? 'get_parent().on_hit()' : 'hit_landed signal', kind: on.getParent ? 'call' : 'signal', off: 24 },
       { id: 'atb', from: 'player', to: 'hud', label: 'atb_changed signal', kind: 'signal' },
     ];
     if (parentOk) steps.push({ box: 'player', text: 'Player._physics_process: attack pressed, so it calls down: sword.swing(). A parent may hold references to its own children.', depth: 0 }, { box: 'sword', edge: 'down', text: 'Sword.swing() plays the slash and enables its hitbox.', depth: 1 });
@@ -82,9 +84,9 @@ func _on_area_entered(area: Area2D) -> void:
     return { boxes, edges, steps, code };
   }
   boxes = [
-    { id: 'kai', label: 'Kai', sub: 'CharacterBody2D', x: 10, y: 190 },
-    { id: 'coin', label: 'Coin', sub: 'Area2D', x: 10, y: 60 },
-    ...(sc === 'bus' ? [{ id: 'events', label: 'Events', sub: 'autoload: signal bus', x: 196, y: 112, auto: true }] : []),
+    { id: 'kai', label: 'Kai', sub: 'CharacterBody2D', x: 10, y: 206 },
+    { id: 'coin', label: 'Coin', sub: 'Area2D', x: 10, y: 112 },
+    ...(sc === 'bus' ? [{ id: 'events', label: 'Events', sub: 'autoload: signal bus', x: 214, y: 112, auto: true }] : []),
     ...(hud ? [{ id: 'label', label: 'CoinLabel', sub: 'Label in HUD', x: 382, y: 14 }] : []),
     { id: 'state', label: 'GameState', sub: 'autoload', x: 382, y: 112, auto: true },
     { id: 'audio', label: 'Audio', sub: 'autoload', x: 382, y: 210, auto: true },
@@ -92,10 +94,10 @@ func _on_area_entered(area: Area2D) -> void:
   edges = [{ id: 'enter', from: 'kai', to: 'coin', label: 'body_entered', kind: 'physics' }];
   steps.push({ box: 'coin', edge: 'enter', text: "Kai's body overlaps the coin (mask: player). Physics emits body_entered(Kai), and Coin._on_body_entered runs.", depth: 0 });
   if (sc === 'bus') {
-    edges.push({ id: 'emit', from: 'coin', to: 'events', label: 'coin_collected.emit(1)', kind: 'signal' });
-    edges.push({ id: 'c_state', from: 'events', to: 'state', label: '1st connection', kind: 'signal', toggle: true });
-    edges.push({ id: 'c_audio', from: 'events', to: 'audio', label: '2nd connection', kind: 'signal', toggle: true });
-    if (hud) edges.push({ id: 'c_label', from: 'events', to: 'label', label: '3rd connection', kind: 'signal', toggle: true });
+    edges.push({ id: 'emit', from: 'coin', to: 'events', label: 'emit(1)', kind: 'signal' });
+    edges.push({ id: 'c_state', from: 'events', to: 'state', label: '1st', kind: 'signal', toggle: true });
+    edges.push({ id: 'c_audio', from: 'events', to: 'audio', label: '2nd', kind: 'signal', toggle: true });
+    if (hud) edges.push({ id: 'c_label', from: 'events', to: 'label', label: '3rd', kind: 'signal', toggle: true });
     steps.push({ box: 'events', edge: 'emit', text: 'Coin calls Events.coin_collected.emit(1). emit() calls every connected handler right now, in the order they connected, before it returns.', depth: 1 });
     if (on.c_state) steps.push({ box: 'state', edge: 'c_state', text: 'GameState._on_coin_collected(1): gold += 1. Autoloads are ready before the main scene, so they connected first.', depth: 2, effect: 'gold' });
     if (on.c_audio) steps.push({ box: 'audio', edge: 'c_audio', text: 'Audio._on_coin_collected(1): plays sfx_coin.', depth: 2, effect: 'sound' });
@@ -112,7 +114,7 @@ func _on_body_entered(_body: Node2D) -> void:
 	Events.coin_collected.emit(value)
 	queue_free()`;
   } else {
-    if (hud) edges.push({ id: 'd_label', from: 'coin', to: 'label', label: 'get_node(...).add_coins()', kind: 'call' });
+    if (hud) edges.push({ id: 'd_label', from: 'coin', to: 'label', label: 'get_node().add_coins()', kind: 'call' });
     else edges.push({ id: 'd_label', from: 'coin', to: 'coin', label: '', kind: 'call' });
     edges.push({ id: 'd_state', from: 'coin', to: 'state', label: 'GameState.gold += 1', kind: 'call' });
     edges.push({ id: 'd_audio', from: 'coin', to: 'audio', label: 'Audio.play_sfx()', kind: 'call' });
@@ -160,8 +162,16 @@ export function SignalFlow({ spec }: { spec: VizSpec }) {
   const edgeEnds = (e: Edge): [number, number, number, number] | null => {
     const a = box(e.from), b = box(e.to);
     if (!a || !b || a === b) return null;
-    const [ax, ay] = center(a), [bx, by] = center(b);
-    // clip to box borders
+    let [ax, ay] = center(a), [bx, by] = center(b);
+    // shift sideways (in screen terms: vertical edges move left/right, others up/down)
+    const o = e.off ?? 0;
+    if (Math.abs(bx - ax) < Math.abs(by - ay)) {
+      ax += o;
+      bx += o;
+    } else {
+      ay += o;
+      by += o;
+    }
     const clip = (cx: number, cy: number, dx: number, dy: number) => {
       const tx = dx ? BW / 2 / Math.abs(dx) : Infinity, ty = dy ? BH / 2 / Math.abs(dy) : Infinity;
       const t = Math.min(tx, ty);
@@ -170,6 +180,13 @@ export function SignalFlow({ spec }: { spec: VizSpec }) {
     const [x1, y1] = clip(ax, ay, bx - ax, by - ay);
     const [x2, y2] = clip(bx, by, ax - bx, ay - by);
     return [x1, y1, x2, y2];
+  };
+  const labelAt = (x1: number, y1: number, x2: number, y2: number, off = 0): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } => {
+    const dx = x2 - x1, dy = y2 - y1;
+    if (Math.abs(dx) < Math.abs(dy) * 0.3) return { x: (x1 + x2) / 2 + (off < 0 ? -6 : 6), y: (y1 + y2) / 2 + 3, anchor: off < 0 ? 'end' : 'start' };
+    if (Math.abs(dy) < 4) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 6, anchor: 'middle' };
+    const t = 0.7;
+    return { x: x1 + dx * t - 4, y: y1 + dy * t + (dy < 0 ? -6 : 12), anchor: 'end' };
   };
   const toggles = edges.filter((e) => e.toggle);
   return (
@@ -214,7 +231,7 @@ export function SignalFlow({ spec }: { spec: VizSpec }) {
         {controls}
         <svg viewBox="0 0 520 260" className="godot-svg" role="img" aria-label="signal and call diagram">
           <defs>
-            <marker id="gsf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <marker id="gsf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
               <path d="M0,0 L10,5 L0,10 z" className="godot-arrowhead" />
             </marker>
           </defs>
@@ -225,12 +242,12 @@ export function SignalFlow({ spec }: { spec: VizSpec }) {
             const disc = e.toggle && !on[e.id];
             const hot = step?.edge === e.id;
             const cls = ['godot-edge', e.kind, hot ? 'hot' : '', disc ? 'off' : ''].join(' ');
-            const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+            const lab = labelAt(x1, y1, x2, y2, e.off);
             return (
               <g key={e.id} onClick={e.toggle ? () => setOn({ ...on, [e.id]: !on[e.id] }) : undefined} style={e.toggle ? { cursor: 'pointer' } : undefined}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} className={cls} markerEnd="url(#gsf-arrow)" />
                 {e.toggle && <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={14} />}
-                <text x={mx} y={my - 5} textAnchor="middle" className={'godot-svg-small godot-edge-label' + (hot ? ' hot' : '')}>
+                <text x={lab.x} y={lab.y} textAnchor={lab.anchor} className={'godot-svg-small godot-edge-label' + (hot ? ' hot' : '')}>
                   {disc ? 'disconnected' : e.label}
                 </text>
               </g>

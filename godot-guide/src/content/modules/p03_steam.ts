@@ -692,7 +692,7 @@ The US\$100 Steam Direct fee comes back once adjusted gross passes US\$1,000. In
           kind: 'viz',
           viz: { type: 'ship.revenue', price: 14.99, units: 5000 },
           task: md`Set the assumptions you believe for Shardbound. How many copies at US\$14.99 does it take to pay for one year of your time at a wage you choose? Then compare US\$9.99 and US\$19.99.`,
-          caption: md`The sliders are assumptions, not data about Steam. The Valve share and the fee are the standard terms. The "per copy" readout is the number to multiply by your copy estimate.`,
+          caption: md`The bars are a waterfall: each one is what is left after the step named under it. The effective share stays 30% for any result below US\$10M; drag copies to 1,000,000 at US\$19.99 to see it start to fall.`,
         },
         {
           kind: 'numeric',

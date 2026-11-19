@@ -54,6 +54,7 @@
 .ship-pill.p2 { border-color: var(--warn); color: var(--warn); }
 
 @media (max-width: 520px) {
+  .ship-bug { grid-template-columns: minmax(0, 1fr); }
   .ship-mixer { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .ship-bus input[type='range'] { height: 90px; }
   .ship-meter { height: 90px; }

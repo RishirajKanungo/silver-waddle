@@ -119,9 +119,9 @@ export function Timestep({ spec }: { spec: VizSpec }) {
       const px = wrap(s.x[i]);
       if (SHEETS[L.sheet]) drawFrame(ctx, L.sheet, animFrame(L.sheet, L.anim, s.vt), px, feet + L.dy, { anchored: true });
       else rect(ctx, px - 6, feet - 14, 12, 14, '#d8c35a');
-      rect(ctx, 0, y0, W, 11, 'rgba(0,0,0,0.55)');
-      text(ctx, L.label, 3, y0 + 8, '#ffffff');
-      text(ctx, `${s.speed[i].toFixed(0)} px/s`, W - 3, y0 + 8, '#ffd65a', 'right');
+      rect(ctx, 0, y0, W, 12, 'rgba(0,0,0,0.55)');
+      text(ctx, L.label, 3, y0 + 9, '#ffffff');
+      text(ctx, `${s.speed[i].toFixed(0)} px/s`, W - 3, y0 + 9, '#ffd65a', 'right');
     });
     // timeline strip: rendered frames above, physics ticks below
     const ty = H - 30;

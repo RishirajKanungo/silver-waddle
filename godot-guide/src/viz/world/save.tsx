@@ -189,6 +189,7 @@ export function SaveInspector({ spec }: { spec: VizSpec }) {
   const [mig, setMig] = useState<Mig>({ active: false, step: 0, data: {}, prev: {}, error: '', done: false });
   const changed = useRef(new Map<string, number>()).current; // path -> time it changed
   const lastVals = useRef(new Map<string, string>()).current;
+  const primed = useRef(false);
   const clock = useRef(0);
   const anim = useRef(0);
   const prompt = useRef('');
@@ -398,9 +399,10 @@ export function SaveInspector({ spec }: { spec: VizSpec }) {
     if (l.path.startsWith('/position') || l.path === '/playtime') continue;
     const old = lastVals.get(l.path);
     if (old !== undefined && old !== l.text) changed.set(l.path, now);
-    if (old === undefined && lastVals.size > 0) changed.set(l.path, now);
+    if (old === undefined && primed.current) changed.set(l.path, now);
     lastVals.set(l.path, l.text);
   }
+  if (!showingMig) primed.current = true;
   const lineClass = (l: Line) => {
     if (prevMig) {
       const was = prevMig.get(l.path);
@@ -481,8 +483,12 @@ export function SaveInspector({ spec }: { spec: VizSpec }) {
           {MIG_STEPS.map((s, i) => (
             <li key={i} className={i === mig.step - 1 ? 'on' : ''} style={{ opacity: i < mig.step ? 1 : 0.5 }}>
               {s.label}
-              <br />
-              <span className="world-note">{s.gd}</span>
+              {i === mig.step - 1 && (
+                <>
+                  <br />
+                  <span className="world-note">{s.gd}</span>
+                </>
+              )}
             </li>
           ))}
           <li className={mig.done ? 'on' : ''} style={{ opacity: mig.done ? 1 : 0.5 }}>

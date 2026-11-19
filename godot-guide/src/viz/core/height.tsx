@@ -162,7 +162,7 @@ export function HeightLab({ spec }: { spec: VizSpec }) {
     for (const [ax, ay] of arc) rect(ctx, ax - 0.5, ay - 12, 1, 1, 'rgba(255,255,255,0.8)');
     const above = s.z - s.floorZ;
     const k = scaleShadow ? 1 - 0.4 * Math.min(1, Math.max(0, above / jumpHeight)) : 1;
-    drawShadow(ctx, s.x, s.y - s.floorZ, 6 * k, 2.5 * k, 0.35 * (scaleShadow ? 0.6 + 0.4 * k : 1));
+    drawShadow(ctx, s.x, s.y - s.floorZ, 7 * k, 3 * k, 0.55 * (scaleShadow ? 0.6 + 0.4 * k : 1));
     const sp = Math.hypot(s.vx, s.vy);
     const anim = (s.z > s.floorZ + 0.5 ? 'jump_' + (s.facing === 'side' ? 'side' : 'down') : (sp > 5 ? 'walk_' : 'idle_') + s.facing);
     drawChar(ctx, 'hero', anim, s.t, s.x, s.y - s.z, { flip: s.flip });

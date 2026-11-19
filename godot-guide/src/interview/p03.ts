@@ -1,0 +1,58 @@
+import { md, type InterviewQ } from '../content/types';
+
+export const QUESTIONS: InterviewQ[] = [
+  {
+    id: 'p03-q1',
+    module: 'p03',
+    area: 'ship',
+    level: 1,
+    q: md`What does exporting a Godot game produce, and how do you make release builds reliable?`,
+    answer: md`An export is an export template, the engine compiled for one platform in a debug or release flavour, plus a \`.pck\` holding the project's scenes, scripts and assets; the executable and \`.pck\` ship together unless the pack is embedded. Templates must match the editor version exactly. Presets live in \`export_presets.cfg\`, which is committed so every machine builds the same way, while signing credentials stay in the ignored \`.godot/\` folder. For reliability, script the exports with \`godot --headless --export-release "<preset>" <path>\`, exclude tests and docs, keep debug-only tools behind \`OS.is_debug_build()\`, and test the result on a machine without Godot.`,
+    pitfalls: [md`Shipping a debug export, or only the executable without its \`.pck\`.`],
+  },
+  {
+    id: 'p03-q2',
+    module: 'p03',
+    area: 'ship',
+    level: 2,
+    q: md`How would you make a 320×180 pixel-art game look and play well on a Steam Deck?`,
+    answer: md`Render at 320×180 with stretch mode *viewport* and integer scaling: on the Deck's 1280×800 screen that is 4× (1280×720) with 40-pixel bars, every pixel identical. Check text physically: a 7-pixel letter at 4× is about 3.3 mm on a 7-inch screen, so draw important HUD numbers larger if they are hard to read at arm's length. Make every screen work with the controller and show controller glyphs, avoid free text entry or use the on-screen keyboard, pause on focus loss so suspend does not kill the player, and keep V-Sync on for battery. SteamOS is Linux: test both a native Linux export and the Windows build under Proton.`,
+    pitfalls: [md`Fractional scaling to fill the screen, which makes pixels uneven.`, md`Testing only on a desktop monitor.`],
+  },
+  {
+    id: 'p03-q3',
+    module: 'p03',
+    area: 'ship',
+    level: 2,
+    q: md`Explain Steam's depots, builds and branches, and how you ship an update safely.`,
+    answer: md`A depot is a set of files, usually one per operating system. Uploading with \`steamcmd\` and an app build VDF sends the depots' content and creates a numbered build. A branch points at a build: *default* is what players get, and beta or password-protected branches serve testers. Uploading does not release anything; a VDF's \`SetLive\` can move a non-default branch, and the default branch is set live on the Steamworks site. A safe update: export with the build script, upload to a beta branch, install it through the Steam client on Windows and a Deck, run through the critical path, then set that same build live on default. Rolling back means pointing default at the previous build.`,
+    pitfalls: [md`Believing a successful upload means players have the update.`],
+  },
+  {
+    id: 'p03-q4',
+    module: 'p03',
+    area: 'ship',
+    level: 2,
+    q: md`How do you integrate Steam features (achievements, cloud saves) without making the game depend on Steam?`,
+    answer: md`Wrap the GodotSteam singleton in one autoload. It checks \`Engine.has_singleton("Steam")\`, initialises, keeps an \`is_ready\` flag, runs callbacks each frame and exposes a few methods such as \`unlock_achievement\`, which do nothing when Steam is absent. Gameplay emits events on the global bus, and a small listener maps them to achievement names, so combat code never mentions Steam. Unlocking calls \`setAchievement\` and then \`storeStats\` so the change reaches Steam. For saves, Steam Auto-Cloud needs no code: give \`user://\` a predictable location with a custom user directory and configure the roots and file pattern in Steamworks. The same game then runs in the editor, in playtests and as a DRM-free build.`,
+    pitfalls: [md`Calling \`Steam.\` directly from gameplay scripts, which crashes builds without the extension.`],
+  },
+  {
+    id: 'p03-q5',
+    module: 'p03',
+    area: 'ship',
+    level: 1,
+    q: md`What is the Steam Direct fee and Valve's revenue share, and how do you estimate what a sale is worth to you?`,
+    answer: md`The Steam Direct fee is US\$100 per game, paid back once the game reaches US\$1,000 of adjusted gross revenue. Valve's standard share is 30% of a game's adjusted gross revenue up to US\$10M, 25% from US\$10M to US\$50M and 20% above, applied in bands. To estimate a sale, start from the price and take off, as your own assumptions, the average effect of regional pricing, discounts, sales tax or VAT included in prices, and refunds; then take 30%. A US\$14.99 game can end up well under US\$10 per copy before income tax, so revenue plans should use net per copy, not the list price.`,
+    pitfalls: [md`Applying a lower tier rate to all revenue instead of only the part in that band.`, md`Quoting sales or wishlist statistics you cannot verify.`],
+  },
+  {
+    id: 'p03-q6',
+    module: 'p03',
+    area: 'ship',
+    level: 2,
+    q: md`Plan the months before a Steam launch for a small team.`,
+    answer: md`Work backwards from the release date. Pay the Steam Direct fee early enough to meet the waiting period before release and to set up the app. Submit the store page for review and make it public as a Coming Soon page as soon as the trailer and screenshots represent the game, because it collects wishlists and Steam notifies wishlisters at launch. Pick a Steam Next Fest before the launch (it is for unreleased games), register by Valve's deadline, and have the demo, a separate linked app, ready weeks early to fix problems. Send the release build for review with margin. Check the current minimum Coming Soon period and other rules in the Steamworks documentation rather than relying on memory.`,
+    pitfalls: [md`Putting the store page up in launch week.`, md`Planning a festival demo after release.`],
+  },
+];

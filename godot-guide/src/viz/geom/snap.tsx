@@ -122,22 +122,25 @@ export function SnapLab({ spec }: { spec: VizSpec }) {
     () =>
       drawMode === 'world'
         ? `extends Camera2D
-## Follows a target but only ever sits on whole pixels, so the target and the
-## ground are rounded the same way and the target cannot wobble against it.
+## Follows a target with smoothing, but only ever sits on whole pixels, so the target and
+## the ground are rounded the same way and the target cannot wobble against the background.
 
 @export var target: Node2D
-@export var smoothing := 0.1  # fraction of the distance closed per frame
+@export_range(0.01, 1.0) var smoothing := 0.1  ## fraction of the distance closed per tick
 
 var _exact := Vector2.ZERO
 
 
 func _ready() -> void:
-	position_smoothing_enabled = false  # we smooth ourselves, then round
-	_exact = target.global_position
+	position_smoothing_enabled = false  # smooth here, then round
+	if target:
+		_exact = target.global_position
 
 
 func _physics_process(_delta: float) -> void:
-	_exact = _exact.lerp(target.global_position, smoothing)
+	if target == null:
+		return
+	_exact = _exact.lerp(target.global_position.round(), smoothing)
 	global_position = _exact.round()`
         : drawMode === 'screen'
           ? `extends CharacterBody2D

@@ -104,7 +104,8 @@ function FloatPanel() {
   let sum = 0;
   for (let i = 0; i < n; i++) sum += st.v;
   const target = n * st.v;
-  const targetSrc = k === 2 ? `${n} / 60.0` : (Math.round(target * 1e6) / 1e6).toString();
+  const tv = Math.round(target * 1e6) / 1e6;
+  const targetSrc = k === 2 ? `${n} / 60.0` : Number.isInteger(tv) ? tv.toFixed(1) : String(tv);
   const targetVal = k === 2 ? n / 60 : Math.round(target * 1e6) / 1e6;
   const eq = sum === targetVal;
   const approx = isEqualApprox(sum, targetVal);

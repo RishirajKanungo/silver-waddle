@@ -64,12 +64,12 @@ interface LogLine {
 const STAGES = ['world', 'set_flag', 'flag_changed', 'refresh', 'quest_updated', 'toast'] as const;
 type Stage = (typeof STAGES)[number];
 const STAGE_LABEL: Record<Stage, [string, string]> = {
-  world: ['world event', 'herb/slime/talk'],
+  world: ['world event', 'herb, slime, talk'],
   set_flag: ['GameState', '.set_flag()'],
   flag_changed: ['Events', '.flag_changed'],
-  refresh: ['GameState', '._refresh_quests'],
+  refresh: ['GameState', '_refresh_quests()'],
   quest_updated: ['Events', '.quest_updated'],
-  toast: ['quest toast', 'ui/quest_toast.gd'],
+  toast: ['quest toast', 'quest_toast.gd'],
 };
 
 export function QuestFigure(_: { spec: VizSpec }) {

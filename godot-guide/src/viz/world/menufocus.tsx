@@ -26,8 +26,8 @@ const COMMANDS = ['Items', 'Equip', 'Shards', 'Save', 'Resume'];
 const ITEMS: [string, string, string][] = [
   ['potion', 'Potion', 'Restores 50 HP.'],
   ['ether', 'Ether', 'Restores 20 MP.'],
-  ['revive_feather', 'Phoenix Down', 'Revives a fallen ally.'],
-  ['potion', 'Hi-Potion', 'Restores 150 HP.'],
+  ['revive_feather', 'Revival Feather', 'Revives a fallen ally.'],
+  ['potion', 'Greater Potion', 'Restores 150 HP.'],
   ['sword', 'Iron Sword', 'Kai. ATK +6.'],
   ['staff', 'Oak Staff', 'Lyra. MAG +5.'],
   ['mace', 'Flanged Mace', 'Bram. ATK +7.'],

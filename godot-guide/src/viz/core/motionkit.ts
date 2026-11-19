@@ -76,7 +76,7 @@ export function drawWall(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 }
 
 /** A soft elliptical shadow centred at (x, y). */
-export function drawShadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx = 6, ry = 2.5, alpha = 0.35) {
+export function drawShadow(ctx: CanvasRenderingContext2D, x: number, y: number, rx = 6, ry = 2.5, alpha = 0.45) {
   ctx.save();
   ctx.fillStyle = `rgba(20,16,36,${alpha})`;
   ctx.beginPath();

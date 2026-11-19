@@ -38,7 +38,7 @@
 .godot-marker { stroke: var(--c-v); stroke-width: 2; }
 .godot-marker-dot { fill: var(--c-v); }
 .godot-floatbar { display: flex; flex-wrap: wrap; gap: 3px; max-width: 520px; }
-.godot-floatbar span { width: 12px; height: 12px; border-radius: 2px; background: var(--fg); opacity: 0.75; }
+.godot-floatbar span { width: 16px; height: 16px; border-radius: 2px; background: var(--fg); opacity: 0.75; }
 .godot-floatbar span.off { background: var(--c-v); opacity: 1; }
 
 /* trees */
@@ -82,7 +82,7 @@ button.godot-tree-row:hover { background: var(--surface2); }
 .godot-wait { stroke: var(--c-v); stroke-width: 2; stroke-dasharray: 4 3; }
 .godot-playhead { stroke: var(--c-u); stroke-width: 1.5; }
 .godot-scrub { width: 100%; max-width: 520px; accent-color: var(--accent); align-self: center; }
-.godot-split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
+.godot-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 @media (max-width: 640px) { .godot-split { grid-template-columns: minmax(0, 1fr); } }
 .godot-listing, .godot-output { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.55; background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 0; overflow-x: auto; }
 .godot-listing div { padding: 0 8px; white-space: pre; border-left: 3px solid transparent; }

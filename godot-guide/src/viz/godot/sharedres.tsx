@@ -173,8 +173,8 @@ export function SharedRes({ spec }: { spec: VizSpec }) {
   const resBoxes = mode === 'split' ? [{ id: 1, hp: MAX }] : world.res.filter((r) => r.id === 1 ? mode === 'shared' : true).filter((r) => world.slimes.some((s) => s.res === r.id));
   const code = useMemo(() => CODE[mode], [mode]);
   const Wd = 520;
-  const slimeX = (k: number) => 20 + k * 120;
-  const resX = (k: number) => 20 + k * 120;
+  const slimeX = (k: number) => 8 + k * 126;
+  const resX = (k: number) => 8 + k * 126;
   return (
     <FigureLayout
       side={
@@ -209,7 +209,7 @@ export function SharedRes({ spec }: { spec: VizSpec }) {
         </div>
         <svg viewBox={`0 0 ${Wd} 150`} className="godot-svg" role="img" aria-label="which resource each slime points to">
           <defs>
-            <marker id="gsr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <marker id="gsr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
               <path d="M0,0 L10,5 L0,10 z" className="godot-arrowhead" />
             </marker>
           </defs>
@@ -217,20 +217,20 @@ export function SharedRes({ spec }: { spec: VizSpec }) {
             const ri = mode === 'split' ? 0 : resBoxes.findIndex((r) => r.id === s.res);
             return (
               <g key={s.name}>
-                <rect x={slimeX(k)} y={8} width={104} height={34} rx={4} className="godot-box" />
+                <rect x={slimeX(k)} y={8} width={116} height={34} rx={4} className="godot-box" />
                 <text x={slimeX(k) + 8} y={23} className="godot-box-title">
                   {s.name}
                 </text>
                 <text x={slimeX(k) + 8} y={36} className="godot-svg-small">
                   {mode === 'split' ? `hp = ${Math.max(0, s.hp)}` : 'node'}
                 </text>
-                {ri >= 0 && <line x1={slimeX(k) + 52} y1={42} x2={resX(ri) + 52} y2={86} className="godot-edge signal" markerEnd="url(#gsr-arrow)" />}
+                {ri >= 0 && <line x1={slimeX(k) + 58} y1={42} x2={resX(ri) + 58} y2={86} className="godot-edge signal" markerEnd="url(#gsr-arrow)" />}
               </g>
             );
           })}
           {resBoxes.map((r, k) => (
             <g key={r.id}>
-              <rect x={resX(k)} y={88} width={104} height={40} rx={4} className={'godot-box auto' + (world.slimes.filter((s) => s.res === r.id).length > 1 && mode !== 'split' ? ' err' : '')} />
+              <rect x={resX(k)} y={88} width={116} height={40} rx={4} className={'godot-box auto' + (world.slimes.filter((s) => s.res === r.id).length > 1 && mode !== 'split' ? ' err' : '')} />
               <text x={resX(k) + 8} y={103} className="godot-box-title">
                 {mode === 'split' ? 'EnemyData' : 'EnemyStats'} #{r.id}
               </text>
@@ -239,11 +239,11 @@ export function SharedRes({ spec }: { spec: VizSpec }) {
               </text>
             </g>
           ))}
-          <rect x={400} y={88} width={110} height={40} rx={4} className="godot-box file" />
-          <text x={408} y={103} className="godot-box-title">
+          <rect x={386} y={88} width={130} height={40} rx={4} className="godot-box file" />
+          <text x={394} y={103} className="godot-box-title">
             {mode === 'split' ? 'slime.tres' : 'slime_stats.tres'}
           </text>
-          <text x={408} y={117} className="godot-svg-small">
+          <text x={394} y={117} className="godot-svg-small">
             on disk: {mode === 'split' ? 'max_hp' : 'hp'} = {MAX}
           </text>
         </svg>
