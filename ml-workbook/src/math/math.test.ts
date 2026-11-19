@@ -83,6 +83,18 @@ describe('answer checking', () => {
     expect(checkAnswer({ kind: 'matrix', value: [[1, 2], [3, 4]] }, '1 2; 3 4').ok).toBe(true);
     expect(checkAnswer({ kind: 'set', value: [2, 5] }, '5, 2').ok).toBe(true);
     expect(checkAnswer({ kind: 'number', value: 0.1 }, '0.11').ok).toBe(false);
+    // small answers are checked relatively, not absolutely
+    expect(checkAnswer({ kind: 'number', value: 1.65e-4 }, '0.0001').ok).toBe(false);
+    expect(checkAnswer({ kind: 'number', value: 1.65e-4 }, '1.65e-4').ok).toBe(true);
+    // correctly rounded answers with ≥ 3 significant figures are accepted; 2 figures are not
+    expect(checkAnswer({ kind: 'number', value: Math.sqrt(26) }, '5.10').ok).toBe(true);
+    expect(checkAnswer({ kind: 'number', value: Math.sqrt(26) }, '5.099').ok).toBe(true);
+    expect(checkAnswer({ kind: 'number', value: Math.sqrt(26) }, '5.1').ok).toBe(false);
+    expect(checkAnswer({ kind: 'number', value: Math.sqrt(26) }, '5.11').ok).toBe(false);
+    expect(checkAnswer({ kind: 'vector', value: [0.37754, 0.62246] }, '0.378, 0.622').ok).toBe(true);
+    expect(checkAnswer({ kind: 'vector', value: [8, Math.sqrt(26), 4] }, '8, sqrt(26), 4').ok).toBe(true);
+    expect(checkAnswer({ kind: 'matrix', value: [[0.333333, 1], [2, 3]] }, '0.333 1; 2 3').ok).toBe(true);
+    expect(checkAnswer({ kind: 'number', value: 0 }, '0').ok).toBe(true);
     expect(checkAnswer({ kind: 'text', value: ['C'] }, ' c ').ok).toBe(true);
   });
   it('rng is deterministic', () => {

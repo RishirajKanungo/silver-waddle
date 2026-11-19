@@ -696,8 +696,8 @@ print(f"{grad:.2e}")`,
           code: `import numpy as np
 
 np.random.seed(0)
-n, depth = 256, 10
-x = np.random.randn(1000, n)
+n, depth = 128, 10
+x = np.random.randn(200, n)                  # 200 inputs are enough to measure the signal size
 
 for name, std in [("std 0.01", 0.01), ("Xavier", np.sqrt(1 / n)), ("He", np.sqrt(2 / n))]:
     h = x
@@ -706,7 +706,7 @@ for name, std in [("std 0.01", 0.01), ("Xavier", np.sqrt(1 / n)), ("He", np.sqrt
         h = np.maximum(0, h @ W.T)
     rms = np.sqrt(np.mean(h ** 2))       # the quantity He init keeps constant
     print(name, f"{rms:.3g}")`,
-          note: md`Ten ReLU layers of width 256. Theory predicts an RMS of about $1$ for He, $2^{-10/2} \approx 0.031$ for Xavier (energy halved per layer), and essentially 0 for $\sigma_w = 0.01$. A single random network fluctuates around these values. Try \`depth = 30\`.`,
+          note: md`Ten ReLU layers of width 128. Theory predicts an RMS of about $1$ for He, $2^{-10/2} \approx 0.031$ for Xavier (energy halved per layer), and essentially 0 for $\sigma_w = 0.01$. A single random network fluctuates around these values. Try \`depth = 30\`.`,
         },
         {
           kind: 'check',

@@ -116,8 +116,8 @@ export function MatrixEdit({ value, onChange, step = 0.5, label, min = -9, max =
   );
 }
 
-/** A readout value is rendered as TeX when it is a string starting with '$' that is not a money amount like "$0.0019". */
-const isTeXValue = (v: unknown) => typeof v === 'string' && v.startsWith('$') && !/^\$[\d.,]/.test(v);
+/** A readout value is TeX when it is a string starting with '$', unless it is a bare money amount like "$0.0019". */
+const isTeXValue = (v: unknown) => typeof v === 'string' && v.startsWith('$') && !/^\$[\d.,]+$/.test(v);
 
 /** Small key–value readout: rows of [TeX label, value]. Values starting with '$' are TeX (e.g. '$\\frac12'). */
 export function Readout({ rows, title }: { rows: [string, ReactNode][]; title?: string }) {

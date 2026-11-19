@@ -157,10 +157,18 @@ const stripOuter = (s: string) => {
   return s;
 };
 
-export function parseVector(src: string): number[] {
+function vectorTokens(src: string): string[] {
   const s = stripOuter(src);
-  const parts = s.includes(',') ? splitTop(s, ',') : splitTop(s, ' ');
-  return parts.map(evalExpr);
+  return s.includes(',') ? splitTop(s, ',') : splitTop(s, ' ');
+}
+export function parseVector(src: string): number[] {
+  return vectorTokens(src).map(evalExpr);
+}
+
+function matrixTokens(src: string): string[][] {
+  const s = src.trim();
+  if (/^\[\s*\[/.test(s)) return splitTop(s.slice(1, -1), ',').map(vectorTokens);
+  return splitTop(s, ';\n').map((row) => (row.includes(',') ? splitTop(row, ',') : splitTop(row, ' \t')));
 }
 
 export function parseMatrix(src: string): number[][] {
@@ -172,7 +180,23 @@ export function parseMatrix(src: string): number[][] {
   return splitTop(s, ';\n').map((row) => (row.includes(',') ? splitTop(row, ',') : splitTop(row, ' \t')).map(evalExpr));
 }
 
-const close = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));
+/** relative tolerance; values within 1e-12 of an exact zero also count */
+const close = (a: number, b: number, tol: number) => Math.abs(a - b) <= Math.max(tol * Math.abs(b), 1e-12);
+
+/** A plain decimal typed by hand (e.g. "0.378", "-2.49", "6.55e-4") is also accepted when it is the
+ *  correctly rounded value of the answer with at least 3 significant figures. */
+function roundedOk(token: string, b: number): boolean {
+  const t = token.trim();
+  const m = /^-?(\d*)\.?(\d*)(?:e([+-]?\d+))?$/i.exec(t);
+  if (!m || !/\d/.test(t)) return false;
+  const digits = (m[1] + m[2]).replace(/^0+/, '');
+  if (digits.length < 3) return false;
+  const a = Number(t);
+  const exp = m[3] ? Number(m[3]) : 0;
+  const quantum = 10 ** (exp - m[2].length); // place value of the last typed digit
+  return Math.abs(a - b) <= quantum / 2 + Math.abs(b) * 1e-12;
+}
+const tokenOk = (token: string, value: number, b: number, tol: number) => close(value, b, tol) || roundedOk(token, b);
 
 export interface CheckResult {
   ok: boolean;
@@ -189,16 +213,18 @@ export function checkAnswer(spec: AnswerSpec, input: string): CheckResult {
     }
     if (spec.kind === 'number') {
       const v = evalExpr(input);
-      return { ok: close(v, spec.value, tol), parsed: fmtNum(v) };
+      return { ok: tokenOk(input, v, spec.value, tol), parsed: fmtNum(v) };
     }
     if (spec.kind === 'vector' || spec.kind === 'set') {
-      const v = parseVector(input);
+      const toks = vectorTokens(input);
+      const v = toks.map(evalExpr);
       if (v.length !== spec.value.length) return { ok: false, parsed: `[${v.map(fmtNum).join(', ')}]`, error: `expected ${spec.value.length} entries, got ${v.length}` };
       if (spec.kind === 'set') {
-        const a = [...v].sort((x, y) => x - y), b = [...spec.value].sort((x, y) => x - y);
-        return { ok: a.every((x, i) => close(x, b[i], tol)), parsed: `{${v.map(fmtNum).join(', ')}}` };
+        const order = v.map((_, i) => i).sort((i, j) => v[i] - v[j]);
+        const b = [...spec.value].sort((x, y) => x - y);
+        return { ok: order.every((k, i) => tokenOk(toks[k], v[k], b[i], tol)), parsed: `{${v.map(fmtNum).join(', ')}}` };
       }
-      let ok = v.every((x, i) => close(x, spec.value[i], tol));
+      let ok = v.every((x, i) => tokenOk(toks[i], x, spec.value[i], tol));
       if (!ok && spec.upToScale) {
         // any nonzero multiple counts (eigenvectors, normal vectors, null-space directions)
         const i = spec.value.findIndex((x) => Math.abs(x) > 1e-12);
@@ -212,7 +238,8 @@ export function checkAnswer(spec: AnswerSpec, input: string): CheckResult {
     const m = parseMatrix(input);
     if (m.length !== spec.value.length || m.some((r, i) => r.length !== spec.value[i].length))
       return { ok: false, parsed: m.map((r) => r.map(fmtNum).join(' ')).join('; '), error: `expected a ${spec.value.length}×${spec.value[0].length} matrix, got ${m.length}×${m[0]?.length ?? 0}` };
-    return { ok: m.every((r, i) => r.every((x, j) => close(x, spec.value[i][j], tol))), parsed: m.map((r) => r.map(fmtNum).join(' ')).join('; ') };
+    const mt = matrixTokens(input);
+    return { ok: m.every((r, i) => r.every((x, j) => tokenOk(mt[i]?.[j] ?? '', x, spec.value[i][j], tol))), parsed: m.map((r) => r.map(fmtNum).join(' ')).join('; ') };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

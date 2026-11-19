@@ -95,7 +95,7 @@ Retention comes from doing (predict, compute, derive) and from spaced review, so
 - `{kind:'set', value}` (unordered, e.g. eigenvalues)
 - `{kind:'text', value:[accepted spellings]}`
 
-The default tolerance is relative 1e-4. Learners can type `3/4`, `sqrt(2)/2`, `pi/4`, `e^-1`, `[1, 2]`, `[[1,2],[3,4]]` or `1 2; 3 4`.
+The default tolerance is relative 1e-4; a hand-rounded answer with at least 3 significant figures is also accepted (`0.378` for 0.37754). Learners can type `3/4`, `sqrt(2)/2`, `pi/4`, `e^-1`, `[1, 2]`, `[[1,2],[3,4]]` or `1 2; 3 4`.
 
 **Predict cells.** The correct option, with backticks stripped, must equal the program's **entire** printed output, trimmed. Print exactly one thing in a predict cell. No distractor may equal the output.
 
