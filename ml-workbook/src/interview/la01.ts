@@ -1,0 +1,52 @@
+import { md, type InterviewQ } from '../content/types';
+
+export const QUESTIONS: InterviewQ[] = [
+  {
+    id: 'la01-q1',
+    module: 'la01',
+    area: 'math',
+    level: 1,
+    q: md`What does the dot product of two vectors measure, and what does a dot product of zero mean?`,
+    answer: md`Algebraically it is $\sum_i u_iv_i$. Geometrically it equals $\lVert\bu\rVert\lVert\bv\rVert\cos\theta$: the length of one vector times the signed length of the other's projection onto it. So it measures alignment, scaled by both magnitudes. Positive means an acute angle, negative an obtuse one, and zero means the vectors are orthogonal: neither has any component along the other.`,
+    pitfalls: [md`Saying it is "how similar the vectors are" without mentioning that magnitude matters.`, md`Confusing it with the element-wise product, which returns a vector.`],
+    followups: [md`How do you compute the angle between two 1000-dimensional vectors?`, md`Why is the dot product the core operation of a linear layer?`],
+  },
+  {
+    id: 'la01-q2',
+    module: 'la01',
+    area: 'ml-breadth',
+    level: 1,
+    q: md`Cosine similarity or dot product for comparing embeddings: what is the difference and when would you choose each?`,
+    answer: md`Cosine similarity is the dot product divided by both norms, so it depends only on direction and lies in $[-1, 1]$. The raw dot product also grows with magnitude. Use cosine when magnitude is noise, for example sentence embeddings whose length reflects token count or frequency. Use the dot product when magnitude carries signal, such as popularity in a recommender trained with a dot-product objective, and in general match the scoring the embedding model was trained with. If embeddings are L2-normalized the two are identical, and so is the ranking by Euclidean distance.`,
+    pitfalls: [md`Claiming cosine is always better.`, md`Ignoring the training objective of the embedding model.`],
+    followups: [md`Show that for unit vectors $\lVert\bu-\bv\rVert^2 = 2 - 2\cos\theta$.`, md`How do approximate nearest-neighbour indexes handle maximum inner product search?`],
+  },
+  {
+    id: 'la01-q3',
+    module: 'la01',
+    area: 'ml-breadth',
+    level: 2,
+    q: md`Why do you standardize features before k-NN, k-means or an SVM, but not before a random forest?`,
+    answer: md`k-NN, k-means and SVMs depend on distances or dot products, which sum contributions across features. A feature with a large numeric range (income in dollars) then dominates one with a small range (age in years) purely because of units. Standardizing to zero mean and unit variance gives each feature comparable influence. Trees split one feature at a time on a threshold. A monotone rescaling preserves the order of values, so the same partitions are available and the model is unchanged. Gradient-trained models also benefit from scaling, for a different reason: the optimization is better conditioned.`,
+    pitfalls: [md`Fitting the scaler on the full dataset instead of the training split only (leakage).`],
+    followups: [md`Standardization or min–max scaling: when would you pick each?`, md`What happens to k-means if one feature has 1000× the variance of the others?`],
+  },
+  {
+    id: 'la01-q4',
+    module: 'la01',
+    area: 'ml-depth',
+    level: 2,
+    q: md`Explain geometrically why L1 regularization yields sparse weights and L2 does not.`,
+    answer: md`Penalized training is equivalent to minimizing the loss subject to $\lVert\bw\rVert \le t$. The L2 region is a round ball, so the lowest loss contour usually touches it at a point where no coordinate is zero: weights shrink but stay nonzero. The L1 region is a diamond (a cross-polytope) with corners on the axes. Elliptical loss contours most often first touch it at a corner or edge, where some coordinates are exactly 0. In optimization terms, the L1 subgradient at 0 is the interval $[-\lambda, \lambda]$, which can absorb a small gradient and keep the weight at exactly zero.`,
+    followups: [md`What is elastic net and why use it with correlated features?`, md`Does L2 regularization ever set a weight exactly to zero?`],
+  },
+  {
+    id: 'la01-q5',
+    module: 'la01',
+    area: 'llm',
+    level: 2,
+    q: md`Your vector database stores L2-normalized embeddings. Does it matter whether you search by cosine similarity, inner product or Euclidean distance?`,
+    answer: md`For unit vectors it does not change the ranking. Cosine similarity equals the inner product, and $\lVert\bu-\bv\rVert^2 = 2 - 2\,\bu\cdot\bv$ is a decreasing function of it, so all three return the same nearest neighbours. The choice matters in two cases: when vectors are not normalized, where the dot product favours large norms; and in index configuration, where a library may support only one metric and you normalize to make it equivalent to the one you want.`,
+    followups: [md`Your embeddings are not normalized and the index only supports L2 distance. How do you do maximum inner product search?`],
+  },
+];
