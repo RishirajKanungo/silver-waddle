@@ -488,6 +488,8 @@ export interface Menu {
   target_cursor: number;
   message: string;
   message_t: number;
+  /** seconds tactical has been held since the menu opened (-1 once released) */
+  hold: number;
 }
 
 export interface Tuning {
@@ -1552,7 +1554,7 @@ export class BattleSim {
     const who = this.party.current_index;
     const entries = this.entriesFor(who);
     const first = entries.findIndex((e) => e.enabled && !e.ability.limit);
-    this.menu = { level: 'command', who, cursor: Math.max(0, first >= 0 ? first : entries.findIndex((e) => !e.ability.limit)), entries, targets: [], target_cursor: 0, message: '', message_t: 0 };
+    this.menu = { level: 'command', who, cursor: Math.max(0, first >= 0 ? first : entries.findIndex((e) => !e.ability.limit)), entries, targets: [], target_cursor: 0, message: '', message_t: 0, hold: 0 };
     this.sounds.push('sfx_menu_select');
   }
   closeMenu() {
@@ -1584,6 +1586,15 @@ export class BattleSim {
       this.closeMenu();
       this.sounds.push('sfx_menu_back');
       return;
+    }
+    // tactical works as a toggle (tap) or held (release after holding closes the menu)
+    if (m.hold >= 0) {
+      if (input.isDown('tactical')) m.hold += dt;
+      else if (m.hold > 0.4) {
+        this.closeMenu();
+        this.sounds.push('sfx_menu_back');
+        return;
+      } else m.hold = -1;
     }
     if (m.level === 'command') {
       const n = m.entries.length;

@@ -10,7 +10,7 @@ import { Slider, SegControl, Toggle, FigureLayout, Btn } from '../kit';
 import { CodeBlock } from '../../ui/GameCells';
 import { CHARS, CHAR_IDS, DEFAULT_LOADOUT, ENEMIES, ELEMENTS, ELEMENT_LABEL, STATUSES, StatBlock, applyEnemy, blockFor, calculate, type CharId, type Element, type EnemyId } from './model';
 
-type TargetType = 'SINGLE_ENEMY' | 'ALL_ENEMIES' | 'SINGLE_ALLY' | 'PARTY' | 'SELF';
+type TargetType = 'SELF' | 'ONE_ENEMY' | 'ALL_ENEMIES' | 'ONE_ALLY' | 'ALL_ALLIES';
 type AreaType = 'NONE' | 'CIRCLE' | 'LINE' | 'CONE';
 type Effect =
   | { type: 'damage'; power: number; element: Element; isMagic: boolean }
@@ -29,13 +29,14 @@ interface Ability {
   mp: number;
   effects: Effect[];
 }
-const TARGETS: TargetType[] = ['SINGLE_ENEMY', 'ALL_ENEMIES', 'SINGLE_ALLY', 'PARTY', 'SELF'];
+// g04's AbilityData.Target order: the .tres stores the index
+const TARGETS: TargetType[] = ['SELF', 'ONE_ENEMY', 'ALL_ENEMIES', 'ONE_ALLY', 'ALL_ALLIES'];
 const AREAS: AreaType[] = ['NONE', 'CIRCLE', 'LINE', 'CONE'];
 const PRESETS: Record<string, { caster: CharId; a: Ability }> = {
-  'Fire Wave': { caster: 'lyra', a: { name: 'Fire Wave', target: 'SINGLE_ENEMY', area: 'CIRCLE', areaSize: 32, coneDeg: 30, castTime: 0.6, interruptible: true, atb: 1, mp: 8, effects: [{ type: 'damage', power: 1.5, element: 'FIRE', isMagic: true }, { type: 'pressure', amount: 6 }] } },
-  'Venom Fang': { caster: 'kai', a: { name: 'Venom Fang', target: 'SINGLE_ENEMY', area: 'NONE', areaSize: 32, coneDeg: 30, castTime: 0, interruptible: true, atb: 1, mp: 0, effects: [{ type: 'damage', power: 1.2, element: 'NONE', isMagic: false }, { type: 'status', status: 'poison', chance: 0.6 }, { type: 'pressure', amount: 8 }] } },
-  'Healing Light': { caster: 'lyra', a: { name: 'Healing Light', target: 'PARTY', area: 'NONE', areaSize: 32, coneDeg: 30, castTime: 1, interruptible: true, atb: 2, mp: 18, effects: [{ type: 'heal', flat: 0, power: 1.2 }] } },
-  'Shield Bash': { caster: 'bram', a: { name: 'Shield Bash', target: 'SINGLE_ENEMY', area: 'CONE', areaSize: 56, coneDeg: 35, castTime: 0.2, interruptible: false, atb: 1, mp: 0, effects: [{ type: 'damage', power: 1.2, element: 'NONE', isMagic: false }, { type: 'pressure', amount: 30 }] } },
+  'Fire Wave': { caster: 'lyra', a: { name: 'Fire Wave', target: 'ONE_ENEMY', area: 'CIRCLE', areaSize: 32, coneDeg: 30, castTime: 0.6, interruptible: true, atb: 1, mp: 8, effects: [{ type: 'damage', power: 1.5, element: 'FIRE', isMagic: true }, { type: 'pressure', amount: 6 }] } },
+  'Venom Fang': { caster: 'kai', a: { name: 'Venom Fang', target: 'ONE_ENEMY', area: 'NONE', areaSize: 32, coneDeg: 30, castTime: 0, interruptible: true, atb: 1, mp: 0, effects: [{ type: 'damage', power: 1.2, element: 'NONE', isMagic: false }, { type: 'status', status: 'poison', chance: 0.6 }, { type: 'pressure', amount: 8 }] } },
+  'Healing Light': { caster: 'lyra', a: { name: 'Healing Light', target: 'ALL_ALLIES', area: 'NONE', areaSize: 32, coneDeg: 30, castTime: 1, interruptible: true, atb: 2, mp: 18, effects: [{ type: 'heal', flat: 0, power: 1.2 }] } },
+  'Shield Bash': { caster: 'bram', a: { name: 'Shield Bash', target: 'ONE_ENEMY', area: 'CONE', areaSize: 56, coneDeg: 35, castTime: 0.2, interruptible: false, atb: 1, mp: 0, effects: [{ type: 'damage', power: 1.2, element: 'NONE', isMagic: false }, { type: 'pressure', amount: 30 }] } },
 };
 const LINE_HALF_WIDTH = 10;
 const W = 320, H = 180;
@@ -97,11 +98,11 @@ function areaContains(a: Ability, ox: number, oy: number, ax: number, ay: number
 }
 function collectTargets(a: Ability, caster: Unit, chosen: Unit, candidates: Unit[]) {
   if (a.target === 'SELF') return [caster];
-  if (a.target === 'ALL_ENEMIES' || a.target === 'PARTY') return candidates.filter((u) => u.hp > 0 || a.target === 'PARTY');
+  if (a.target === 'ALL_ENEMIES' || a.target === 'ALL_ALLIES') return candidates.filter((u) => u.hp > 0 || a.target === 'ALL_ALLIES');
   if (a.area === 'NONE') return [chosen];
   return candidates.filter((u) => areaContains(a, caster.x, caster.y - 8, chosen.x, chosen.y - 8, u.x, u.y - 8));
 }
-const targetsAllies = (t: TargetType) => t === 'SINGLE_ALLY' || t === 'PARTY' || t === 'SELF';
+const targetsAllies = (t: TargetType) => t === 'ONE_ALLY' || t === 'ALL_ALLIES' || t === 'SELF';
 
 // -------------------------------------------------------------------------------------- .tres
 const fmtF = (x: number) => (Number.isInteger(x) ? x.toFixed(1) : String(x));
@@ -154,7 +155,7 @@ function toTres(a: Ability) {
   const res: string[] = ['script = ExtResource("1_abil")', `id = &"${a.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}"`, `display_name = "${a.name}"`];
   if (a.atb !== 1) res.push(`atb_cost = ${a.atb}`);
   if (a.mp) res.push(`mp_cost = ${a.mp}`);
-  if (a.target !== 'SINGLE_ENEMY') res.push(`target = ${TARGETS.indexOf(a.target)}`);
+  if (a.target !== 'ONE_ENEMY') res.push(`target = ${TARGETS.indexOf(a.target)}`);
   if (a.area !== 'NONE') res.push(`area = ${AREAS.indexOf(a.area)}`);
   if (a.areaSize !== 32) res.push(`area_size = ${fmtF(a.areaSize)}`);
   if (a.area === 'CONE' && a.coneDeg !== 30) res.push(`cone_degrees = ${fmtF(a.coneDeg)}`);
@@ -330,7 +331,7 @@ export function AbilityComposer({ spec }: { spec: VizSpec }) {
     ctx.save();
     ctx.globalAlpha = cast.current ? 0.5 : 0.25;
     ctx.fillStyle = targetsAllies(ability.target) ? '#7be07b' : '#f8925e';
-    if (ability.target === 'SINGLE_ENEMY' || ability.target === 'SINGLE_ALLY') {
+    if (ability.target === 'ONE_ENEMY' || ability.target === 'ONE_ALLY') {
       ctx.beginPath();
       if (ability.area === 'CIRCLE') ctx.arc(ax, ay, ability.areaSize, 0, Math.PI * 2);
       else if (ability.area === 'LINE') {

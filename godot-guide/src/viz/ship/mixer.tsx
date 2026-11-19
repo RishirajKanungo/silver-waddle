@@ -48,6 +48,7 @@ export function MixerLab({ spec }: { spec: VizSpec }) {
   const voices = useRef<Voice[]>([]).current;
   const nextSteal = useRef(0);
   const pitches = useRef<number[]>([]);
+  const stolenCount = useRef(0);
   const clock = useRef(0);
   const players = useRef<{ cur: MusicPlayer; prev: MusicPlayer; fade: { t0: number; dur: number; from: number; curve: 'amp' | 'db' } | null }>({
     cur: { id: null, gain: null, src: null, level: 0 },
@@ -111,6 +112,7 @@ export function MixerLab({ spec }: { spec: VizSpec }) {
       v = voices[nextSteal.current % poolSize];
       nextSteal.current = (nextSteal.current + 1) % poolSize;
       stolen = true;
+      stolenCount.current++;
       try {
         v.src?.stop();
       } catch {
@@ -284,6 +286,7 @@ func set_bus_volume(bus: StringName, linear: float) -> void:
           <Readout
             rows={[
               ['\\text{voices busy}', `${busy} / ${poolSize}`],
+              ['\\text{voices stolen}', String(stolenCount.current)],
               ['\\text{last pitch\\_scale}', pitches.current.length ? pitches.current.map((p) => p.toFixed(2)).join(' ') : '-'],
               ['\\text{semitones}', pitches.current.length ? (12 * Math.log2(pitches.current[0])).toFixed(2) : '-'],
             ]}
@@ -320,7 +323,7 @@ func set_bus_volume(bus: StringName, linear: float) -> void:
             const on = v && v.end > now;
             const frac = on ? (v.end - now) / (v.end - v.start) : 0;
             return (
-              <div key={i} className={'ship-voice' + (on && v.stolen ? ' stolen' : '')} title={on ? `${v.label} at pitch ${v.pitch.toFixed(2)}` : 'idle'}>
+              <div key={i} className={'ship-voice' + (v && v.stolen && now - v.start < 0.6 ? ' stolen' : '')} title={on ? `${v.label} at pitch ${v.pitch.toFixed(2)}` : 'idle'}>
                 <i style={{ width: `${frac * 100}%` }} />
                 <span>{on ? v.label : i}</span>
               </div>

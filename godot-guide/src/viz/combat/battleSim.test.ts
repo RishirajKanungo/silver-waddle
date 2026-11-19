@@ -139,6 +139,20 @@ describe('BattleSim, atb mode, scripted keys', () => {
     const big = sim.floaters.slice(before).find((f) => f.big);
     expect(big).toBeTruthy();
   });
+  it('tactical works by tapping and by holding', () => {
+    const sim = new BattleSim('atb');
+    const inp = new FakeInput();
+    inp.press('tactical');
+    inp.down.add('tactical');
+    step(sim, inp, 40); // held for about 0.67 s
+    expect(sim.menu).not.toBeNull();
+    inp.down.delete('tactical');
+    step(sim, inp);
+    expect(sim.menu).toBeNull(); // released after a hold: closes
+    inp.press('tactical');
+    step(sim, inp, 30); // a tap: stays open
+    expect(sim.menu).not.toBeNull();
+  });
   it('a disabled entry shows a message instead of queueing', () => {
     const sim = new BattleSim('atb');
     const inp = new FakeInput();

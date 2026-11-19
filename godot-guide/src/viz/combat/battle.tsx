@@ -5,7 +5,7 @@
 //   mode 'stagger' Kai against a skeleton: pressure, stagger and the damage multiplier
 //   mode 'party'   Kai, Lyra and Bram: switching, commanding allies, synergy
 //   mode 'full'    the whole loop with a golem wave and limit breaks
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { VizSpec } from '../../content/types';
 import { GameCanvas, Keys, rect, playSound, SHEETS, sheetCanvas, type Input, type GameApi } from '../game';
 import { Slider, Readout, FigureLayout, Btn } from '../kit';
@@ -362,6 +362,10 @@ export function BattleFigure({ spec }: { spec: VizSpec }) {
   const focused = useRef(false);
   const frame = useRef(0);
   const [, setTick] = useState(0);
+  // a handle for automated play-testing (Playwright drives the figure through real key presses)
+  useEffect(() => {
+    if (wrap.current) (wrap.current as HTMLDivElement & { __sim?: BattleSim }).__sim = sim;
+  }, [sim]);
 
   const applyTuning = (t: Tuning) => {
     setTuning(t);

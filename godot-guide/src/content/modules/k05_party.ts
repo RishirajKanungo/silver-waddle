@@ -770,7 +770,7 @@ export const MODULE: Module = {
           kind: 'text',
           md: md`In FF7 Remake you can press a button mid-fight and you are Tifa; the character you left keeps fighting without missing a beat. For that to work, the switch must take one frame, keep every character's state (HP, ATB, the animation they are in), and hand the old character to an AI that behaves sensibly from the very next tick.
 
-c05 already did the hard part. A \`Character\` never reads \`Input\`; it reads its \`intent\`, which a controller child writes. Switching characters is therefore not "turn Kai into an NPC and Lyra into a player". It is: **move the PlayerController node from Kai to Lyra, and switch Kai's AI on.** Nothing inside either character changes.`,
+c05 already did the hard part. A \`Character\` never reads \`Input\`; it reads its \`intent\`, which a controller child writes. Switching characters therefore comes down to one move: **take the PlayerController node from Kai, give it to Lyra, and switch Kai's AI on.** Nothing inside either character changes.`,
         },
         {
           kind: 'callout',

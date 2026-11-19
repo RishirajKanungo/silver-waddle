@@ -1233,7 +1233,7 @@ func _make_hit(`,
           kind: 'text',
           md: md`In older RPGs, touching an enemy faded the screen to a separate battle scene with its own background. FF7 Remake, CrossCode and Sea of Stars fight where you stand: enemies notice you, the music changes, an invisible boundary appears, and when the last enemy falls you simply walk on.
 
-For Shardbound that means a battle is not a scene; it is a **state of the field**. Something must notice that the party walked in, close the area, wake the enemies, watch for the end, and undo all of it afterwards. That something is an \`Encounter\` node placed in the level.`,
+For Shardbound that means a battle is a **state of the field**, inside the level scene. Something must notice that the party walked in, close the area, wake the enemies, watch for the end, and undo all of it afterwards. That something is an \`Encounter\` node placed in the level.`,
         },
         {
           kind: 'callout',

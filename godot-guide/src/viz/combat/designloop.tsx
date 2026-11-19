@@ -7,8 +7,8 @@ import './combat.css';
 
 type NodeId = 'hits' | 'guard' | 'atb' | 'abil' | 'press' | 'meter' | 'stag' | 'mult' | 'hp';
 const NODES: Record<NodeId, { x: number; y: number; label: string; sub: string }> = {
-  hits: { x: 80, y: 60, label: 'Basic attacks', sub: 'real time' },
-  guard: { x: 80, y: 150, label: 'Guard / dodge', sub: 'real time' },
+  hits: { x: 80, y: 160, label: 'Basic attacks', sub: 'real time' },
+  guard: { x: 80, y: 60, label: 'Guard / dodge', sub: 'real time' },
   atb: { x: 250, y: 60, label: 'ATB gauge', sub: '2 segments' },
   abil: { x: 430, y: 60, label: 'Abilities', sub: 'spells, items' },
   press: { x: 430, y: 160, label: 'Pressure', sub: 'gain ×2' },
@@ -117,7 +117,7 @@ export function DesignLoop({ spec }: { spec: VizSpec }) {
           return (
             <g key={k} opacity={on ? 1 : 0.35}>
               <path d={path} fill="none" stroke={on ? 'var(--accent)' : 'var(--muted)'} strokeWidth={on ? 2.6 : 1.4} markerEnd="url(#dl-arrow)" />
-              <text x={mx + (a === 'hits' && b === 'hp' ? -26 : 0)} y={my - 4} fontSize={10.5} textAnchor="middle" style={{ fill: on ? 'var(--accent)' : 'var(--muted)', fontWeight: on ? 700 : 400 }}>
+              <text x={mx + (a === 'hits' && b === 'hp' ? -30 : a === 'hits' && b === 'atb' ? -18 : 0)} y={my - 4} fontSize={10.5} textAnchor="middle" style={{ fill: on ? 'var(--accent)' : 'var(--muted)', fontWeight: on ? 700 : 400 }}>
                 {label}
               </text>
             </g>

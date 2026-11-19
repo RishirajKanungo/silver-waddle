@@ -225,7 +225,7 @@ export const MODULE: Module = {
 
 Both moments are good. The first is about **decisions**: reading the situation and choosing well. The second is about **execution**: timing, movement, the feel of the controls. Every combat system decides how much of each it wants, and the main tool it uses is **time**: when the world runs, when it stops, and who has to wait for whom.
 
-Shardbound wants both moments in one fight, the way *Final Fantasy VII Remake* does. This lesson maps the options, so that the hybrid is a choice with known costs rather than a copy.`,
+Shardbound wants both moments in one fight, the way *Final Fantasy VII Remake* does. This lesson maps the options, so that choosing the hybrid is a decision with known costs.`,
         },
         {
           kind: 'callout',
@@ -348,7 +348,7 @@ A party makes the action column hard. In an action game, three characters means 
         {
           kind: 'explain',
           prompt: md`A friend says: "Just pause the game when the menu opens, like wait mode. Slow motion is a gimmick." Give the strongest argument for slowing to about 0.1 instead, and one situation where a full pause is the better choice.`,
-          model: md`Slow motion keeps the fight alive while you decide: projectiles still creep forward, a windup still finishes eventually, and you can see the consequence of waiting. That keeps a thread of tension and makes the menu part of the fight rather than an interruption. With a 0.6 s telegraph and $s = 0.1$ the player still has 6 real seconds, which is plenty for a deliberate choice. A full pause is better as an accessibility option (players who need more time, or who play with one hand), and for menus that are not decisions in the fight, such as the pause menu or the equipment screen.`,
+          model: md`Slow motion keeps the fight alive while you decide: projectiles still creep forward, a windup still finishes eventually, and you can see the consequence of waiting. That keeps a thread of tension and keeps the menu inside the fight. With a 0.6 s telegraph and $s = 0.1$ the player still has 6 real seconds, which is plenty for a deliberate choice. A full pause is better as an accessibility option (players who need more time, or who play with one hand), and for menus that are not decisions in the fight, such as the pause menu or the equipment screen.`,
         },
       ],
       cards: [
@@ -385,7 +385,7 @@ This lesson reads three games that way, then traces the loop Shardbound takes fr
 - **Abilities, spells and items cost ATB.** Spells also cost MP. Opening the command menu slows time to a crawl, so choosing feels calm even mid-fight.
 - **Pressure, then stagger.** Enemies have a stagger gauge. Normal hits fill it slowly. Certain conditions (a particular attack, an elemental weakness, interrupting a move) put an enemy in a *pressured* state, during which the gauge fills much faster. A full gauge leaves the enemy **staggered**: helpless for a few seconds and taking increased damage, shown as a percentage that some abilities can raise further.
 - **Switching characters.** You can take direct control of any party member at any time; the others act on their own and use abilities when you command them.
-- **Limit breaks.** A separate gauge, filled mostly by taking damage, unlocks a character's strongest move.`,
+- **Limit breaks.** A separate gauge, filled mostly by taking damage, makes a character's strongest move available.`,
         },
         {
           kind: 'viz',
@@ -522,7 +522,7 @@ All three answer one question: *how do you make choices matter without stopping 
       cells: [
         {
           kind: 'text',
-          md: md`"Combat should feel fast but tactical" is a wish, not a goal: nobody can tell whether a change met it. A goal is something you can check. Shardbound's combat goals:
+          md: md`"Combat should feel fast but tactical" is a wish: nobody can tell whether a change met it. A goal is something you can check. Shardbound's combat goals:
 
 1. **Pace.** A normal fight lasts 30 to 90 seconds. Shorter, and the tactical layer never comes into play; longer, and fights against weak enemies drag.
 2. **A decision every few seconds.** The controlled character fills one ATB segment in 3 to 5 seconds of normal play, so the menu comes up a few times per fight without being constant.
@@ -576,7 +576,7 @@ No rule says "Bram is the tank". His numbers make guarding profitable (25 ATB fo
         {
           kind: 'viz',
           viz: { type: 'combat.atbpace', preset: 'kai' },
-          task: md`With the Kai preset against a 1500 HP enemy, the fight is too long. First find an \`atb_per_hit\` that gives 3 to 5 s per segment at 50% uptime. Then lower the uptime to 30% (a player under pressure) and check that the fight stays under 90 s. Finally switch to the Bram preset and see how his stagger numbers change the curve.`,
+          task: md`With the Kai preset against a 1500 HP enemy, the fight lands at about 81 s, but a segment takes 5.4 s. First find an \`atb_per_hit\` that gives 3 to 5 s per segment at 50% uptime. Then lower the uptime to 30% (a player under pressure): the fight leaves the 30 to 90 s band. Find one other change that brings it back, and decide whether it keeps the menu important. Finally switch to the Bram preset and see how his stagger numbers change the curve.`,
           caption: md`The plot simulates one character against one enemy: the ATB curve saw-tooths each time a segment is spent on an ability, the stagger meter climbs (faster with each ability) and drains during the stagger, and HP drops faster during each stagger. The model ignores decay and pressure, so real fights stagger a little later.`,
         },
         {

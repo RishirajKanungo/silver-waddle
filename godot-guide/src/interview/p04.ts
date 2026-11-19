@@ -1,0 +1,57 @@
+import { md, type InterviewQ } from '../content/types';
+
+export const QUESTIONS: InterviewQ[] = [
+  {
+    id: 'p04-q1',
+    module: 'p04',
+    area: 'ship',
+    level: 2,
+    q: md`How do you decide what goes into a vertical slice?`,
+    answer: md`Start from the design pillars: the slice exists to prove the game's core, so every item must serve one, and anything that serves none waits. Include every system at final quality but the minimum content that exercises it: for Shardbound, one town, one field and a short dungeon with height puzzles, the whole party, four enemy types and a boss, a handful of abilities and shards, a shop, a quest and save points. Size it with pacing (minutes per area divided by the length of an encounter plus the walk to it) and with measured costs. Write an ordered cut list at the same time, so that when a milestone runs late the decision is already made.`,
+    pitfalls: [md`A slice with all systems but placeholder art and sound, which cannot answer "is it fun" or serve as a demo.`],
+  },
+  {
+    id: 'p04-q2',
+    module: 'p04',
+    area: 'ship',
+    level: 2,
+    q: md`What is a critical path, and how does it matter for a solo developer?`,
+    answer: md`Each milestone's earliest finish is its duration plus the latest finish among its prerequisites; the longest such chain is the critical path, and milestones off it have slack. With several people working in parallel, the critical path sets the finish date and slack shows where delays are harmless. Alone, nothing runs in parallel, so the finish is the total of all estimates and every slip moves the date. The critical path still sets the order: do the work everything else waits on first, and give off-path work to collaborators such as an artist or composer, where slack is real.`,
+    pitfalls: [md`Quoting the critical path as the schedule when one person does everything.`],
+  },
+  {
+    id: 'p04-q3',
+    module: 'p04',
+    area: 'ship',
+    level: 1,
+    q: md`How do you know a milestone is done?`,
+    answer: md`Its acceptance criteria pass in a release build of the full game, not in a test scene: statements a playtester can check, such as "Kai fights three slimes; each hit flashes, plays a sound and knocks back; no frame is over 16.7 ms". Closing is a routine: run the automated tests, export and play from the title screen with a gamepad, check each criterion, merge and tag, then record actual against estimated time and update the forecast. Anything beyond the criteria goes in the backlog, which stops milestones from growing.`,
+  },
+  {
+    id: 'p04-q4',
+    module: 'p04',
+    area: 'ship',
+    level: 2,
+    q: md`Your estimates keep running over. How do you forecast the rest of the project?`,
+    answer: md`Use your own history: divide the total actual time of finished milestones by their total estimate, and multiply the remaining estimates by that ratio. The ratio captures the consistent ways you underestimate (integration, tuning, bugs) without having to name them. Recompute it after every milestone, so the forecast improves as evidence grows. When the forecast passes the deadline, apply the pre-decided cuts immediately; cutting early is cheap, while working longer and cutting late wastes the work already done on what gets cut.`,
+    pitfalls: [md`Averaging per-milestone ratios, which overweights small milestones.`, md`Keeping the old estimates and hoping to catch up.`],
+  },
+  {
+    id: 'p04-q5',
+    module: 'p04',
+    area: 'ship',
+    level: 2,
+    q: md`How do you run a bug bash and decide that a build is ready to ship?`,
+    answer: md`Freeze features, export a release build and install it the way players will (a beta branch). Work through a checklist that covers every system and the combinations normal play misses: interruptions, edges of the map, timing between inputs, saves at odd moments, controllers disconnecting, other frame rates and the Deck. Record video and use a capture key so reports have steps, expected and actual behaviour, frequency and evidence. Triage by severity and frequency into priorities. The build is a release candidate when no P1 or P2 bugs are open, tests pass and it has been played through on every target platform. Each logic fix gets a regression test.`,
+    pitfalls: [md`Treating "happened once" as rare: across thousands of players, $1 - (1-p)^n$ makes it common.`],
+  },
+  {
+    id: 'p04-q6',
+    module: 'p04',
+    area: 'ship',
+    level: 3,
+    q: md`You have a working slice. What is your plan to a full release?`,
+    answer: md`Playtest the slice with fresh players and fix what they struggle with. Then put up the store page as Coming Soon and build a Next Fest demo from the slice, because both only need the slice and gain value with time. Content production follows (regions, bosses, story), estimated from the slice's measured costs times the estimate ratio, as a dependency graph with its own cut list. Then come balance across the whole game, localisation if planned, a beta branch with Deck checks, and launch. Throughout, keep \`main\` playable and close milestones with the same routine. After launch, patches go to beta before default.`,
+    followups: [md`What would you cut first, and what never?`],
+  },
+];

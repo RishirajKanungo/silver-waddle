@@ -4,11 +4,10 @@ import { md, gd, type Module } from '../types';
 const RPG_ENUMS = gd`
 class_name Rpg
 extends RefCounted
-## Enums shared by the RPG systems. Never instanced: write Rpg.Stat.ATTACK, Rpg.Element.FIRE.
+## The stats every combatant has. Never instanced: write Rpg.Stat.ATTACK.
+## Elements are g04's Element.Type; equipment slots are EquipmentData.Slot.
 
 enum Stat { MAX_HP, MAX_MP, ATTACK, MAGIC, DEFENCE, MAGIC_DEFENCE, SPEED, CRIT, DAMAGE_TAKEN }
-enum Element { NONE, FIRE, ICE, LIGHTNING }
-enum Slot { WEAPON, ARMOUR, ACCESSORY }
 `;
 
 const CHARACTER_STATS = gd`
@@ -18,6 +17,7 @@ extends Resource
 ## per level. Everything else (max HP, attack, ...) is derived from these four.
 
 @export var display_name := ""
+@export var portrait: Texture2D
 
 @export_group("Level 1")
 @export var strength := 10
@@ -90,7 +90,7 @@ var _base := PackedFloat64Array()
 var _final := PackedInt32Array()
 var _base_element := PackedFloat64Array()
 var _mods := {}       # source (Object) -> Array[StatModifier]
-var _overrides := {}  # source (Object) -> { Rpg.Element: multiplier }
+var _overrides := {}  # source (Object) -> { Element.Type: multiplier }
 var _dirty := true
 var _signal_queued := false
 
@@ -98,7 +98,7 @@ var _signal_queued := false
 func _init() -> void:
     _base.resize(Rpg.Stat.size())
     _final.resize(Rpg.Stat.size())
-    _base_element.resize(Rpg.Element.size())
+    _base_element.resize(Element.Type.size())
     _base_element.fill(1.0)
 
 
@@ -107,7 +107,7 @@ func set_base(stat: Rpg.Stat, value: float) -> void:
     _mark_dirty()
 
 
-func set_base_element(element: Rpg.Element, multiplier: float) -> void:
+func set_base_element(element: Element.Type, multiplier: float) -> void:
     _base_element[element] = multiplier
     _mark_dirty()
 
@@ -133,7 +133,7 @@ func get_stat(stat: Rpg.Stat) -> int:
 
 ## 2 weak, 1 neutral, 0.5 resist, 0 immune, -1 absorb. An override from gear replaces the
 ## base value; if several sources override one element, the most protective (lowest) wins.
-func element_multiplier(element: Rpg.Element) -> float:
+func element_multiplier(element: Element.Type) -> float:
     var result := _base_element[element]
     var overridden := false
     for overrides: Dictionary in _overrides.values():
@@ -178,7 +178,7 @@ const STATS_TEST = gd`
 extends Node
 ## Run this scene with F6 and read the Output panel.
 
-const KAI := preload("res://resources/characters/kai.tres")
+const KAI := preload("res://resources/characters/kai_stats.tres")
 
 
 func _ready() -> void:
@@ -251,18 +251,24 @@ func _redraw() -> void:
 
 const EQUIPMENT_DATA = gd`
 class_name EquipmentData
-extends Resource
-## A weapon, armour or accessory. This is a shared definition: never store which shards sit in
-## it here, because every character using this .tres would see the same shards. Loadout does that.
+extends ItemData
+## A weapon, armour or accessory (g04): an item, so bags and shops hold it, plus what it does
+## when worn. r01 replaces g04's fixed bonus fields with a list of modifiers and adds links.
+## A shared definition: never store which shards sit in it here, because every character
+## using this .tres would see the same shards. Loadout does that.
 
-@export var display_name := ""
-@export var slot: Rpg.Slot = Rpg.Slot.WEAPON
+enum Slot { WEAPON, ARMOR, ACCESSORY }
+
+@export var slot: Slot = Slot.WEAPON
 ## Empty means anyone can equip it. Weapons name their owner: &"kai", &"lyra" or &"bram".
 @export var owner_id: StringName = &""
 @export var modifiers: Array[StatModifier] = []
-@export_range(0, 6) var socket_count := 0
+@export_group("Shards")
+@export_range(0, 4) var shard_sockets := 1
 ## Sockets 0+1, 2+3, ... are linked, for this many pairs.
-@export_range(0, 3) var linked_pairs := 0
+@export_range(0, 2) var linked_pairs := 0
+## Abilities this weapon teaches through use (r02).
+@export var teaches: Array[AbilityData] = []
 
 
 ## The socket linked to this one, or -1.
@@ -275,32 +281,36 @@ func linked_partner(socket: int) -> int:
 const SHARD_DATA = gd`
 class_name ShardData
 extends Resource
-## A socketable gem. Shared definition; the AP a particular shard has earned is in ShardInstance.
+## A socketable gem (g04). Shared definition; the AP a particular shard has earned is in
+## ShardInstance. r01 replaces g04's single granted_ability and passive_stat with one ability
+## per level and a list of modifiers.
 
-enum Kind { SPELL, ABILITY, PASSIVE, SUPPORT }
+enum Kind { ABILITY, SPELL, PASSIVE, SUPPORT }
 
 @export var display_name := ""
+@export_multiline var description := ""
 @export var kind: Kind = Kind.SPELL
+@export var color := Color(0.9, 0.3, 0.3)
 ## Spell shards: their element. A linked Elemental shard copies it.
-@export var element: Rpg.Element = Rpg.Element.NONE
+@export var element: Element.Type = Element.Type.NONE
 ## SPELL and ABILITY: what the shard grants at level 1, 2, 3 (index 0 is level 1).
 @export var abilities: Array[AbilityData] = []
 ## PASSIVE: applied once per shard level, so level 3 applies them three times.
 @export var modifiers: Array[StatModifier] = []
-## Total AP to reach level 2, level 3, ... The maximum level is ap_thresholds.size() + 1.
-@export var ap_thresholds: Array[int] = [200, 600]
+## Total AP to reach level 2, level 3, ... The maximum level is ap_to_level.size() + 1.
+@export var ap_to_level: Array[int] = [200, 600]
 
 
 func level_for_ap(ap: int) -> int:
     var level := 1
-    for threshold in ap_thresholds:
+    for threshold in ap_to_level:
         if ap >= threshold:
             level += 1
     return level
 
 
 func max_level() -> int:
-    return ap_thresholds.size() + 1
+    return ap_to_level.size() + 1
 `;
 
 const SHARD_INSTANCE = gd`
@@ -348,21 +358,21 @@ const ELEMENTAL_ARMOUR: Array[float] = [0.5, 0.0, -1.0]
 func equip(item: EquipmentData) -> Array[ShardInstance]:
     var spare: Array[ShardInstance] = []
     match item.slot:
-        Rpg.Slot.WEAPON:
+        EquipmentData.Slot.WEAPON:
             weapon = item
-            spare = _fit(weapon_shards, item.socket_count)
-        Rpg.Slot.ARMOUR:
+            spare = _fit(weapon_shards, item.shard_sockets)
+        EquipmentData.Slot.ARMOR:
             armour = item
-            spare = _fit(armour_shards, item.socket_count)
-        Rpg.Slot.ACCESSORY:
+            spare = _fit(armour_shards, item.shard_sockets)
+        EquipmentData.Slot.ACCESSORY:
             accessory = item
     emit_changed()
     return spare
 
 
 ## Places a shard in a socket (null empties it) and returns what was there before.
-func socket(slot: Rpg.Slot, index: int, shard: ShardInstance) -> ShardInstance:
-    var shards := weapon_shards if slot == Rpg.Slot.WEAPON else armour_shards
+func socket(slot: EquipmentData.Slot, index: int, shard: ShardInstance) -> ShardInstance:
+    var shards := weapon_shards if slot == EquipmentData.Slot.WEAPON else armour_shards
     var previous := shards[index]
     shards[index] = shard
     emit_changed()
@@ -383,18 +393,18 @@ func apply_to(block: StatBlock) -> void:
     var overrides := {}
     for i in armour_shards.size():
         var element := _linked_element(armour, armour_shards, i)
-        if element != Rpg.Element.NONE:
+        if element != Element.Type.NONE:
             overrides[element] = ELEMENTAL_ARMOUR[armour_shards[i].level() - 1]
     block.set_source(self, mods, overrides)
 
 
 ## The element basic attacks take on: Elemental linked with an element shard in the weapon.
-func weapon_element() -> Rpg.Element:
+func weapon_element() -> Element.Type:
     for i in weapon_shards.size():
         var element := _linked_element(weapon, weapon_shards, i)
-        if element != Rpg.Element.NONE:
+        if element != Element.Type.NONE:
             return element
-    return Rpg.Element.NONE
+    return Element.Type.NONE
 
 
 ## Spells and abilities from socketed shards, lower levels included.
@@ -408,12 +418,12 @@ func granted_abilities() -> Array[AbilityData]:
 
 
 ## If socket i holds a support shard, the element of the shard linked to it.
-func _linked_element(item: EquipmentData, shards: Array[ShardInstance], i: int) -> Rpg.Element:
+func _linked_element(item: EquipmentData, shards: Array[ShardInstance], i: int) -> Element.Type:
     if item == null or shards[i] == null or shards[i].data.kind != ShardData.Kind.SUPPORT:
-        return Rpg.Element.NONE
+        return Element.Type.NONE
     var partner := item.linked_partner(i)
     if partner < 0 or partner >= shards.size() or shards[partner] == null:
-        return Rpg.Element.NONE
+        return Element.Type.NONE
     return shards[partner].data.element
 
 
@@ -463,7 +473,7 @@ const LOADOUT_TEST = gd`
 extends Node
 ## Equip and socket from code. Run with F6; Enter swaps Kai's weapon, Escape toggles Elemental.
 
-const KAI := preload("res://resources/characters/kai.tres")
+const KAI := preload("res://resources/characters/kai_stats.tres")
 const IRON_SWORD := preload("res://resources/equipment/iron_sword.tres")
 const RUNE_BLADE := preload("res://resources/equipment/rune_blade.tres")
 const CHAIN_MAIL := preload("res://resources/equipment/chain_mail.tres")
@@ -484,7 +494,7 @@ func _ready() -> void:
     var fire := ShardInstance.new()
     fire.data = FIRE
     elemental.data = ELEMENTAL
-    kai.loadout.socket(Rpg.Slot.ARMOUR, 0, fire)
+    kai.loadout.socket(EquipmentData.Slot.ARMOR, 0, fire)
     kai.stats.changed.connect(_print_stats)
 
 
@@ -494,7 +504,7 @@ func _unhandled_input(event: InputEvent) -> void:
         spare_shards.append_array(kai.loadout.equip(next))
     elif event.is_action_pressed("ui_cancel"):
         var has_it := kai.loadout.armour_shards[1] != null
-        kai.loadout.socket(Rpg.Slot.ARMOUR, 1, null if has_it else elemental)
+        kai.loadout.socket(EquipmentData.Slot.ARMOR, 1, null if has_it else elemental)
 
 
 func _print_stats() -> void:
@@ -504,7 +514,7 @@ func _print_stats() -> void:
         kai.stats.get_stat(Rpg.Stat.MAGIC),
         kai.stats.get_stat(Rpg.Stat.DEFENCE),
         kai.stats.get_stat(Rpg.Stat.SPEED),
-        kai.stats.element_multiplier(Rpg.Element.FIRE),
+        kai.stats.element_multiplier(Element.Type.FIRE),
         spare_shards.size(),
     ])
 `;
@@ -529,7 +539,7 @@ class Result:
     var steps := PackedFloat64Array()
 
 
-static func calculate(attacker: StatBlock, target: StatBlock, power: float, element: Rpg.Element,
+static func calculate(attacker: StatBlock, target: StatBlock, power: float, element: Element.Type,
         is_magic: bool, stagger_multiplier := 1.0, crit_roll := 1.0) -> Result:
     var r := Result.new()
 
@@ -574,29 +584,35 @@ static func calculate(attacker: StatBlock, target: StatBlock, power: float, elem
 const ENEMY_DATA = gd`
 class_name EnemyData
 extends Resource
-## One kind of enemy (slime.tres, golem.tres). Its numbers are final: enemies do not level up
-## or wear gear. k02 adds the AI fields to this same resource.
+## One kind of enemy (g04): everything that is the same for every slime or every golem.
+## r01 adds magic stats, a full element table and AP; k02 adds the AI fields; r03 replaces
+## drop_item with a loot table. Enemies do not level up or wear gear.
 
 @export var display_name := ""
 
 @export_group("Stats")
-@export var max_hp := 100
-@export var attack := 10
-@export var magic := 0
-@export var defence := 0
-@export var magic_defence := 0
-@export var speed := 10
+@export_range(1, 9999) var max_hp := 10
+@export_range(0, 999) var attack := 5
+@export_range(0, 999) var magic := 0
+@export_range(0, 999) var defense := 0
+@export_range(0, 999) var magic_defense := 0
+## Walking speed in pixels per second (movement, g04). Battle speed for ATB is separate.
+@export_range(0.0, 300.0, 5.0) var speed := 40.0
+@export_range(0, 99) var battle_speed := 10
+## Stagger gauge size; k04 fills it.
+@export var stagger_max := 100
 
 @export_group("Elements")
-@export var weak_to: Array[Rpg.Element] = []
-@export var resists: Array[Rpg.Element] = []
-@export var immune_to: Array[Rpg.Element] = []
-@export var absorbs: Array[Rpg.Element] = []
+## Takes double damage from this element (g04's field).
+@export var weakness: Element.Type = Element.Type.NONE
+@export var resists: Array[Element.Type] = []
+@export var immune_to: Array[Element.Type] = []
+@export var absorbs: Array[Element.Type] = []
 
 @export_group("Rewards")
-@export var xp := 10
-@export var ap := 2
-@export var gold := 5
+@export var xp_reward := 0
+@export var gold_reward := 0
+@export var ap_reward := 0
 
 
 func apply_to(block: StatBlock) -> void:
@@ -604,23 +620,23 @@ func apply_to(block: StatBlock) -> void:
     block.set_base(Rpg.Stat.MAX_MP, 0)
     block.set_base(Rpg.Stat.ATTACK, attack)
     block.set_base(Rpg.Stat.MAGIC, magic)
-    block.set_base(Rpg.Stat.DEFENCE, defence)
-    block.set_base(Rpg.Stat.MAGIC_DEFENCE, magic_defence)
-    block.set_base(Rpg.Stat.SPEED, speed)
+    block.set_base(Rpg.Stat.DEFENCE, defense)
+    block.set_base(Rpg.Stat.MAGIC_DEFENCE, magic_defense)
+    block.set_base(Rpg.Stat.SPEED, battle_speed)
     block.set_base(Rpg.Stat.CRIT, 5)
     block.set_base(Rpg.Stat.DAMAGE_TAKEN, 100)
-    for element: Rpg.Element in Rpg.Element.values():
+    for element: Element.Type in Element.Type.values():
         block.set_base_element(element, element_multiplier(element))
 
 
-func element_multiplier(element: Rpg.Element) -> float:
-    if element == Rpg.Element.NONE:
+func element_multiplier(element: Element.Type) -> float:
+    if element == Element.Type.NONE:
         return 1.0
     if element in absorbs:
         return -1.0
     if element in immune_to:
         return 0.0
-    if element in weak_to:
+    if element == weakness:
         return 2.0
     if element in resists:
         return 0.5
@@ -628,7 +644,8 @@ func element_multiplier(element: Rpg.Element) -> float:
 `;
 
 const HIT_DATA_ADD = gd`
-# scripts/resources/hit_data.gd (from c05): add these two fields.
+# scripts/resources/hit_data.gd: extending the HitData from g04 with two fields.
+# The _init(amount, element, source) signature stays as it is.
 ## How strong the attack is, as a multiple of the attacker's attack or magic.
 var power := 1.0
 ## Magic hits use magic and magic defence instead of attack and defence.
@@ -673,10 +690,10 @@ func use_stats(block: StatBlock) -> void:
 
 
 ## The one entry point for damage from attacks, spells and abilities.
-func receive_attack(attacker: Combatant, power: float, element: Rpg.Element, is_magic: bool) -> DamageCalc.Result:
+func receive_attack(attacker: Combatant, power: float, element: Element.Type, is_magic: bool) -> DamageCalc.Result:
     var result := DamageCalc.calculate(attacker.stats, stats, power, element, is_magic, stagger_multiplier, randf())
     if result.amount >= 0:
-        health.take_damage(result.amount)
+        health.damage(result.amount)
     else:
         health.heal(-result.amount)
     damaged.emit(result)
@@ -691,7 +708,7 @@ func _on_hurt(hit: HitData) -> void:
     var attacker := hit.source.get_node_or_null("Combatant") as Combatant
     if attacker == null:
         # Spikes and other hazards have no stats: keep c05's fixed amount.
-        health.take_damage(hit.amount)
+        health.damage(hit.amount)
         return
     receive_attack(attacker, hit.power, hit.element, hit.is_magic)
     add_pressure(hit.stagger)
@@ -798,7 +815,7 @@ func _physics_process(delta: float) -> void:
 func _tick(active: Active) -> void:
     var max_hp := combatant.stats.get_stat(Rpg.Stat.MAX_HP)
     var amount := maxi(1, roundi(max_hp * active.data.tick_fraction))
-    combatant.health.take_damage(amount)
+    combatant.health.damage(amount)
     ticked.emit(active.data, amount)
 `;
 
@@ -812,17 +829,17 @@ var _failures := 0
 func _ready() -> void:
     var kai := _block(52, 20, 16, 10)          # Kai, level 5, Iron Sword
     var skeleton := _block(28, 0, 20, 6)
-    skeleton.set_base_element(Rpg.Element.FIRE, 2.0)
-    skeleton.set_base_element(Rpg.Element.LIGHTNING, -1.0)
-    skeleton.set_base_element(Rpg.Element.ICE, 0.0)
-    var none := Rpg.Element.NONE
+    skeleton.set_base_element(Element.Type.FIRE, 2.0)
+    skeleton.set_base_element(Element.Type.LIGHTNING, -1.0)
+    skeleton.set_base_element(Element.Type.ICE, 0.0)
+    var none := Element.Type.NONE
 
     _check("plain hit", DamageCalc.calculate(kai, skeleton, 2.0, none, false).amount, 87)
-    _check("weakness", DamageCalc.calculate(kai, skeleton, 2.0, Rpg.Element.FIRE, false).amount, 173)
+    _check("weakness", DamageCalc.calculate(kai, skeleton, 2.0, Element.Type.FIRE, false).amount, 173)
     _check("staggered", DamageCalc.calculate(kai, skeleton, 2.0, none, false, 1.6).amount, 139)
     _check("crit", DamageCalc.calculate(kai, skeleton, 2.0, none, false, 1.0, 0.0).amount, 130)
-    _check("absorb", DamageCalc.calculate(kai, skeleton, 2.0, Rpg.Element.LIGHTNING, false).amount, -87)
-    _check("immune", DamageCalc.calculate(kai, skeleton, 2.0, Rpg.Element.ICE, false).amount, 0)
+    _check("absorb", DamageCalc.calculate(kai, skeleton, 2.0, Element.Type.LIGHTNING, false).amount, -87)
+    _check("immune", DamageCalc.calculate(kai, skeleton, 2.0, Element.Type.ICE, false).amount, 0)
     _check("at least 1", DamageCalc.calculate(kai, skeleton, 0.01, none, false).amount, 1)
     skeleton.set_base(Rpg.Stat.DAMAGE_TAKEN, 50)  # Barrier
     _check("barrier", DamageCalc.calculate(kai, skeleton, 2.0, none, false).amount, 43)
@@ -965,10 +982,10 @@ The three party members differ only in these numbers:
           kind: 'callout',
           tone: 'godot',
           title: 'Enums in a holder class',
-          md: md`GDScript enums live inside a script. Putting the shared ones in a small \`class_name Rpg\` script lets every other script write \`Rpg.Stat.ATTACK\`. Enums beat strings like \`"attack"\` for two reasons: an exported \`Rpg.Stat\` shows a drop-down in the Inspector, and a typo such as \`Rpg.Stat.ATACK\` is an error when the script loads instead of a silent zero at runtime. Their values are 0, 1, 2, …, so they double as indices into arrays, which the StatBlock uses.`,
+          md: md`GDScript enums live inside a script. g04 put the elements in \`class_name Element\` (\`Element.Type.FIRE\`); the stats get the same treatment in a small \`class_name Rpg\` script, so every other script writes \`Rpg.Stat.ATTACK\`. Enums beat strings like \`"attack"\` for two reasons: an exported \`Rpg.Stat\` shows a drop-down in the Inspector, and a typo such as \`Rpg.Stat.ATACK\` is an error when the script loads instead of a silent zero at runtime. Their values are 0, 1, 2, …, so they double as indices into arrays, which the StatBlock uses.`,
         },
         { kind: 'code', file: 'scripts/rpg/rpg.gd', code: RPG_ENUMS, note: md`\`DAMAGE_TAKEN\` is a percentage (normally 100) that Barrier lowers to 50; it is a stat so that status effects can change it with the same modifier system as everything else. Menus hide it.` },
-        { kind: 'code', file: 'scripts/resources/character_stats.gd', code: CHARACTER_STATS, note: md`\`@export_group\` only groups the Inspector; the variables are ordinary. \`floori\` rounds down and returns an \`int\`. The formulas live in one function, so changing "attack is 2 × strength" is a one-line edit that applies to all three characters.` },
+        { kind: 'code', file: 'scripts/resources/character_stats.gd', code: CHARACTER_STATS, note: md`This replaces the \`CharacterStats\` skeleton from g04: instead of a base and a growth for each derived stat, it stores four primary stats and derives the rest, so the existing \`kai_stats.tres\`, \`lyra_stats.tres\` and \`bram_stats.tres\` get new fields to fill in. \`@export_group\` only groups the Inspector; the variables are ordinary. \`floori\` rounds down and returns an \`int\`. The formulas live in one function, so changing "attack is 2 × strength" is a one-line edit that applies to all three characters.` },
         {
           kind: 'numeric',
           q: md`Bram has vitality 15 at level 1 and grows 2.2 per level. What is his max HP at level 10?`,
@@ -1071,15 +1088,15 @@ What happens?`,
           steps: [
             md`Create the folders \`scripts/rpg/\` and \`resources/characters/\` if they do not exist (right-click in the **FileSystem** dock → **Create New → Folder**).`,
             md`Create \`scripts/rpg/rpg.gd\`, \`scripts/resources/character_stats.gd\`, \`scripts/resources/stat_modifier.gd\` and \`scripts/rpg/stat_block.gd\` with the listings above (right-click a folder → **Create New → Script…**, Inherits as in the listing). Save each one; the Output panel should stay free of errors.`,
-            md`Right-click \`resources/characters/\` → **Create New → Resource…**, search for \`CharacterStats\`, and save it as \`kai.tres\`. In the Inspector, set *Display Name* to Kai and fill the *Level 1* and *Growth per level* groups from the table: 12, 10, 6, 14 and 2.0, 1.5, 1.0, 1.5.`,
-            md`Repeat for \`lyra.tres\` and \`bram.tres\`.`,
+            md`Right-click \`resources/characters/\` → **Create New → Resource…**, search for \`CharacterStats\`, and save it as \`kai_stats.tres\`. In the Inspector, set *Display Name* to Kai and fill the *Level 1* and *Growth per level* groups from the table: 12, 10, 6, 14 and 2.0, 1.5, 1.0, 1.5.`,
+            md`Repeat for \`lyra_stats.tres\` and \`bram_stats.tres\`.`,
             md`Create a scene \`scenes/tests/stats_test.tscn\` with a plain \`Node\` root, attach the script below and press **F6** to run it.`,
           ],
           result: md`The Output panel prints \`level 5 attack: 40\`, \`with sword and ring: 57\` and \`gear removed: 40\`.`,
           troubleshoot: [
             { problem: md`\`CharacterStats\` is missing from the **Create New Resource** list.`, fix: md`The script has an error or lacks \`class_name CharacterStats\`. Open it and check the bottom panel for a red error; fix it and save, and the class appears.` },
             { problem: md`The script says \`Could not find type "StatBlock"\` although the file exists.`, fix: md`Godot registers \`class_name\` scripts when they are saved without errors. Save \`stat_block.gd\` (and \`rpg.gd\`, which it uses) first; if one of them has an error, every script that names it fails too.` },
-            { problem: md`Attack prints 0.`, fix: md`\`apply_to\` was never called, or \`kai.tres\` still has the default values. Check the Inspector values and that \`KAI.apply_to(stats, 5)\` runs before \`get_stat\`.` },
+            { problem: md`Attack prints 0.`, fix: md`\`apply_to\` was never called, or \`kai_stats.tres\` still has the default values. Check the Inspector values and that \`KAI.apply_to(stats, 5)\` runs before \`get_stat\`.` },
           ],
         },
         { kind: 'code', file: 'scripts/tests/stats_test.gd', code: STATS_TEST },
@@ -1090,7 +1107,7 @@ What happens?`,
             title: 'A stats panel that only redraws on change',
             goal: md`Make a \`PartyMember\` resource that rebuilds its StatBlock when its level changes, and a \`Label\` that lists the stats and updates through the \`changed\` signal, never in \`_process\`.`,
             requirements: [
-              md`A \`Label\` in a test scene shows level and all stats of Kai, read from \`kai.tres\`.`,
+              md`A \`Label\` in a test scene shows level and all stats of Kai, read from \`kai_stats.tres\`.`,
               md`**Enter** adds a +10% attack ring and **Escape** removes it; attack switches between 40 and 44 at level 5 (or the right values at your level).`,
               md`**Up** raises the level by one and every derived stat updates.`,
               md`A \`print\` in the redraw function shows that pressing a key redraws once, not once per stat.`,
@@ -1104,7 +1121,7 @@ What happens?`,
               { file: 'scripts/rpg/party_member.gd', code: PARTY_MEMBER_V1 },
               { file: 'scripts/tests/stats_label.gd', code: STATS_LABEL },
             ],
-            explain: md`The label never asks "did anything change?" every frame; the StatBlock tells it. In the test scene, create a \`PartyMember\` in the Inspector of the Label (*Member → New PartyMember*), drag \`kai.tres\` into its *Base*, and set *Level* to 5. The label passes itself as the modifier source, so Escape removes exactly the ring it added.`,
+            explain: md`The label never asks "did anything change?" every frame; the StatBlock tells it. In the test scene, create a \`PartyMember\` in the Inspector of the Label (*Member → New PartyMember*), drag \`kai_stats.tres\` into its *Base*, and set *Level* to 5. The label passes itself as the modifier source, so Escape removes exactly the ring it added.`,
           },
         },
         {
@@ -1188,7 +1205,7 @@ These are Shardbound's version of FF7's materia. In FF7, materia orbs sit in slo
         { kind: 'code', file: 'scripts/resources/shard_instance.gd', code: SHARD_INSTANCE },
         {
           kind: 'numeric',
-          q: md`A Fire shard has \`ap_thresholds = [200, 600]\` and 450 AP. What is its level, and how much more AP does it need for the next level? Enter both, level first.`,
+          q: md`A Fire shard has \`ap_to_level = [200, 600]\` and 450 AP. What is its level, and how much more AP does it need for the next level? Enter both, level first.`,
           answer: { kind: 'vector', value: [2, 150] },
           inputHint: 'e.g. 2, 150',
           explain: md`450 ≥ 200 but < 600, so the loop adds one level: level 2. The next threshold is 600, so it needs $600 - 450 = 150$ AP.`,
@@ -1233,9 +1250,9 @@ Every change calls \`emit_changed()\`. \`Resource\` already declares a \`changed
           title: 'Author gear and shards as resources',
           steps: [
             md`Save \`equipment_data.gd\`, \`shard_data.gd\`, \`shard_instance.gd\`, \`loadout.gd\` and the new \`party_member.gd\`. If \`AbilityData\` from g04 does not exist yet, create \`scripts/resources/ability_data.gd\` with just \`class_name AbilityData\` and \`extends Resource\`.`,
-            md`Create \`resources/equipment/iron_sword.tres\` (**Create New → Resource… → EquipmentData**). Set *Slot* to Weapon, *Owner Id* to \`kai\`, *Socket Count* 2, *Linked Pairs* 1. In *Modifiers*, click **Add Element**, choose **New StatModifier** in the empty slot, expand it and set *Stat* Attack, *Kind* Flat, *Value* 12.`,
+            md`Create \`resources/equipment/iron_sword.tres\` (**Create New → Resource… → EquipmentData**). Set *Slot* to Weapon, *Owner Id* to \`kai\`, *Shard Sockets* 2, *Linked Pairs* 1. In *Modifiers*, click **Add Element**, choose **New StatModifier** in the empty slot, expand it and set *Stat* Attack, *Kind* Flat, *Value* 12.`,
             md`Make \`rune_blade.tres\` (+8 attack, +8 magic, 3 sockets, 1 linked pair) and \`chain_mail.tres\` (armour, +14 defence, −2 speed, 2 sockets, 1 linked pair) the same way.`,
-            md`Create \`resources/shards/fire.tres\` (*Kind* Spell, *Element* Fire) and \`elemental.tres\` (*Kind* Support, *AP Thresholds* 400 and 1200).`,
+            md`Create \`resources/shards/fire.tres\` (*Kind* Spell, *Element* Fire) and \`elemental.tres\` (*Kind* Support, *Ap To Level* 400 and 1200).`,
             md`Create \`scenes/tests/loadout_test.tscn\` with a \`Node\` root and the script below, and run it with **F6**. Press **Escape** to toggle Elemental next to Fire in the armour and **Enter** to swap weapons.`,
           ],
           result: md`Each key press prints one line. With Elemental in, \`fire x0.5\` appears; swapping to the Rune Blade raises magic by 8 and lowers attack by 4, and \`spare\` stays 0 because both weapons have at least 2 sockets.`,
@@ -1274,7 +1291,7 @@ extends Resource
 
 
 ## Moves a shard from the bag into a socket; whatever was there goes back into the bag.
-func socket(member: PartyMember, slot: Rpg.Slot, index: int, shard: ShardInstance) -> void:
+func socket(member: PartyMember, slot: EquipmentData.Slot, index: int, shard: ShardInstance) -> void:
     if shard != null:
         shards.erase(shard)
     var previous := member.loadout.socket(slot, index, shard)
@@ -1419,7 +1436,7 @@ m05 compares damage-formula shapes and the probability behind crits and variance
           kind: 'text',
           md: md`### Elements, stagger and crits as multipliers
 
-Shardbound has three elements plus none. The target's multiplier for the element comes from its StatBlock: enemies set it from lists in \`EnemyData\` (\`weak_to\`, \`resists\`, \`immune_to\`, \`absorbs\`), and party members get overrides from Elemental shards in armour.
+Elements are g04's \`Element.Type\`: none, fire, ice, lightning and earth; the first areas use fire, ice and lightning. The target's multiplier for the element comes from its StatBlock: enemies set it from \`EnemyData\` (g04's \`weakness\`, plus \`resists\`, \`immune_to\` and \`absorbs\` lists), and party members get overrides from Elemental shards in armour.
 
 | multiplier | meaning | what the player sees |
 |---|---|---|
@@ -1450,9 +1467,9 @@ Absorb is why the final stage cannot be a plain \`maxi(1, …)\`: a negative val
         {
           kind: 'check',
           q: md`Lyra casts Thunder (magic, lightning) on the golem, which absorbs lightning. The value after the stagger stage is $-41.3$. What does \`calculate\` return in \`amount\`, and what does \`Combatant.receive_attack\` do with it?`,
-          options: [md`$-41$; it calls \`health.heal(41)\``, md`$1$; it calls \`health.take_damage(1)\``, md`$0$; nothing happens`, md`$-41$; it calls \`health.take_damage(-41)\``],
+          options: [md`$-41$; it calls \`health.heal(41)\``, md`$1$; it calls \`health.damage(1)\``, md`$0$; nothing happens`, md`$-41$; it calls \`health.damage(-41)\``],
           answer: 0,
-          explain: md`A negative value means absorb, so the final stage keeps the sign: \`mini(-1, roundi(-41.3))\` is $-41$. \`receive_attack\` sends negative amounts to \`heal\`. Passing a negative number to \`take_damage\` would depend on how HealthComponent clamps, which is exactly the kind of hidden rule the pipeline avoids.`,
+          explain: md`A negative value means absorb, so the final stage keeps the sign: \`mini(-1, roundi(-41.3))\` is $-41$. \`receive_attack\` sends negative amounts to \`heal\`. c05's \`damage\` ignores amounts of 0 or less, so sending the negative value there would silently do nothing, exactly the kind of hidden rule the pipeline avoids.`,
         },
         {
           kind: 'text',
@@ -1460,11 +1477,11 @@ Absorb is why the final stage cannot be a plain \`maxi(1, …)\`: a negative val
 
 c05 gave every fighter a \`Hurtbox\` that emits \`hurt(hit: HitData)\` and a \`HealthComponent\`. One more component connects them to stats: \`Combatant\`. It owns the StatBlock (enemies build it from their \`EnemyData\`; party members share the one their \`PartyMember\` rebuilds), keeps max HP in sync with the stats, and turns each hit into HP loss through \`DamageCalc\`.
 
-The hitbox describes the attack, not its result: \`HitData\` gains a \`power\` and an \`is_magic\` flag. The basic attack hitbox for Kai sets \`power = 1.0\` and \`element = loadout.weapon_element()\`, so linking Elemental and Fire in his sword turns his combo into fire damage with no other code. Abilities in r02 call \`receive_attack\` directly.`,
+The hitbox describes the attack, not its result: extending the \`HitData\` from g04, it gains a \`power\` and an \`is_magic\` flag, both with defaults so g04's \`_init(amount, element, source)\` still works. The basic attack hitbox for Kai sets \`power = 1.0\` and \`element = loadout.weapon_element()\`, so linking Elemental and Fire in his sword turns his combo into fire damage with no other code. Abilities in r02 call \`receive_attack\` directly.`,
         },
         { kind: 'code', file: 'scripts/resources/hit_data.gd', code: HIT_DATA_ADD, fragment: true },
-        { kind: 'code', file: 'scripts/resources/enemy_data.gd', code: ENEMY_DATA, note: md`\`Array[Rpg.Element]\` exports as a list of drop-downs. \`element in absorbs\` is checked first, so an element listed twice by mistake resolves to the most extreme effect, and a designer who sees "absorbs" in the Inspector gets absorb.` },
-        { kind: 'code', file: 'scenes/components/combatant.gd', code: COMBATANT, note: md`This assumes c05's \`HealthComponent\` has \`take_damage(amount: int)\`, \`heal(amount: int)\` and a \`max_health\` property; adapt the three calls if yours differ. \`hit.source\` is the attacking Character, and \`get_node_or_null("Combatant")\` finds its Combatant child.` },
+        { kind: 'code', file: 'scripts/resources/enemy_data.gd', code: ENEMY_DATA, note: md`This extends the \`EnemyData\` from g04, keeping its field names (\`defense\`, \`weakness\`, \`xp_reward\`). \`Array[Element.Type]\` exports as a list of drop-downs. \`element in absorbs\` is checked first, so an element listed twice by mistake resolves to the most extreme effect, and a designer who sees "absorbs" in the Inspector gets absorb.` },
+        { kind: 'code', file: 'scenes/components/combatant.gd', code: COMBATANT, note: md`It uses c05's \`HealthComponent\` as it is: \`damage(amount)\`, \`heal(amount)\` and the \`max_health\` property. \`hit.source\` is the attacking Character, and \`get_node_or_null("Combatant")\` finds its Combatant child.` },
         {
           kind: 'text',
           md: md`### Status effects as timed objects

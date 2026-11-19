@@ -87,15 +87,21 @@ export function PartyTree({ spec }: { spec: VizSpec }) {
 
   const leader = pm.current_index;
   const code = `func switch_to(index: int) -> void:
-	var next := members[index]
-	if index == current_index or next in _down:
+	if index == current_index or is_down(members[index]):
 		return
-	# swap the controllers: the old leader becomes AI, the new one reads Input
-	leader().set_controller(AIController.new())
-	next.set_controller(PlayerController.new())
 	current_index = index  # now ${leader} (${NAMES[leader]})
-	camera.target = next
-	leader_changed.emit(next)`;
+	_apply_control()
+	leader_changed.emit(leader())
+
+func _apply_control() -> void:
+	var lead := leader()
+	player_controller.reparent(lead, false)  # the one PlayerController moves
+	lead.move_child(player_controller, 0)    # first child: writes intent before the StateMachine reads it
+	player_controller.character = lead
+	for member in members:
+		var ai := member.get_node("AllyAIController")
+		ai.process_mode = Node.PROCESS_MODE_DISABLED if member == lead else Node.PROCESS_MODE_INHERIT
+		member.intent.clear()`;
 
   return (
     <FigureLayout
@@ -142,13 +148,13 @@ export function PartyTree({ spec }: { spec: VizSpec }) {
               </text>
               <line x1={26} y1={18} x2={26} y2={34} stroke="var(--line)" />
               <line x1={26} y1={34} x2={40} y2={34} stroke="var(--line)" />
-              <rect x={42} y={24} width={lead ? 120 : 104} height={18} rx={4} fill={lead ? 'color-mix(in oklab, var(--accent) 22%, var(--surface))' : 'var(--surface2)'} stroke={lead ? 'var(--accent)' : 'var(--line)'} strokeWidth={moved ? 2.2 : 1}>
+              <rect x={42} y={24} width={lead ? 120 : 126} height={18} rx={4} fill={lead ? 'color-mix(in oklab, var(--accent) 22%, var(--surface))' : 'var(--surface2)'} stroke={lead ? 'var(--accent)' : 'var(--line)'} strokeWidth={moved ? 2.2 : 1}>
                 {moved && <animate attributeName="stroke-opacity" values="0.2;1" dur="0.4s" />}
               </rect>
               <text x={50} y={37} fontSize={11.5} fontWeight={lead ? 700 : 400}>
-                {lead ? 'PlayerController' : 'AIController'}
+                {lead ? 'PlayerController' : 'AllyAIController'}
               </text>
-              <text x={lead ? 172 : 156} y={37} fontSize={10.5} style={{ fill: 'var(--muted)' }}>
+              <text x={lead ? 172 : 178} y={37} fontSize={10.5} style={{ fill: 'var(--muted)' }}>
                 {isKo ? 'no intent (KO)' : lead ? 'intent ← Input' : 'intent ← follow, attack, guard'}
               </text>
             </g>

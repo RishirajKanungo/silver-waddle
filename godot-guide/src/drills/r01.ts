@@ -83,7 +83,7 @@ export const DRILLS: Drill[] = [
       for (const t of th) if (ap >= t) level++;
       const next = level <= th.length ? th[level - 1] - ap : 0;
       return {
-        prompt: md`A shard has \`ap_thresholds = [${th[0]}, ${th[1]}]\` and ${ap} AP. Its level, and the AP still needed for the next level (0 at max level)?`,
+        prompt: md`A shard has \`ap_to_level = [${th[0]}, ${th[1]}]\` and ${ap} AP. Its level, and the AP still needed for the next level (0 at max level)?`,
         answer: { kind: 'vector', value: [level, next] },
         inputHint: 'level, AP to next',
         solution: md`Count the thresholds with AP ≥ threshold: level ${level}. ${level <= th.length ? `Next threshold ${th[level - 1]}, so ${th[level - 1]} − ${ap} = ${next} AP.` : 'It is at the maximum level.'}`,

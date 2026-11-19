@@ -4,24 +4,26 @@ import { md, gd, type Module } from '../types';
 const ITEM_DATA = gd`
 class_name ItemData
 extends Resource
-## Anything that goes in the bag. The id is also the file name:
-## &"potion" lives in res://resources/items/potion.tres.
+## Anything that can sit in the inventory (g04). r03 adds a kind, a rarity and a use.
+## The id is also the file name: "potion" lives in res://resources/items/potion.tres.
+## EquipmentData extends this class, so a sword is an item with extra fields.
 
 enum Kind { CONSUMABLE, KEY_ITEM, MATERIAL, EQUIPMENT }
 enum Rarity { COMMON, UNCOMMON, RARE }
 
 const FOLDER := "res://resources/items/"
 
-@export var id: StringName = &""
+## Stable id used by saves and the inventory, e.g. &"potion".
+@export var id: StringName
 @export var display_name := ""
 @export_multiline var description := ""
 @export var icon: Texture2D
+## Shop price in gold; shops buy back at half (Shop.SELL_RATE). 0 means it cannot be sold.
+@export var price := 0
+## How many the bag can hold. 1 means it never stacks (key items).
+@export_range(1, 99) var max_stack := 99
 @export var kind: Kind = Kind.CONSUMABLE
 @export var rarity: Rarity = Rarity.COMMON
-## How many the bag can hold. 1 means it never stacks (key items).
-@export_range(1, 999) var max_stack := 99
-## Shop price in gold. Selling pays Shop.SELL_RATE of it; 0 means it cannot be sold.
-@export var price := 0
 
 @export_group("Use")
 ## What using it does. A potion is an AbilityData with one HealEffect (flat 100).
@@ -29,12 +31,8 @@ const FOLDER := "res://resources/items/"
 @export var usable_in_field := true
 @export var usable_in_battle := true
 
-@export_group("Equipment")
-## Weapons, armour and accessories: the gear this item puts on when equipped.
-@export var equipment: EquipmentData
 
-
-static func find(item_id: StringName) -> ItemData:
+static func find(item_id: String) -> ItemData:
     return load("%s%s.tres" % [FOLDER, item_id]) as ItemData
 `;
 
@@ -55,7 +53,7 @@ power = 0.0
 script = ExtResource("3_abil")
 id = &"use_potion"
 display_name = "Potion"
-target = 2
+target = 3
 effects = Array[ExtResource("4_eff")]([SubResource("Resource_heal")])
 
 [resource]
@@ -70,58 +68,20 @@ use_ability = SubResource("Resource_use")
 
 const INVENTORY = gd`
 class_name Inventory
-extends Resource
-## The party's bag: a count per item id. GameState owns one; menus listen to the built-in
-## changed signal (emit_changed), and pickups and the HUD use the two specific signals.
-
-signal item_added(item: ItemData, amount: int)
-signal item_removed(item: ItemData, amount: int)
-
-## id -> count. Ids are dropped when their count reaches 0.
-@export var counts: Dictionary[StringName, int] = {}
-
-
-func count(item: ItemData) -> int:
-    return counts.get(item.id, 0)
-
-
-func has(item: ItemData, amount := 1) -> bool:
-    return count(item) >= amount
-
-
-## Adds up to the item's max_stack and returns how many did NOT fit.
-func add(item: ItemData, amount := 1) -> int:
-    var added := mini(amount, item.max_stack - count(item))
-    if added <= 0:
-        return amount
-    counts[item.id] = count(item) + added
-    item_added.emit(item, added)
-    emit_changed()
-    return amount - added
-
-
-func remove(item: ItemData, amount := 1) -> bool:
-    if amount <= 0 or not has(item, amount):
-        return false
-    var left := count(item) - amount
-    if left == 0:
-        counts.erase(item.id)
-    else:
-        counts[item.id] = left
-    item_removed.emit(item, amount)
-    emit_changed()
-    return true
+extends RefCounted
+## Menu views of GameState.inventory (item id -> count): the items held, filtered and
+## sorted. The dictionary itself lives in GameState, which r06 saves as it is.
 
 
 ## Held items of one kind (-1 for all), sorted for a menu: &"kind", &"name", &"price" or &"count".
-func listing(kind := -1, sort_by: StringName = &"kind") -> Array[ItemData]:
+static func listing(kind := -1, sort_by: StringName = &"kind") -> Array[ItemData]:
     var out: Array[ItemData] = []
-    for id: StringName in counts:
+    for id: String in GameState.inventory:
         var item := ItemData.find(id)
         if kind == -1 or item.kind == kind:
             out.append(item)
     if sort_by == &"count":
-        out.sort_custom(func(a: ItemData, b: ItemData) -> bool: return count(a) > count(b))
+        out.sort_custom(func(a: ItemData, b: ItemData) -> bool: return GameState.item_count(a.id) > GameState.item_count(b.id))
     else:
         sort_items(out, sort_by)
     return out
@@ -153,29 +113,57 @@ func add(item: ItemData, amount := 1) -> int:
             var put := mini(amount, item.max_stack)
             slots[i] = ItemStack.new(item, put)
             amount -= put
-    emit_changed()
+    Events.inventory_changed.emit()
     return amount  # did not fit: "the bag is full"
 `;
 
 const GAME_STATE_ADD = gd`
-# scripts/autoload/game_state.gd: add these (r03). r06 saves inventory, gold and flags.
-signal gold_changed(gold: int)
+# scripts/autoload/game_state.gd: the inventory part (r03). Same names as r06, which saves
+# inventory, gold and opened exactly as they are here.
+signal item_added(id: String, count: int)
 
-var inventory := Inventory.new()
 var gold := 0:
     set(value):
         gold = maxi(0, value)
-        gold_changed.emit(gold)
-## Story and world flags: opened chests, finished quests. Missing means false.
-var flags: Dictionary[StringName, bool] = {}
+        Events.gold_changed.emit(gold)
+var inventory: Dictionary = {}  # item id -> count
+var opened: Dictionary = {}     # persistent ids of opened chests -> true
 
 
-func has_flag(id: StringName) -> bool:
-    return flags.get(id, false)
+func item_count(id: String) -> int:
+    return int(inventory.get(id, 0))
 
 
-func set_flag(id: StringName, value := true) -> void:
-    flags[id] = value
+## Adds up to the item's max_stack and returns how many did NOT fit.
+func add_item(id: String, count: int = 1) -> int:
+    var item := ItemData.find(id)
+    var added := mini(count, item.max_stack - item_count(id))
+    if added <= 0:
+        return count
+    inventory[id] = item_count(id) + added
+    item_added.emit(id, added)
+    Events.inventory_changed.emit()
+    return count - added
+
+
+func remove_item(id: String, count: int = 1) -> bool:
+    if count <= 0 or item_count(id) < count:
+        return false
+    var left := item_count(id) - count
+    if left == 0:
+        inventory.erase(id)
+    else:
+        inventory[id] = left
+    Events.inventory_changed.emit()
+    return true
+
+
+func is_opened(id: String) -> bool:
+    return opened.has(id)
+
+
+func mark_opened(id: String) -> void:
+    opened[id] = true
 `;
 
 const ITEM_USE = gd`
@@ -192,10 +180,10 @@ static func can_use(item: ItemData, in_battle: bool) -> bool:
     return item.usable_in_battle if in_battle else item.usable_in_field
 
 
-static func use(bag: Inventory, item: ItemData, user: Combatant, targets: Array[Combatant], in_battle: bool) -> bool:
-    if not can_use(item, in_battle) or not bag.has(item):
+static func use(item: ItemData, user: Combatant, targets: Array[Combatant], in_battle: bool) -> bool:
+    if not can_use(item, in_battle) or GameState.item_count(item.id) <= 0:
         return false
-    bag.remove(item)
+    GameState.remove_item(item.id)
     item.use_ability.execute(user, targets)
     return true
 `;
@@ -203,10 +191,8 @@ static func use(bag: Inventory, item: ItemData, user: Combatant, targets: Array[
 const BAG_LABEL = gd`
 extends Label
 ## A text bag for testing. 1 adds a potion, 2 adds three crystals, 3 uses a potion on Kai,
-## S cycles the sort order. Redraws only on the inventory's changed signal.
+## S cycles the sort order. Redraws only on Events.inventory_changed.
 
-const POTION := preload("res://resources/items/potion.tres")
-const CRYSTAL := preload("res://resources/items/earth_crystal.tres")
 const SORTS: Array[StringName] = [&"kind", &"name", &"count", &"price"]
 
 ## Kai's Combatant in the test scene.
@@ -216,8 +202,8 @@ var _sort := 0
 
 
 func _ready() -> void:
-    GameState.inventory.changed.connect(_redraw)
-    GameState.inventory.item_added.connect(func(item: ItemData, n: int) -> void: print("+%d %s" % [n, item.display_name]))
+    Events.inventory_changed.connect(_redraw)
+    GameState.item_added.connect(func(id: String, n: int) -> void: print("+%d %s" % [n, ItemData.find(id).display_name]))
     _redraw()
 
 
@@ -227,12 +213,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
         return
     match key.keycode:
         KEY_1:
-            GameState.inventory.add(POTION)
+            GameState.add_item("potion")
         KEY_2:
-            GameState.inventory.add(CRYSTAL, 3)
+            GameState.add_item("earth_crystal", 3)
         KEY_3:
             var targets: Array[Combatant] = [kai]
-            if not ItemUse.use(GameState.inventory, POTION, kai, targets, false):
+            if not ItemUse.use(ItemData.find("potion"), kai, targets, false):
                 print("no potion to use")
         KEY_S:
             _sort = (_sort + 1) % SORTS.size()
@@ -241,8 +227,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _redraw() -> void:
     var lines := PackedStringArray(["Bag (sorted by %s)" % SORTS[_sort]])
-    for item in GameState.inventory.listing(-1, SORTS[_sort]):
-        lines.append("%-14s x%d" % [item.display_name, GameState.inventory.count(item)])
+    for item in Inventory.listing(-1, SORTS[_sort]):
+        lines.append("%-14s x%d" % [item.display_name, GameState.item_count(item.id)])
     text = "\n".join(lines)
 `;
 
@@ -340,7 +326,7 @@ func _ready() -> void:
 
 
 func _on_body_entered(_body: Node2D) -> void:
-    var left := GameState.inventory.add(item, count)
+    var left := GameState.add_item(item.id, count)
     if left == count:
         return  # no room for this item: leave it on the ground
     count = left
@@ -384,36 +370,42 @@ func _on_died() -> void:
 
 const CHEST = gd`
 class_name Chest
-extends Area2D
-## A chest that opens once per save. Its flag lives in GameState, so leaving and re-entering the
-## room, or loading a save (r06), keeps it open. Collision layer "interactable" (7).
-## Sprite2D child uses objects.png (Hframes 8, Vframes 3): frame 0 closed, 1 open.
+extends StaticBody2D
+## A chest that opens once per save. Whether it is open lives in GameState.opened under a
+## persistent id, so leaving the room or loading a save (r06) cannot refill it.
+## Children: Sprite2D (objects.png, Hframes 8, Vframes 3: frame 0 closed, 1 open) and an
+## Interactable (r04) that emits interacted when the player presses interact facing it.
 
 @export var contents: LootTable
-## Unique per chest. Leave empty to derive one from the room's file and this node's path.
-@export var flag_id: StringName = &""
+## Leave empty to derive one from the room's file and this node's path (r06 moves this
+## into Persist.id_for). Fill it in to keep it stable when you rename nodes.
+@export var persist_id := ""
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var interactable: Interactable = $Interactable
 
 
 func _ready() -> void:
-    if flag_id == &"":
-        flag_id = StringName("%s:%s" % [owner.scene_file_path, owner.get_path_to(self)])
-    sprite.frame = 1 if GameState.has_flag(flag_id) else 0
-
-
-## Called by the player's interaction (r04) when they press interact facing the chest.
-func interact(_by: Node) -> void:
-    if GameState.has_flag(flag_id):
+    if persist_id == "":
+        var room := owner if owner else self
+        persist_id = "%s/%s" % [room.scene_file_path.get_file().get_basename(), room.get_path_to(self)]
+    if GameState.is_opened(persist_id):
+        sprite.frame = 1
         return
-    # Set the flag first: even if interact() runs twice in one frame, the chest pays once.
-    GameState.set_flag(flag_id)
+    interactable.interacted.connect(_on_interacted)
+
+
+func _on_interacted(_by: Node2D) -> void:
+    if GameState.is_opened(persist_id):
+        return
+    # Mark it first: even if the signal fires twice in one frame, the chest pays once.
+    GameState.mark_opened(persist_id)
     sprite.frame = 1
     var rng := RandomNumberGenerator.new()
     rng.randomize()
     var drops := contents.roll(rng)
     for item: ItemData in drops:
-        GameState.inventory.add(item, drops[item])
+        GameState.add_item(item.id, drops[item])
     GameState.gold += contents.roll_gold(rng)
 `;
 
@@ -470,21 +462,21 @@ static func sell_price(item: ItemData) -> int:
 static func max_buy(shop: ShopData, item: ItemData) -> int:
     var price := buy_price(shop, item)
     var by_gold := item.max_stack if price == 0 else floori(float(GameState.gold) / price)
-    return mini(by_gold, item.max_stack - GameState.inventory.count(item))
+    return mini(by_gold, item.max_stack - GameState.item_count(item.id))
 
 
 static func buy(shop: ShopData, item: ItemData, amount: int) -> bool:
     if amount <= 0 or amount > max_buy(shop, item):
         return false
     GameState.gold -= buy_price(shop, item) * amount
-    GameState.inventory.add(item, amount)
+    GameState.add_item(item.id, amount)
     return true
 
 
 static func sell(item: ItemData, amount: int) -> bool:
-    if item.kind == ItemData.Kind.KEY_ITEM or item.price <= 0 or not GameState.inventory.has(item, amount):
+    if item.kind == ItemData.Kind.KEY_ITEM or item.price <= 0 or GameState.item_count(item.id) < amount:
         return false
-    GameState.inventory.remove(item, amount)
+    GameState.remove_item(item.id, amount)
     GameState.gold += sell_price(item) * amount
     return true
 `;
@@ -515,15 +507,15 @@ func _ready() -> void:
     sort.item_selected.connect(func(_index: int) -> void: refresh())
     mode_button.pressed.connect(_toggle_mode)
     list.item_activated.connect(_on_item_activated)
-    GameState.gold_changed.connect(func(_gold: int) -> void: refresh())
-    GameState.inventory.changed.connect(refresh)
+    Events.gold_changed.connect(func(_gold: int) -> void: refresh())
+    Events.inventory_changed.connect(refresh)
     refresh()
     list.grab_focus()
 
 
 func refresh() -> void:
     var kind := filter.selected - 1  # entry 0 is "All"; the rest follow ItemData.Kind
-    var source: Array[ItemData] = GameState.inventory.listing() if selling else shop.stock
+    var source: Array[ItemData] = Inventory.listing() if selling else shop.stock
     _shown.clear()
     for item in source:
         var sellable := item.price > 0 and item.kind != ItemData.Kind.KEY_ITEM
@@ -533,7 +525,7 @@ func refresh() -> void:
     list.clear()
     for item in _shown:
         var price := Shop.sell_price(item) if selling else Shop.buy_price(shop, item)
-        var row := list.add_item("%s  x%d  %d G" % [item.display_name, GameState.inventory.count(item), price], item.icon)
+        var row := list.add_item("%s  x%d  %d G" % [item.display_name, GameState.item_count(item.id), price], item.icon)
         list.set_item_disabled(row, not selling and Shop.max_buy(shop, item) <= 0)
     gold_label.text = "%d G" % GameState.gold
     mode_button.text = "Buy" if selling else "Sell"
@@ -558,8 +550,8 @@ export const MODULE: Module = {
   part: 'rpg',
   order: 3,
   title: 'Items, inventory, loot and shops',
-  summary: 'ItemData for consumables, key items, materials and equipment; an inventory as counts per item with signals; using items in and out of battle; weighted loot tables with guaranteed drops; once-only chests tied to save flags; shops, gold and the economy behind prices.',
-  relevance: md`Everything the player picks up, carries, uses, buys and sells in Shardbound goes through this module: the potion Lyra drinks in tactical mode, the Earth Crystal a slime drops, the chest in the ruins that stays open after a reload, and the price of the Rune Blade in the outpost shop. Items reuse r02's abilities for their effects and wrap r01's EquipmentData, the save system (r06) stores the inventory, gold and flags, and the menus (r05) present them with the sorting and filtering built here.`,
+  summary: 'ItemData for consumables, key items, materials and equipment; an inventory as counts per item with signals; using items in and out of battle; weighted loot tables with guaranteed drops; once-only chests tied to persistent ids that r06 saves; shops, gold and the economy behind prices.',
+  relevance: md`Everything the player picks up, carries, uses, buys and sells in Shardbound goes through this module: the potion Lyra drinks in tactical mode, the Earth Crystal a slime drops, the chest in the ruins that stays open after a reload, and the price of the Rune Blade in the outpost shop. Items reuse r02's abilities for their effects and include r01's EquipmentData (gear is an item), the save system (r06) stores the inventory, gold and opened chests, and the menus (r05) present them with the sorting and filtering built here.`,
   prereqs: ['r01', 'g04'],
   areas: ['systems', 'godot', 'math'],
   lessons: [
@@ -592,7 +584,7 @@ Under that are three questions every RPG answers:
           md: md`- **Consumable**: used up when used (Potion, Ether, Phoenix Feather). Usable in the field, in battle, or both.
 - **Key item**: story progress (Old Key, Ruins Map). Stack of 1, cannot be sold.
 - **Material**: dropped by enemies, sold for gold or used for crafting (Earth Crystal, Storm Crystal, Ember Crystal).
-- **Equipment**: a weapon, armour or accessory. The item wraps an r01 \`EquipmentData\`: the item is how gear sits in the bag and the shop; the \`EquipmentData\` is what it does when worn.
+- **Equipment**: a weapon, armour or accessory. \`EquipmentData\` extends \`ItemData\` (g04): a sword is an item, with a slot, modifiers and sockets added, so bags and shops handle gear with no special cases.
 
 **Stack limit** (\`max_stack\`): how many of one item the bag holds (99 for consumables and materials, 1 for key items). **Rarity** is a label for players (common, uncommon, rare) shown as a colour; it does not set drop chances, which lesson 2 does with weights.`,
         },
@@ -611,7 +603,7 @@ There are two common ways to store a bag, and the choice shapes the game.
 
 Shardbound uses counts. Items have no per-copy state (shards in gear live in the Loadout, r01), the game is not about managing space, and every sort order the menus want can be computed from the counts. The cost: the player cannot hand-arrange the bag, and a per-copy feature added later (a sword with a random bonus) would need its own instance resource, as r01 did for shards.`,
         },
-        { kind: 'code', file: 'scripts/rpg/inventory.gd', code: INVENTORY, note: md`\`Inventory\` is a Resource so the save system can write it. It does not declare \`signal changed\` (Resource already has one) but calls \`emit_changed()\`. \`item_added\` carries what was added, for the "+3 Earth Crystal" message; \`changed\` just says "redraw", for menus.` },
+        { kind: 'code', file: 'scripts/rpg/inventory.gd', code: INVENTORY, note: md`The bag itself is \`GameState.inventory\`, a plain dictionary from id to count, because r06 saves it to JSON as it is. \`Inventory\` only reads it to build menu views. Changes go through \`GameState.add_item\` and \`remove_item\`, which emit \`Events.inventory_changed\` (g04's signal, for menus) and \`GameState.item_added\` (what was added, for the "+3 Earth Crystal" message).` },
         { kind: 'code', file: 'scripts/rpg/slot_inventory.gd', code: SLOT_ADD, fragment: true, note: md`For comparison, \`add\` in a slot bag needs two passes (fill existing stacks, then start new ones) and can fail because the slots are full, which is a game rule the player has to be told about.` },
         {
           kind: 'viz',
@@ -621,7 +613,7 @@ Shardbound uses counts. Items have no per-copy state (shards in gear live in the
         },
         {
           kind: 'check',
-          q: md`The bag holds 95 Potions (\`max_stack\` 99). A chest gives 8. What does \`add(potion, 8)\` return, and what is in the bag afterwards?`,
+          q: md`The bag holds 95 Potions (\`max_stack\` 99). A chest gives 8. What does \`GameState.add_item("potion", 8)\` return, and what is in the bag afterwards?`,
           options: [md`Returns 4; the bag holds 99`, md`Returns 0; the bag holds 103`, md`Returns 8; the bag still holds 95`, md`Returns 4; the bag holds 95`],
           answer: 0,
           explain: md`\`added = mini(8, 99 - 95) = 4\`, so the count becomes 99 and \`8 - 4 = 4\` is returned as "did not fit". The caller decides what to do with the rest: a pickup stays on the ground, a chest can leave a pickup next to itself.`,
@@ -635,7 +627,7 @@ Because Shardbound's battles happen in the world, the party's Characters and the
 Remove the item **before** applying the effect. If the effect triggers something that opens a menu or ends the battle, the bag is already correct, and a double activation in one frame cannot use one Potion twice.`,
         },
         { kind: 'code', file: 'scripts/rpg/item_use.gd', code: ITEM_USE },
-        { kind: 'code', file: 'scripts/autoload/game_state.gd', code: GAME_STATE_ADD, fragment: true, note: md`The gold setter clamps at 0 and emits \`gold_changed\` for the HUD. \`flags\` is used by chests in lesson 2 and by quests in r04. If your \`GameState\` already has some of these from another module, keep one copy.` },
+        { kind: 'code', file: 'scripts/autoload/game_state.gd', code: GAME_STATE_ADD, fragment: true, note: md`These are the same names r06 uses (\`inventory\`, \`gold\`, \`opened\`, \`add_item\`, \`is_opened\`, \`mark_opened\`), so its save code works on them unchanged; here \`add_item\` also returns what did not fit. The gold setter clamps at 0 and emits g04's \`Events.gold_changed\` for the HUD, so code anywhere can write \`GameState.gold += 20\`. If your \`GameState\` already has some of these from another module, keep one copy.` },
         {
           kind: 'numeric',
           q: md`An ItemList shows the bag sorted by kind, then name (\`CONSUMABLE\` = 0, \`KEY_ITEM\` = 1, \`MATERIAL\` = 2, \`EQUIPMENT\` = 3). The bag holds Earth Crystal, Potion, Old Key, Iron Sword and Ether. At which position (1 = top) is the Old Key?`,
@@ -665,7 +657,7 @@ Remove the item **before** applying the effect. If the effect triggers something
             title: 'An item menu with filters',
             goal: md`Build a pause-menu item list with an \`ItemList\`: icons, names and counts, filter buttons per kind, a sort option, and using a consumable on a chosen party member.`,
             requirements: [
-              md`The list shows each held item with its icon and count and updates through \`changed\`, never by polling.`,
+              md`The list shows each held item with its icon and count and updates through \`Events.inventory_changed\`, never by polling.`,
               md`Filters for All, Consumables, Key items and Materials; the current filter survives a refresh after using an item.`,
               md`Activating a consumable that is usable in the field uses it on the selected party member; key items and materials cannot be used.`,
               md`When the last Potion is used, its row disappears and the selection moves to a valid row instead of pointing past the end.`,
@@ -699,17 +691,17 @@ func _ready() -> void:
         target.add_item(member.get_parent().name)
     filter.item_selected.connect(func(_index: int) -> void: refresh())
     list.item_activated.connect(_on_item_activated)
-    GameState.inventory.changed.connect(refresh)
+    Events.inventory_changed.connect(refresh)
     refresh()
 
 
 func refresh() -> void:
     var selected := list.get_selected_items()
     var keep := selected[0] if not selected.is_empty() else 0
-    _shown = GameState.inventory.listing(filter.selected - 1)
+    _shown = Inventory.listing(filter.selected - 1)
     list.clear()
     for item in _shown:
-        list.add_item("%s  x%d" % [item.display_name, GameState.inventory.count(item)], item.icon)
+        list.add_item("%s  x%d" % [item.display_name, GameState.item_count(item.id)], item.icon)
     if list.item_count > 0:
         list.select(mini(keep, list.item_count - 1))
 
@@ -718,7 +710,7 @@ func _on_item_activated(index: int) -> void:
     var item := _shown[index]
     var member := party[target.selected]
     var targets: Array[Combatant] = [member]
-    ItemUse.use(GameState.inventory, item, member, targets, false)
+    ItemUse.use(item, member, targets, false)
 `,
               },
             ],
@@ -744,8 +736,8 @@ func _on_item_activated(index: int) -> void:
         },
         {
           kind: 'recall',
-          prompt: md`What does \`Inventory.add\` return, and why does \`Inventory\` call \`emit_changed()\` instead of declaring a \`changed\` signal?`,
-          answer: md`The number that did not fit (0 when everything was added). \`Resource\` already declares \`changed\`; \`emit_changed()\` fires it, and declaring it again is an error.`,
+          prompt: md`What does \`GameState.add_item\` return, and why is the bag a plain dictionary in \`GameState\` instead of a custom class?`,
+          answer: md`The number that did not fit (0 when everything was added). A dictionary of id to count is all the state there is, and r06 writes it to JSON without conversion; menus build their sorted views from it with \`Inventory.listing\`.`,
         },
         {
           kind: 'explain',
@@ -755,10 +747,10 @@ func _on_item_activated(index: int) -> void:
       ],
       cards: [
         { id: 'r03-1-c1', kind: 'concept', front: md`Slots vs counts for an inventory: one advantage of each.`, back: md`Slots: per-copy state and space management as a game mechanic. Counts: simple, no capacity puzzle, one lookup per item, any sort order computed by the menu.` },
-        { id: 'r03-1-c2', kind: 'compute', front: md`Bag has 97 Potions (max 99). \`add(potion, 5)\` returns?`, answer: { kind: 'number', value: 3 }, back: md`Room for 2, so 3 did not fit.` },
+        { id: 'r03-1-c2', kind: 'compute', front: md`Bag has 97 Potions (max 99). \`add_item("potion", 5)\` returns?`, answer: { kind: 'number', value: 3 }, back: md`Room for 2, so 3 did not fit.` },
         { id: 'r03-1-c3', kind: 'cloze', text: md`Sort by kind then name: \`return [a.kind, a.display_name] {{}} [b.kind, b.display_name]\`.`, answers: ['<'] },
         { id: 'r03-1-c4', kind: 'concept', front: md`Why remove the item before applying its effect?`, back: md`The bag is already correct if the effect triggers anything else, and two activations in one frame cannot use one item twice.` },
-        { id: 'r03-1-c5', kind: 'concept', front: md`How does an equipment item relate to EquipmentData?`, back: md`The ItemData wraps it (\`equipment\` field): the item is how gear sits in bags and shops; the EquipmentData is what it does when worn.` },
+        { id: 'r03-1-c5', kind: 'concept', front: md`How does an equipment item relate to ItemData?`, back: md`\`EquipmentData extends ItemData\` (g04): gear is an item with a slot, modifiers and sockets, so bags and shops need no special case; the EquipmentData part is what it does when worn.` },
       ],
     },
     // ============================================================================ r03-2
@@ -770,14 +762,14 @@ func _on_item_activated(index: int) -> void:
         'Write a loot table as a Resource with guaranteed drops, weighted picks and a weight for "nothing".',
         'Compute drop chances $w_i / \\sum w$, expected drops, and the chance of at least one drop in $n$ kills.',
         'Spawn pickups from a dying enemy and collect them into the inventory.',
-        'Make chests open once per save with a flag in GameState.',
+        'Make chests open once per save with a persistent id in `GameState.opened`.',
       ],
       cells: [
         {
           kind: 'text',
           md: md`A slime bursts and two icons hop out: an Earth Crystal and, rarely, an Ether. A chest in the ruins always holds a Phoenix Feather and the Ruins Map. Leave the room and come back: the slimes are back, the chest is still open.
 
-Two different rules are at work. **Enemy drops** are random, so a player who fights more gets more, and rare items create small moments of luck. **Chests** are fixed and happen once, so the world feels authored and a guide can say "the map is in the ruins". Both are described by the same data, a loot table; the chest just has only guaranteed entries and a flag that remembers it was opened.
+Two different rules are at work. **Enemy drops** are random, so a player who fights more gets more, and rare items create small moments of luck. **Chests** are fixed and happen once, so the world feels authored and a guide can say "the map is in the ruins". Both are described by the same data, a loot table; the chest just has only guaranteed entries and a persistent id that remembers it was opened.
 
 m05 covers the probability behind drop rates in general. Here it becomes a Resource you edit in the Inspector and code that turns it into pickups.`,
         },
@@ -819,7 +811,7 @@ The slime table: Earth Crystal 30, Potion 15, Ether 5, nothing 50 ($W = 100$), o
           kind: 'viz',
           viz: { type: 'rpg.loot' },
           task: md`Click the game and fight the slimes (**WASD** to move, **J** to attack), walk over the drops, and open the chest with **F**. Press **Leave and re-enter**: what comes back and what does not? Then press **Simulate 1000 kills**, compare observed with expected, and raise the Ether weight until 10 kills give at least a 50% chance of one.`,
-          caption: md`The panel shows each entry's chance $w_i/W$ and the chance of at least one in 10 kills. Pickups go into the bag on contact; the chest's flag lives in a pretend \`GameState.flags\`, shown at the bottom.`,
+          caption: md`The panel shows each entry's chance $w_i/W$ and the chance of at least one in 10 kills. Pickups go into the bag on contact; whether the chest is open lives in a pretend \`GameState.opened\`, shown at the bottom.`,
         },
         {
           kind: 'numeric',
@@ -843,22 +835,22 @@ Drops can also go straight into the bag without pickups. That is faster and some
           kind: 'text',
           md: md`### Chests that stay open
 
-A chest opens once **per save**, not once per scene load. A variable on the chest node would reset every time the room is loaded, so the state has to live where the rest of the persistent world state lives: \`GameState.flags\`, which r06 writes into the save file.
+A chest opens once **per save**, not once per scene load. A variable on the chest node would reset every time the room is loaded, so the state has to live where the rest of the persistent world state lives: \`GameState.opened\`, keyed by a persistent id, which r06 writes into the save file. (Story flags from r04, \`get_flag\` and \`set_flag\`, are for events; \`opened\` is for objects in rooms.)
 
-Each chest needs a unique flag id. Typing them by hand (\`chest_ruins_01\`) is explicit and survives renaming nodes, but two chests copied and pasted can share one id, and then opening one opens both. Deriving it from the room's file path and the node path is automatic and unique, but renaming the node or moving the room file changes the id and makes opened chests closed again in old saves. The listing uses the explicit id when set and derives one otherwise; before release (p03), freeze the ids by filling them in.`,
+Each chest needs a unique persistent id. Typing them by hand (\`chest_ruins_01\`) is explicit and survives renaming nodes, but two chests copied and pasted can share one id, and then opening one opens both. Deriving it from the room's file path and the node path is automatic and unique, but renaming the node or moving the room file changes the id and makes opened chests closed again in old saves. The listing uses the explicit id when set and derives one otherwise; before release (p03), freeze the ids by filling them in.`,
         },
         { kind: 'code', file: 'scenes/objects/chest.gd', code: CHEST },
         {
           kind: 'check',
           q: md`A playtester opens a chest, saves, loads the save, and the chest is closed again and can be opened a second time. Which is the most likely cause?`,
           options: [
-            md`The flag is set in GameState but r06's save does not write \`flags\`, or the chest's derived id changed because the node was renamed`,
+            md`The id is marked in GameState but the save does not write \`opened\`, or the chest's derived id changed because the node was renamed`,
             md`The chest sets \`sprite.frame = 1\` after granting the items`,
             md`\`RandomNumberGenerator\` was not seeded`,
             md`The chest is on the wrong collision layer`,
           ],
           answer: 0,
-          explain: md`After loading, \`_ready\` reads the flag. If the flag was not saved, or the chest now computes a different id than the one saved, \`has_flag\` is false. The order of frame and items changes nothing across a reload, and the random seed affects only what is inside.`,
+          explain: md`After loading, \`_ready\` checks \`is_opened\`. If \`opened\` was not saved, or the chest now computes a different id than the one saved, \`is_opened\` is false. The order of frame and items changes nothing across a reload, and the random seed affects only what is inside.`,
         },
         {
           kind: 'steps',
@@ -868,7 +860,7 @@ Each chest needs a unique flag id. Typing them by hand (\`chest_ruins_01\`) is e
             md`Create \`resources/loot/slime.tres\` (a \`LootTable\`): three *Weighted* entries (Earth Crystal 30, Potion 15, Ether 5), *Nothing Weight* 50, *Rolls* 1, gold 3 to 7. Run the test script below with **F6** to check the chances before playing.`,
             md`Make \`scenes/components/pickup.tscn\`: an \`Area2D\` with a \`Sprite2D\` and a small \`CollisionShape2D\`; in the Inspector set *Collision → Layer* to *pickup* only and *Mask* to *player* only. Attach \`pickup.gd\`.`,
             md`Open your slime scene, add a \`Node\` child named \`LootDropper\` with the script, and set *Health*, *Table* (\`slime.tres\`) and *Pickup Scene* (\`pickup.tscn\`).`,
-            md`Make \`scenes/objects/chest.tscn\`: an \`Area2D\` on the *interactable* layer with a \`Sprite2D\` (*Texture* \`objects.png\`, *Hframes* 8, *Vframes* 3) and a collision shape. Give it a \`LootTable\` with two *Guaranteed* entries.`,
+            md`Make \`scenes/objects/chest.tscn\`: a \`StaticBody2D\` on the *world* layer with a collision shape, a \`Sprite2D\` (*Texture* \`objects.png\`, *Hframes* 8, *Vframes* 3) and r04's \`Interactable\` as a child named \`Interactable\`. Attach \`chest.gd\` and give it a \`LootTable\` with two *Guaranteed* entries.`,
           ],
           result: md`The test prints expected and observed chances within about 0.01 of each other (0.300 against roughly 0.30). In a room, slimes leave hopping pickups that disappear into the bag when Kai walks over them, and the chest opens once; after reloading the room it is still open.`,
           troubleshoot: [
@@ -946,15 +938,15 @@ func roll(table: LootTable, rare: ItemData, step: float, rng: RandomNumberGenera
         },
         {
           kind: 'explain',
-          prompt: md`Why do chests use a flag in GameState instead of a variable on the chest node?`,
-          model: md`A node is rebuilt every time its room scene is loaded, so a variable on it resets to its default: the chest would close every time the player re-entered. Persistent world state has to live outside the room, in the autoload that the save system writes. The chest only reads the flag when it enters the tree and writes it once when opened. Keeping all flags in one dictionary also gives r06 one thing to save and r04's quests one place to check what happened.`,
+          prompt: md`Why do chests record that they are open in GameState instead of in a variable on the chest node?`,
+          model: md`A node is rebuilt every time its room scene is loaded, so a variable on it resets to its default: the chest would close every time the player re-entered. Persistent world state has to live outside the room, in the autoload that the save system writes. The chest only reads \`is_opened\` when it enters the tree and calls \`mark_opened\` once. Keeping every opened object in one dictionary keyed by persistent ids also gives r06 one thing to save, the same way r04's story flags live in one dictionary.`,
         },
       ],
       cards: [
         { id: 'r03-2-c1', kind: 'compute', front: md`Weights 30, 15, 5 and nothing 50. Chance of the weight-15 entry per roll?`, answer: { kind: 'number', value: 0.15 }, back: md`$15/100 = 0.15$.` },
         { id: 'r03-2-c2', kind: 'compute', front: md`$p = 0.1$ per kill. Chance of at least one drop in 10 kills?`, answer: { kind: 'number', value: 1 - Math.pow(0.9, 10) }, back: md`$1 - 0.9^{10} \approx 0.651$.` },
         { id: 'r03-2-c3', kind: 'concept', front: md`Why add pickups with \`call_deferred\` from a \`died\` handler?`, back: md`\`died\` fires during the physics step, and adding physics bodies while Godot resolves collisions is not allowed; deferring adds them after the step.` },
-        { id: 'r03-2-c4', kind: 'concept', front: md`Hand-typed vs derived chest flag ids?`, back: md`Typed: survive renames but copy-paste can duplicate them. Derived from scene path + node path: automatic and unique but change on rename, which re-closes chests in old saves.` },
+        { id: 'r03-2-c4', kind: 'concept', front: md`Hand-typed vs derived persistent ids for chests?`, back: md`Typed: survive renames but copy-paste can duplicate them. Derived from scene path + node path: automatic and unique but change on rename, which re-closes chests in old saves.` },
         { id: 'r03-2-c5', kind: 'cloze', text: md`The expected number of kills to the first drop with chance $p$ is {{}}.`, answers: ['1/p'] },
       ],
     },
@@ -1025,7 +1017,7 @@ With 1500 for the Rune Blade, the field alone would take about 1.8 hours of figh
           answer: 0,
           explain: md`The symptom is a lack of things worth buying, not too much gold. Cutting drops or raising every price makes the early game harder too, and lowering the sell rate punishes selling materials. A new sink at the right price turns the surplus into a goal.`,
         },
-        { kind: 'code', file: 'ui/shop_menu.gd', code: SHOP_MENU, note: md`The menu stores nothing about prices or counts: it rebuilds from \`GameState\` on every \`changed\` or \`gold_changed\`. Rows the party cannot afford are disabled rather than hidden, so the player sees what to save for. \`[&"kind", &"name", &"price"][sort.selected]\` indexes an array literal to map the option button to a sort key.` },
+        { kind: 'code', file: 'ui/shop_menu.gd', code: SHOP_MENU, note: md`The menu stores nothing about prices or counts: it rebuilds from \`GameState\` on every \`Events.inventory_changed\` or \`Events.gold_changed\`. Rows the party cannot afford are disabled rather than hidden, so the player sees what to save for. \`[&"kind", &"name", &"price"][sort.selected]\` indexes an array literal to map the option button to a sort key.` },
         {
           kind: 'steps',
           title: 'Open a shop',
@@ -1036,7 +1028,7 @@ With 1500 for the Rune Blade, the field alone would take about 1.8 hours of figh
           ],
           result: md`The list shows the stock with outpost prices; buying lowers the gold label and raises the count; items you cannot afford are greyed out; **Sell** switches to the bag and shows half prices; the Old Key never appears in the sell list.`,
           troubleshoot: [
-            { problem: md`The gold label does not change after buying.`, fix: md`\`gold\` needs the setter that emits \`gold_changed\`, and the menu must connect to it. Assigning \`gold\` from inside \`GameState\` itself without \`self.\` still runs the setter in Godot 4; check the signal is declared.` },
+            { problem: md`The gold label does not change after buying.`, fix: md`\`gold\` needs the setter that emits \`Events.gold_changed\`, and the menu must connect to that signal. Inside \`GameState\` itself, assigning \`gold = ...\` still runs the setter in Godot 4.` },
             { problem: md`The ItemList does not respond to the keyboard.`, fix: md`It needs focus: \`list.grab_focus()\` in \`_ready\`, and its *Focus Mode* set to *All*.` },
           ],
         },
@@ -1199,7 +1191,7 @@ static func buy(shop: ShopData, item: ItemData, amount: int) -> bool:
 	if GameState.gold < cost:
 		return false
 	GameState.gold -= cost
-	GameState.inventory.add(item, amount)
+	GameState.add_item(item.id, amount)
 	return true
 \`\`\``,
       solution: [
@@ -1215,23 +1207,23 @@ static func buy(shop: ShopData, item: ItemData, amount: int) -> bool:
       type: 'debug',
       difficulty: 2,
       minutes: 6,
-      statement: md`Players report that mashing the interact button on a chest sometimes gives its contents twice. The interaction code calls \`interact()\` once per press. Explain how this chest allows it and fix it.
+      statement: md`Players report that mashing the interact button on a chest sometimes gives its contents twice. The interaction code emits \`interacted\` once per press. Explain how this chest allows it and fix it.
 
 \`\`\`gdscript
-func interact(_by: Node) -> void:
-	if GameState.has_flag(flag_id):
+func _on_interacted(_by: Node2D) -> void:
+	if GameState.is_opened(persist_id):
 		return
 	sprite.play("open")
 	await sprite.animation_finished
 	for item: ItemData in contents.roll(rng):
-		GameState.inventory.add(item)
-	GameState.set_flag(flag_id)
+		GameState.add_item(item.id)
+	GameState.mark_opened(persist_id)
 \`\`\``,
       solution: [
-        md`The \`await\` suspends the function while the open animation plays. A second press during that time calls \`interact\` again, the flag is still unset, and a second coroutine starts. Both finish and both grant the contents.`,
-        md`Set the flag **before** anything that can wait (as the lesson's chest does), then play the animation and grant the items. The second call returns at the flag check.`,
+        md`The \`await\` suspends the function while the open animation plays. A second press during that time calls \`interact\` again, the chest is not yet marked as opened, and a second coroutine starts. Both finish and both grant the contents.`,
+        md`Call \`mark_opened\` **before** anything that can wait (as the lesson's chest does), then play the animation and grant the items. The second call returns at the \`is_opened\` check.`,
       ],
-      rubric: [md`Connects the bug to the await window`, md`Moves the flag before the first await`],
+      rubric: [md`Connects the bug to the await window`, md`Marks the chest opened before the first await`],
       areas: ['godot'],
     },
     {

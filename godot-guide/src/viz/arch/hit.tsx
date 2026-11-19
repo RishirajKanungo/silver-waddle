@@ -320,7 +320,7 @@ export function HitLab({ spec }: { spec: VizSpec }) {
         ctx.fillStyle = th.accent;
         ctx.font = '11px ' + getComputedStyle(c).getPropertyValue('--mono');
         ctx.textAlign = 'left';
-        ctx.fillText(`combo window for hit ${kai.step + 2} (frames ${a}..${b})`, Math.max(2, Math.min(xa, c.width - 230)), top + bh + 28);
+        ctx.fillText(`combo window for hit ${kai.step + 2} (frames ${a}..${b})`, Math.max(2, Math.min(xa, c.width - 262)), top + bh + 28);
       }
     }
     ctx.fillStyle = th.fg;

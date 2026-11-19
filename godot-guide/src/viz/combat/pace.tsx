@@ -82,7 +82,7 @@ export function Pace({ spec }: { spec: VizSpec }) {
   const tStagger = p.staggerMax / staggerRate;
   const sim = useMemo(() => simulateFight(p), [p]);
   const inBand = sim.done && sim.t >= 30 && sim.t <= 90;
-  const tMax = Math.max(30, Math.min(240, Math.ceil(sim.t / 10) * 10));
+  const tMax = Math.max(100, Math.min(240, Math.ceil(sim.t / 10) * 10));
 
   return (
     <FigureLayout
@@ -115,7 +115,7 @@ export function Pace({ spec }: { spec: VizSpec }) {
         width={520}
         height={260}
         x={[0, tMax]}
-        y={[0, 1.05]}
+        y={[0, 1.4]}
         xlabel="seconds"
         ylabel="fraction"
         legend="tr"

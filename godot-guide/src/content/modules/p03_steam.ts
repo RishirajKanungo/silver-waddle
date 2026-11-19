@@ -133,7 +133,7 @@ func unlock_achievement(api_name: String) -> void:
     if not is_ready:
         return
     _steam.setAchievement(api_name)
-    # storeStats sends the change to Steam; without it the unlock may never reach the servers
+    # storeStats sends the change to Steam; without it the change may never reach the servers
     _steam.storeStats()
 `;
 
@@ -209,7 +209,7 @@ export const MODULE: Module = {
   order: 3,
   title: 'Shipping on Steam',
   summary: 'Export templates and presets, release builds for Windows and Linux, screen scaling for the Steam Deck; Steamworks, SteamPipe uploads, GodotSteam achievements and cloud saves; the store page, Coming Soon and Next Fest timing, pricing, revenue and the legal basics.',
-  relevance: md`This is the path from "it runs in the editor" to "it is for sale". Shardbound gets a scripted release export for Windows and Linux that scales cleanly on a Steam Deck, a Steamworks app with depots and a beta branch fed by \`steamcmd\`, a \`SteamService\` autoload that unlocks achievements without tying gameplay code to Steam, Auto-Cloud saves, a Coming Soon page with a dated plan to Next Fest and launch, and a revenue model you can check against the price you choose.`,
+  relevance: md`This is the path from "it runs in the editor" to "it is for sale". Shardbound gets a scripted release export for Windows and Linux that scales cleanly on a Steam Deck, a Steamworks app with depots and a beta branch fed by \`steamcmd\`, a \`SteamService\` autoload that awards achievements without tying gameplay code to Steam, Auto-Cloud saves, a Coming Soon page with a dated plan to Next Fest and launch, and a revenue model you can check against the price you choose.`,
   prereqs: ['p02'],
   areas: ['ship'],
   lessons: [
@@ -405,7 +405,7 @@ The Steam Deck's screen is 1280×800: a 4× scale gives 1280×720 with 40-pixel 
       objectives: [
         'Set up a Steamworks app: the Steam Direct fee (US\\$100, recoupable), app ID, depots, builds and branches.',
         'Upload builds with `steamcmd` and an app build VDF, and set them live on a branch.',
-        'Integrate GodotSteam behind a `SteamService` autoload: initialise, run callbacks, unlock achievements.',
+        'Integrate GodotSteam behind a `SteamService` autoload: initialise, run callbacks, award achievements.',
         'Back up saves with Steam Auto-Cloud and keep the game running without Steam.',
       ],
       cells: [
@@ -481,7 +481,7 @@ For testing from the editor, the Steam client must be running and the game must 
           kind: 'text',
           md: md`### Achievements
 
-Achievements are defined in Steamworks (**Stats & Achievements**) with an **API name** (\`ACH_GOLEM\`), a display name, a description and two icons, then published. The game only sends "unlock \`ACH_GOLEM\`".
+Achievements are defined in Steamworks (**Stats & Achievements**) with an **API name** (\`ACH_GOLEM\`), a display name, a description and two icons, then published. The game only sends "set \`ACH_GOLEM\`".
 
 Connect them to game events rather than sprinkling calls through combat code. The \`Events\` bus already announces things like a boss being defeated, so a small listener translates events into achievements.
 
@@ -525,7 +525,7 @@ The save files must therefore be in a predictable place. \`user://\` in Godot is
             requirements: [
               md`\`tools/upload.sh\` builds and uploads both depots, setting the build live on a \`beta\` branch.`,
               md`Installing the game from the Steam client on the beta branch works on Windows, and on Linux or a Deck.`,
-              md`Defeating the golem unlocks \`ACH_GOLEM\` with the overlay notification (on your own app ID; the test app 480 has its own achievements).`,
+              md`Defeating the golem awards \`ACH_GOLEM\` with the overlay notification (on your own app ID; the test app 480 has its own achievements).`,
               md`A save made on one machine appears on another after Steam syncs.`,
               md`Running the exported game with Steam closed, or with GodotSteam removed, starts normally and logs one warning.`,
             ],
@@ -565,13 +565,13 @@ The save files must therefore be in a predictable place. \`user://\` in Godot is
         {
           kind: 'explain',
           prompt: md`Why put GodotSteam behind a \`SteamService\` autoload that tolerates Steam being absent?`,
-          model: md`Gameplay code then depends on a small interface (unlock an achievement) instead of a third-party API, so GodotSteam updates, a second store or a DRM-free build change one file. Tolerating absence keeps the editor, playtest builds and non-Steam copies running: a missing extension or a closed Steam client logs a warning instead of crashing, and achievement calls become no-ops.`,
+          model: md`Gameplay code then depends on a small interface (award an achievement) instead of a third-party API, so GodotSteam updates, a second store or a DRM-free build change one file. Tolerating absence keeps the editor, playtest builds and non-Steam copies running: a missing extension or a closed Steam client logs a warning instead of crashing, and achievement calls become no-ops.`,
         },
       ],
       cards: [
         { id: 'p03-2-c1', kind: 'concept', front: md`The Steam Direct fee: amount and when it comes back?`, back: md`US\$100 per game, paid back once the game has US\$1,000 of adjusted gross revenue.` },
         { id: 'p03-2-c2', kind: 'cloze', text: md`Uploading a build: \`steamcmd +login <account> +{{}} <path to app_build.vdf> +quit\`.`, answers: ['run_app_build'] },
-        { id: 'p03-2-c3', kind: 'concept', front: md`Two calls to unlock an achievement with GodotSteam?`, back: md`\`setAchievement(api_name)\` then \`storeStats()\` to send it to Steam (method names from GodotSteam; check your version).` },
+        { id: 'p03-2-c3', kind: 'concept', front: md`Two calls to award an achievement with GodotSteam?`, back: md`\`setAchievement(api_name)\` then \`storeStats()\` to send it to Steam (method names from GodotSteam; check your version).` },
         { id: 'p03-2-c4', kind: 'concept', front: md`How does Steam Auto-Cloud find your saves?`, back: md`It is configured in Steamworks with a root folder per OS, a subdirectory and a file pattern. Use a custom user dir so \`user://\` has a predictable path.` },
         { id: 'p03-2-c5', kind: 'concept', front: md`Does uploading a build release it?`, back: md`No. It creates a build; setting it live on the default branch (on the Steamworks site) releases it. \`SetLive\` in the VDF can only set non-default branches.` },
       ],

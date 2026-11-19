@@ -178,25 +178,25 @@ export function PartyFollow({ spec }: { spec: VizSpec }) {
 
   const code =
     strategy === 'chase'
-      ? `# ai_controller.gd: follow by chasing
+      ? `# ally_ai_controller.gd: follow by chasing
 func _follow(leader: Character) -> void:
-	var to_leader := leader.global_position - body.global_position
+	var to_leader := leader.global_position - character.global_position
 	if to_leader.length() > follow_distance:  # ${spacing.toFixed(0)} px
-		body.intent.move = to_leader.normalized()
+		character.intent.move = to_leader.normalized()
 	else:
-		body.intent.move = Vector2.ZERO`
+		character.intent.move = Vector2.ZERO`
       : strategy === 'trail'
-        ? `# ai_controller.gd: follow the leader's trail
+        ? `# ally_ai_controller.gd: follow the leader's trail
 func _follow(leader: Character) -> void:
-	# party_manager.trail is a PackedVector2Array of the leader's past positions
+	# party.trail holds the leader's past positions (k05-2)
 	var target := party.point_behind_leader((slot + 1) * follow_distance)  # ${spacing.toFixed(0)} px per slot
-	_steer_to(target)`
-        : `# ai_controller.gd: formation slots
+	_steer_to(target, 4.0)`
+        : `# ally_ai_controller.gd: formation slots
 func _follow(leader: Character) -> void:
-	var back := -leader.heading
+	var back := -leader.facing_vector
 	var side := back.orthogonal() * (1.0 if slot == 0 else -1.0)
 	var target := leader.global_position + back * follow_distance + side * follow_distance * 0.7
-	_steer_to(target)  # follow_distance = ${spacing.toFixed(0)}`;
+	_steer_to(target, 4.0)  # follow_distance = ${spacing.toFixed(0)}`;
 
   return (
     <FigureLayout
@@ -215,7 +215,7 @@ func _follow(leader: Character) -> void:
           />
         </>
       }
-      below={<CodeBlock compact file="scripts/controllers/ai_controller.gd (excerpt)" code={code} />}
+      below={<CodeBlock compact file="scripts/ally_ai_controller.gd (excerpt)" code={code} />}
     >
       <GameCanvas width={W} height={H} update={update} draw={draw} touchButtons={['up', 'down', 'left', 'right']} keysHint={<Keys items={[['WASD / arrows', 'move Kai']]} />} label="party follow lab: move Kai with WASD or arrows; Lyra and Bram follow" />
     </FigureLayout>

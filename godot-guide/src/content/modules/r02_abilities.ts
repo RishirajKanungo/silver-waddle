@@ -23,7 +23,7 @@ extends AbilityEffect
 ## Deals damage through the r01 pipeline.
 
 @export var power := 1.0
-@export var element: Rpg.Element = Rpg.Element.NONE
+@export var element: Element.Type = Element.Type.NONE
 @export var is_magic := false
 
 
@@ -33,7 +33,7 @@ func apply(user: Combatant, target: Combatant) -> void:
 
 func describe() -> String:
     var kind := "magic" if is_magic else "physical"
-    var element_name: String = Rpg.Element.find_key(element)
+    var element_name: String = Element.Type.find_key(element)
     return "%s damage x%.1f, %s" % [kind, power, element_name.to_lower()]
 `;
 
@@ -99,7 +99,7 @@ extends Resource
 ## Something a character can do in battle: a sword technique, a spell, an item's use.
 ## What it does is a list of small effects; the rest is targeting, cost and timing.
 
-enum Target { SINGLE_ENEMY, ALL_ENEMIES, SINGLE_ALLY, PARTY, SELF }
+enum Target { SELF, ONE_ENEMY, ALL_ENEMIES, ONE_ALLY, ALL_ALLIES }
 enum Area { NONE, CIRCLE, LINE, CONE }
 
 ## Half the width of a LINE area, in pixels.
@@ -115,8 +115,8 @@ const LINE_HALF_WIDTH := 10.0
 @export var mp_cost := 0
 
 @export_group("Targeting")
-@export var target: Target = Target.SINGLE_ENEMY
-## For SINGLE_ENEMY and SINGLE_ALLY: also hit others on that side inside this shape.
+@export var target: Target = Target.ONE_ENEMY
+## For ONE_ENEMY and ONE_ALLY: also hit others on that side inside this shape.
 @export var area: Area = Area.NONE
 ## Circle radius, or line and cone length, in pixels.
 @export var area_size := 32.0
@@ -145,7 +145,7 @@ func collect_targets(caster: Combatant, chosen: Combatant, candidates: Array[Com
     match target:
         Target.SELF:
             out.append(caster)
-        Target.ALL_ENEMIES, Target.PARTY:
+        Target.ALL_ENEMIES, Target.ALL_ALLIES:
             out.append_array(candidates)
         _:
             if area == Area.NONE:
@@ -340,16 +340,15 @@ id = &"healing_light"
 display_name = "Healing Light"
 atb_cost = 2
 mp_cost = 18
-target = 3
+target = 4
 cast_time = 1.0
 effects = Array[ExtResource("2_eff")]([SubResource("Resource_heal")])
 `;
 
 const EQUIPMENT_ADD = gd`
 # Add to scripts/resources/equipment_data.gd (r02).
+# teaches: Array[AbilityData] is already there (g04, r01).
 @export_group("Growth")
-## The ability this weapon teaches through use. Empty for armour and accessories.
-@export var teaches: AbilityData
 ## Proficiency points per use of that ability; 100 learns it for good.
 @export_range(1, 100) var proficiency_per_use := 20
 ## AP multiplier for shards in this item's sockets: 0, 1, 2 or 3.
@@ -374,7 +373,7 @@ const MASTERED := 100
 
 ## Call each time the member uses an ability in battle.
 func record_use(ability: AbilityData, weapon: EquipmentData) -> void:
-    if weapon == null or weapon.teaches != ability or ability in known:
+    if weapon == null or ability not in weapon.teaches or ability in known:
         return
     var points := mini(MASTERED, proficiency.get(ability.id, 0) + weapon.proficiency_per_use)
     proficiency[ability.id] = points
@@ -392,8 +391,10 @@ func points_for(ability: AbilityData) -> int:
 func available(loadout: Loadout) -> Array[AbilityData]:
     var out: Array[AbilityData] = known.duplicate()
     var weapon := loadout.weapon
-    if weapon != null and weapon.teaches != null and weapon.teaches not in out:
-        out.append(weapon.teaches)
+    if weapon != null:
+        for taught in weapon.teaches:
+            if taught not in out:
+                out.append(taught)
     for ability in loadout.granted_abilities():
         if ability not in out:
             out.append(ability)
@@ -556,9 +557,9 @@ static func grant(party: Array[PartyMember], defeated: Array[EnemyData]) -> Dict
     var ap := 0
     var gold := 0
     for enemy in defeated:
-        xp += enemy.xp
-        ap += enemy.ap
-        gold += enemy.gold
+        xp += enemy.xp_reward
+        ap += enemy.ap_reward
+        gold += enemy.gold_reward
     for member in party:
         member.add_xp(xp)
         member.loadout.award_ap(ap)
@@ -652,7 +653,7 @@ r01's damage pipeline knows how to turn *power, element, physical or magic* into
           tone: 'definition',
           title: 'AbilityData and AbilityEffect',
           md: md`- **Costs**: \`atb_cost\` (0 to 2 segments) and \`mp_cost\`.
-- **Target type**: *single enemy, all enemies, single ally, party, self*.
+- **Target type** (g04's enum): *self, one enemy, all enemies, one ally, all allies*.
 - **Area** for single-target abilities: *none, circle* (around the chosen target), *line* (from the caster towards the target), *cone* (from the caster, opening towards the target), with a size in pixels.
 - **Cast time**: seconds between choosing the ability and its effects landing; *interruptible* if a hit cancels it.
 - **Effects**: an ordered list of \`AbilityEffect\` resources. Each one does one thing to one target: \`DamageEffect\`, \`HealEffect\`, \`ApplyStatusEffect\`, \`PressureEffect\`.`,
@@ -712,7 +713,7 @@ Single-target abilities can also hit others on the same side inside an area. Eac
           ],
           takeaway: md`Compare cosines, not angles. The same trick decides "is the enemy in front of me" for AI (k02) and for backstab bonuses.`,
         },
-        { kind: 'code', file: 'scripts/resources/ability_data.gd', code: ABILITY_DATA, note: md`\`collect_targets\` takes \`Combatant\`s, the r01 component on every fighter, and reads positions from their parent \`Character\`. \`ALL_ENEMIES\` and \`PARTY\` ignore the area. If g04 created a simpler \`AbilityData\` with \`power\` and \`element\` fields, this replaces it: those fields now live in \`DamageEffect\`.` },
+        { kind: 'code', file: 'scripts/resources/ability_data.gd', code: ABILITY_DATA, note: md`\`collect_targets\` takes \`Combatant\`s, the r01 component on every fighter, and reads positions from their parent \`Character\`. \`ALL_ENEMIES\` and \`ALL_ALLIES\` ignore the area. This fills in g04's \`AbilityData\` skeleton, keeping its \`Target\` enum and cost fields; its \`power\` and \`element\` fields move into \`DamageEffect\`, because an ability may now deal several kinds of damage, or none.` },
         {
           kind: 'numeric',
           q: md`A line ability has length 96 px and half-width 10 px. The caster is at $(0, 0)$ and aims at $(100, 0)$. How many of these slimes does it hit: $(60, 8)$, $(100, 0)$, $(30, -12)$, $(90, -9)$?`,
@@ -772,7 +773,7 @@ When you build Fire Wave in the Inspector and save it, Godot writes a text \`.tr
               md`Healing Light heals every party member, including ones far from Lyra.`,
             ],
             hints: [
-              md`Target type *Party* ignores the area, so leave *Area* at *None*.`,
+              md`Target type *All Allies* ignores the area, so leave *Area* at *None*.`,
               md`Use the external \`poison.tres\` for the status itself (it is the definition of poison) but a built-in \`ApplyStatusEffect\` for the 60% chance, which belongs to this ability.`,
               md`Open the saved \`.tres\` in a text editor and compare it with the reference: the same structure means the same ability.`,
             ],
@@ -780,7 +781,7 @@ When you build Fire Wave in the Inspector and save it, Godot writes a text \`.tr
               { file: 'resources/abilities/venom_fang.tres', code: VENOM_FANG_TRES, lang: 'tscn' },
               { file: 'resources/abilities/healing_light.tres', code: HEALING_LIGHT_TRES, lang: 'tscn' },
             ],
-            explain: md`\`target = 3\` is \`PARTY\` in the \`Target\` enum. Venom Fang lists its effects in pipeline order: the hit first, so the status applies afterwards, then pressure. Notice what is not in either file: no code, no class names other than the effect scripts. This is the payoff of composition: the ability list can grow to dozens without the codebase growing.`,
+            explain: md`\`target = 4\` is \`ALL_ALLIES\` in the \`Target\` enum (g04's order: self, one enemy, all enemies, one ally, all allies). Venom Fang lists its effects in pipeline order: the hit first, so the status applies afterwards, then pressure. Notice what is not in either file: no code, no class names other than the effect scripts. This is the payoff of composition: the ability list can grow to dozens without the codebase growing.`,
           },
         },
         {
@@ -852,7 +853,7 @@ Shardbound uses two sources of abilities with different rules:
 - **AP** is earned by every socketed shard after each won battle: the sum of the defeated enemies' AP, multiplied by the item's \`ap_multiplier\` (FF7 had weapons with double and triple growth slots, and some with none).
 - A shard's **level** comes from its total AP and its thresholds (r01): Fire reaches level 2 at 200 AP and level 3 at 600.`,
         },
-        { kind: 'code', file: 'scripts/resources/equipment_data.gd', code: EQUIPMENT_ADD, fragment: true, note: md`Three fields added to r01's \`EquipmentData\`. \`teaches\` is an \`AbilityData\`; the Iron Sword teaches Rising Slash at 20 points per use (five uses), the Rune Blade teaches Triple Slash at 10 per use (ten uses).` },
+        { kind: 'code', file: 'scripts/resources/equipment_data.gd', code: EQUIPMENT_ADD, fragment: true, note: md`Two fields added to r01's \`EquipmentData\`, which already has g04's \`teaches: Array[AbilityData]\`; the Iron Sword teaches Rising Slash at 20 points per use (five uses), the Rune Blade teaches Triple Slash at 10 per use (ten uses).` },
         { kind: 'code', file: 'scripts/rpg/ability_book.gd', code: ABILITY_BOOK, note: md`\`proficiency\` is a typed dictionary (Godot 4.4), keyed by the ability's \`id\` rather than by the resource itself, so the save file (r06) stores plain names. The book belongs to the character, not to the weapon: Kai's progress on Rising Slash is his, whichever Iron Sword he holds.` },
         {
           kind: 'numeric',
@@ -921,14 +922,14 @@ Shardbound uses shards for spells and passives and weapon proficiency for signat
           kind: 'steps',
           title: 'Teach Rising Slash through the Iron Sword',
           steps: [
-            md`Add the three *Growth* fields to \`equipment_data.gd\`, \`award_ap\` to \`loadout.gd\`, and create \`scripts/rpg/ability_book.gd\`. Add \`@export var book: AbilityBook\` to \`PartyMember\` and create it in \`setup()\` when it is \`null\` (lesson 3 gives the full listing).`,
-            md`Create \`resources/abilities/rising_slash.tres\` (id \`rising_slash\`, one \`DamageEffect\` at power 2.0 and a \`PressureEffect\` of 12). Open \`iron_sword.tres\` and drag it into *Teaches*; set *Proficiency Per Use* to 20.`,
+            md`Add the two *Growth* fields to \`equipment_data.gd\`, \`award_ap\` to \`loadout.gd\`, and create \`scripts/rpg/ability_book.gd\`. Add \`@export var book: AbilityBook\` to \`PartyMember\` and create it in \`setup()\` when it is \`null\` (lesson 3 gives the full listing).`,
+            md`Create \`resources/abilities/rising_slash.tres\` (id \`rising_slash\`, one \`DamageEffect\` at power 2.0 and a \`PressureEffect\` of 12). Open \`iron_sword.tres\` and add it to *Teaches*; set *Proficiency Per Use* to 20.`,
             md`In a test script, equip the Iron Sword on Kai and call \`kai.book.record_use(rising_slash, kai.loadout.weapon)\` five times, printing \`kai.book.points_for(rising_slash)\` and \`kai.abilities()\` after each call.`,
             md`Equip the Rune Blade and print \`kai.abilities()\` again.`,
           ],
           result: md`Points go 20, 40, 60, 80, 100; after the fifth call \`learned\` fires and Rising Slash is in \`known\`. With the Rune Blade equipped, \`abilities()\` lists Rising Slash (learned) and Triple Slash (the Rune Blade's, not yet learned).`,
           troubleshoot: [
-            { problem: md`Points never rise.`, fix: md`\`weapon.teaches != ability\` is true: the sword references a different \`rising_slash.tres\` than the one you pass, for example a duplicate. Load both from the same path.` },
+            { problem: md`Points never rise.`, fix: md`\`ability not in weapon.teaches\` is true: the sword references a different \`rising_slash.tres\` than the one you pass, for example a duplicate. Load both from the same path.` },
             { problem: md`An error about assigning to a typed dictionary.`, fix: md`Typed dictionaries need Godot 4.4 or newer. On 4.3, declare \`proficiency\` as a plain \`Dictionary\`.` },
           ],
         },
@@ -1048,7 +1049,7 @@ m05 derives the shape of XP curves and why most games use a power or exponential
           title: 'What happens to HP on a level up?',
           md: md`Max HP rises with the level. Current HP can stay where it was (the gap grows), rise by the same amount (common in JRPGs), or refill (a reward that makes level ups exciting, and a balance risk mid-dungeon). Shardbound raises current HP by the max HP increase: level ups feel good without becoming free heals. Whatever you choose, \`HealthComponent\` needs one line in the handler of \`leveled_up\`, and the rule should be the same for every character.`,
         },
-        { kind: 'code', file: 'scripts/rpg/battle_rewards.gd', code: BATTLE_REWARDS, note: md`\`GameState.gold\` is an \`int\` on the autoload; r03 adds a \`gold_changed\` signal for the HUD. Giving the full XP to all three members, including any not currently controlled, removes a reason to avoid switching characters (k05).` },
+        { kind: 'code', file: 'scripts/rpg/battle_rewards.gd', code: BATTLE_REWARDS, note: md`\`GameState.gold\` is g04's \`int\` on the autoload; r03 gives it a setter that emits \`Events.gold_changed\` for the HUD. Giving the full XP to all three members, including any not currently controlled, removes a reason to avoid switching characters (k05).` },
         {
           kind: 'viz',
           viz: { type: 'rpg.stats.progression' },
@@ -1090,7 +1091,7 @@ At level 8, Kai with the Iron Sword has attack 64. A skeleton (defence 20, 220 H
           steps: [
             md`Create \`scripts/rpg/progression.gd\` and replace \`party_member.gd\` with the listing above.`,
             md`Create \`scripts/rpg/battle_rewards.gd\`. If your \`GameState\` has no \`gold\` yet, add \`var gold := 0\` to \`scripts/autoload/game_state.gd\`.`,
-            md`Make a test scene with a \`Label\` root, attach the script below, and in the Inspector give it a new \`PartyMember\` with \`kai.tres\` as *Base*. Run with **F6**.`,
+            md`Make a test scene with a \`Label\` root, attach the script below, and in the Inspector give it a new \`PartyMember\` with \`kai_stats.tres\` as *Base*. Run with **F6**.`,
             md`Press **1** about 20 times and **2** a few times, watching the label and the Output.`,
           ],
           result: md`The label counts XP toward the next level; each level up prints \`reached level N\` followed by the stats that rose (for Kai at level 2: \`MAX_HP +10\`, \`MAX_MP +3\`, \`ATTACK +4\`, \`MAGIC +2\`, \`DEFENCE +1\`, \`MAGIC_DEFENCE +1\`, \`SPEED +1\`). Pressing 1 twenty times (440 XP) reaches level 5.`,

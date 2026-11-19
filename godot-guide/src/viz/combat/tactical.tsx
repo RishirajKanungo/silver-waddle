@@ -24,9 +24,13 @@ export function Tactical({ spec }: { spec: VizSpec }) {
   const [, setTick] = useState(0);
   const frame = useRef(0);
 
-  const worldScale = !open ? 1 : approach === 'pause' ? 0 : scale;
-  const menuScale = !open ? 1 : approach === 'scale' ? scale : approach === 'pause' ? (always ? 1 : 0) : 1;
-  const menuInput = !open || approach !== 'pause' || always;
+  // speeds while the menu is open (the table always shows these)
+  const openWorld = approach === 'pause' ? 0 : scale;
+  const openMenu = approach === 'scale' ? scale : approach === 'pause' ? (always ? 1 : 0) : 1;
+  const openInput = approach !== 'pause' || always;
+  const worldScale = open ? openWorld : 1;
+  const menuScale = open ? openMenu : 1;
+  const menuInput = !open || openInput;
 
   const toggle = () => {
     if (open && !menuInput) {
@@ -120,12 +124,12 @@ export function Tactical({ spec }: { spec: VizSpec }) {
 
   const sp = (v: number) => (v === 0 ? <span className="off">stopped</span> : v === 1 ? <span className="on">×1</span> : <span className="slow">×{v.toFixed(2)}</span>);
   const rows: [string, string, number | 'input'][] = [
-    ['Lyra, Slime', 'CharacterBody2D, _physics_process', worldScale],
-    ['Fireball', 'Area2D moved in _physics_process', worldScale],
-    ['AttackTimer', 'Timer, wait_time 2 s', worldScale],
-    ['AnimatedSprite2D', 'sprite animation', worldScale],
-    ['TacticalMenu input', '_unhandled_input', menuInput ? 1 : 0],
-    ['Cursor tween', 'create_tween() on the menu', menuScale],
+    ['Lyra, Slime', 'CharacterBody2D, _physics_process', openWorld],
+    ['Fireball', 'Area2D moved in _physics_process', openWorld],
+    ['AttackTimer', 'Timer, wait_time 2 s', openWorld],
+    ['AnimatedSprite2D', 'sprite animation', openWorld],
+    ['TacticalMenu input', '_unhandled_input', openInput ? 1 : 0],
+    ['Cursor tween', 'create_tween() on the menu', openMenu],
   ];
   const code =
     approach === 'scale'
@@ -183,7 +187,7 @@ func close_tactical() -> void:
             <thead>
               <tr>
                 <th>node</th>
-                <th>menu open</th>
+                <th>while the menu is open</th>
               </tr>
             </thead>
             <tbody>
