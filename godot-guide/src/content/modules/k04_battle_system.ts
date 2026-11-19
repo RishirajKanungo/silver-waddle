@@ -687,7 +687,10 @@ func exit() -> void:
 // ------------------------------------------------------------------------------------ k04-3 listings
 const EVENTS_BATTLE = gd`
 # scripts/autoload/events.gd: battle flow signals
-signal battle_started(encounter: Node)
+## A fight began / ended (either way). r06's autosave waits for battle_ended.
+signal battle_started
+signal battle_ended
+## The outcome, emitted just before battle_ended.
 signal battle_won(xp: int, gold: int)
 signal battle_lost
 `;
@@ -746,7 +749,7 @@ func start() -> void:
     player.health.died.connect(_lose, CONNECT_ONE_SHOT)
     if battle_music:
         Audio.play_music(battle_music)
-    Events.battle_started.emit(self)
+    Events.battle_started.emit()
 
 
 func _on_enemy_died() -> void:
@@ -763,10 +766,12 @@ func _win() -> void:
     if field_music:
         Audio.play_music(field_music)
     Events.battle_won.emit(xp_reward, gold_reward)
+    Events.battle_ended.emit()
 
 
 func _lose() -> void:
     Events.battle_lost.emit()
+    Events.battle_ended.emit()
 
 
 func _set_walls(on: bool) -> void:
@@ -1354,7 +1359,7 @@ and the trigger handler calls \`start()\` without turning the trigger off. Expla
         {
           kind: 'recall',
           prompt: md`List what \`Encounter.start()\` changes, and what \`_win()\` changes back or records.`,
-          answer: md`start(): walls on (deferred), enemies' AI on, died signals connected one-shot, defeat watcher connected, battle music, \`Events.battle_started\`. _win(): walls off, defeat watcher disconnected, the encounter flag set in GameState, field music, \`Events.battle_won(xp, gold)\`.`,
+          answer: md`start(): walls on (deferred), enemies' AI on, died signals connected one-shot, defeat watcher connected, battle music, \`Events.battle_started\`. _win(): walls off, defeat watcher disconnected, the encounter flag set in GameState, field music, \`Events.battle_won(xp, gold)\` and then \`Events.battle_ended\`.`,
         },
       ],
       cards: [

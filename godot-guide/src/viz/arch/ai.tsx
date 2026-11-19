@@ -341,7 +341,7 @@ export function AiSandbox({ spec }: { spec: VizSpec }) {
     }
     if (++tick.current % 5 === 0) {
       const e = enemies[0];
-      setRo({ brain: e.brain, senses: e.senses, since: e.sinceSensed, dot: dotShown, thr, dist: Math.hypot(kai.x - e.x, kai.y - e.y), clear: e.rayClear, hp: kai.hp, stuck: enemies.filter((x) => x.brain === 'CHASE' && x.mx !== 0 && Math.hypot(x.vx, x.vy) < 8).length });
+      setRo({ brain: e.brain, senses: e.senses, since: e.sinceSensed, dot: dotShown, thr, dist: Math.hypot(kai.x - e.x, kai.y - e.y), clear: e.rayClear, hp: kai.hp, stuck: enemies.filter((x) => x.brain === 'CHASE' && (x.mx !== 0 || x.my !== 0) && Math.hypot(kai.x - x.x, kai.y - x.y) > 28 && Math.hypot(x.vx, x.vy) < 8).length });
     }
   };
 
@@ -452,7 +452,7 @@ export function AiSandbox({ spec }: { spec: VizSpec }) {
             <Readout
               rows={[
                 ['\\text{repath}', 'every 0.25 s'],
-                ['\\text{pushing a wall}', `${ro.stuck} of ${enemies.length}`],
+                ['\\text{stuck on a wall}', `${ro.stuck} of ${enemies.length}`],
               ]}
             />
             <div className="arch-note">The enemies are already alerted: they always know where Kai is. Hide behind the long walls.</div>

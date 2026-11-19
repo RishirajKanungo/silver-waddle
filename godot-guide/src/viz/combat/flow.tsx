@@ -52,14 +52,14 @@ _set_walls(false)`,
     enemies: 3,
     walls: true,
     enemiesAwake: true,
-    signals: ['Events.battle_started(encounter)', 'Audio: music_battle', 'HUD: show party bars'],
+    signals: ['Events.battle_started', 'Audio: music_battle', 'HUD: show party bars'],
     code: `func start() -> void:
 	_set_walls(true)
 	_remaining = enemies.size()
 	for enemy in enemies:
 		enemy.set_active(true)
 		enemy.health.died.connect(_on_enemy_died, CONNECT_ONE_SHOT)
-	Events.battle_started.emit(self)`,
+	Events.battle_started.emit()`,
   },
   {
     title: 'Fighting',
@@ -96,11 +96,12 @@ const WIN: FStep[] = [
     enemies: 0,
     walls: false,
     enemiesAwake: false,
-    signals: ['Events.battle_won(rewards)', 'GameState.flags["cave_1_cleared"] = true', 'Audio: music_field'],
+    signals: ['Events.battle_won(30, 12)', 'Events.battle_ended', 'GameState.set_flag("cave_1_cleared")', 'Audio: music_field'],
     code: `func _win() -> void:
 	_set_walls(false)
-	GameState.flags[encounter_id] = true
-	Events.battle_won.emit(xp_reward, gold_reward)`,
+	GameState.set_flag(encounter_id)
+	Events.battle_won.emit(xp_reward, gold_reward)
+	Events.battle_ended.emit()`,
   },
 ];
 const LOSE: FStep[] = [
@@ -112,7 +113,7 @@ const LOSE: FStep[] = [
     walls: true,
     enemiesAwake: true,
     koParty: true,
-    signals: ['bram.health.died', 'PartyManager.party_defeated', 'Events.battle_lost'],
+    signals: ['bram.health.died', 'PartyManager.party_defeated', 'Events.battle_lost', 'Events.battle_ended'],
     code: `# party_manager.gd
 func _on_member_died(member: Character) -> void:
 	if member == leader():

@@ -5,8 +5,9 @@ import { ComponentChain, ComponentLab } from './component';
 import { HitLab } from './hit';
 import { FrameData } from './frame';
 import { HitCurves } from './curves';
+import { AiSandbox, SteerLab } from './ai';
+import { TokenCrowd, BossPhasesFig } from './crowd';
 
-const Stub = () => null;
 const oneOf = (key: string, vals: string[], optional = true) => (s: VizSpec) =>
   (optional && s[key] === undefined) || vals.includes(s[key] as string) ? null : `${key} must be one of ${vals.join(', ')}`;
 
@@ -39,8 +40,21 @@ export const VIZ: Record<string, VizDef> = {
     validate: oneOf('mode', ['shake', 'knockback'], false),
     doc: "mode 'shake': trauma and trauma^p curves with a shaking camera preview; mode 'knockback': slide distance under linear friction versus exponential decay.",
   },
-  'combat.ai': { component: Stub },
-  'combat.ai_steer': { component: Stub },
-  'combat.ai_tokens': { component: Stub },
-  'combat.ai_phases': { component: Stub },
+  'combat.ai': {
+    component: AiSandbox,
+    validate: oneOf('mode', ['perception', 'nav'], false),
+    doc: "AI sandbox in a tile room. mode 'perception': a patrolling skeleton with vision cone, hearing radius, line-of-sight ray, memory and brain label; 'nav': alerted skeletons and slimes with grid pathfinding (NavigationAgent2D stand-in) and separation toggles.",
+  },
+  'combat.ai_steer': {
+    component: SteerLab,
+    doc: 'Seek / flee / arrive (slow radius) and separation on six slimes chasing a controllable Kai; desired and steering vectors drawn.',
+  },
+  'combat.ai_tokens': {
+    component: TokenCrowd,
+    doc: 'Five skeletons share an AttackTokens pool (max_tokens slider) with telegraph toggle; token-less ones orbit. Counts hits taken and simultaneous wind-ups.',
+  },
+  'combat.ai_phases': {
+    component: BossPhasesFig,
+    doc: "The golem's BossPhases: HP slider and buttons, one-way thresholds at 60% and 30%, phase_changed log, and one attack cycle of the current phase on the golem sprite.",
+  },
 };
