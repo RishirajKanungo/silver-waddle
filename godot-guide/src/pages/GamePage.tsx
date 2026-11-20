@@ -134,8 +134,8 @@ export function GamePage() {
                   {f.modules
                     .filter((m) => findModule(m))
                     .map((m) => (
-                      <a key={m} href={'#m-' + m} className="mod-chip" title={findModule(m)?.title}>
-                        {moduleNumber(m)}
+                      <a key={m} href={'#m-' + m} className="mod-link">
+                        <span className="mod-num">{moduleNumber(m)}</span> {findModule(m)?.title}
                       </a>
                     ))}
                 </td>
@@ -145,7 +145,6 @@ export function GamePage() {
         </table>
       </div>
       <Md text={REFERENCES} className="prose" />
-      <p className="muted small">{MODULES.length} modules are available.</p>
     </div>
   );
 }

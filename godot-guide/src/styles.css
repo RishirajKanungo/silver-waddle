@@ -646,3 +646,5 @@ main { min-width: 0; }
 .asset-card.dark .sheet-view, .asset-card.dark .anim-prev { background: #2b2d3a; }
 .asset-card.dark .anim-prev figcaption { color: #c9cbd6; }
 
+.feature-table .mod-link { display: block; font-size: 12.5px; line-height: 1.35; margin-bottom: 4px; min-width: 150px; }
+.feature-table .mod-num { font-family: var(--mono); color: var(--muted); margin-right: 2px; }
