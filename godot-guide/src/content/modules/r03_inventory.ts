@@ -609,7 +609,7 @@ Shardbound uses counts. Items have no per-copy state (shards in gear live in the
           kind: 'viz',
           viz: { type: 'rpg.inventory' },
           task: md`Add a few Potions and Crystals, use a Potion, then press **+60 Potions** twice and read the log: how many did not fit? Switch the model to **slots (8)** and repeat: where does the overflow go now, and what happens when you add the Iron Sword to a full bag? Try each sort order and filter.`,
-          caption: md`The log shows the signals in the order the Inventory emits them. Under the list is the data as it would sit in memory: a dictionary of counts, or an array of slots.`,
+          caption: md`The log shows the return values and signals in the order GameState emits them. Under the list is the data as it would sit in memory: a dictionary of counts, or an array of slots.`,
         },
         {
           kind: 'check',
@@ -1002,7 +1002,7 @@ With 1500 for the Rune Blade, the field alone would take about 1.8 hours of figh
         {
           kind: 'viz',
           viz: { type: 'rpg.shop' },
-          task: md`In the **field** at 1.5 fights per minute, how long until the Rune Blade? Switch to the **ruins**. Then raise potions used per fight to 0.5 and see how much a habit of drinking potions costs. Find a sell value for Ember Crystals that makes the Rune Blade affordable within 40 minutes in the ruins.`,
+          task: md`In the **field** at 1.5 fights per minute, how long until the Rune Blade? Switch to the **ruins**. Then raise potions used per fight to 0.5 and see how much a habit of drinking potions costs. Finally, with 0.2 potions per fight in the ruins, find the Rune Blade price a player can afford after about 30 minutes.`,
           caption: md`The line is cumulative gold after sinks; the dashed lines are shop prices. The table lists the minutes to afford each item from zero gold at the current settings.`,
         },
         {
@@ -1118,7 +1118,7 @@ func _close() -> void:
             solution: [
               md`Net gold per fight: $19 + 0.25 \times 15 - 0.2 \times 50 = 19 + 3.75 - 10 = 12.75$.`,
               md`Per minute: $12.75 \times 1.5 = 19.125$. Minutes: $1500 / 19.125 = 78.4$, so 79 minutes.`,
-              md`Potions eat almost half the income here; a player who guards and dodges well affords the blade in about 53 minutes. Skill turns into gold, which is a good property for an economy to have.`,
+              md`Potions eat almost half the income here; a player who needs none affords the blade in $1500 / (22.75 \times 1.5) \approx 44$ minutes. Skill turns into gold, which is a good property for an economy to have.`,
             ],
             answer: { kind: 'number', value: 79 },
           },

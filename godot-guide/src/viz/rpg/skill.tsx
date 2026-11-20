@@ -71,7 +71,7 @@ function freshWorld(caster: CharId) {
   const others = CHAR_IDS.filter((c) => c !== caster);
   return {
     party: [makeAlly(others[0], 46, 66), makeAlly(caster, 78, 98), makeAlly(others[1], 46, 132)],
-    enemies: [makeEnemy('slime', 204, 70), makeEnemy('slime', 228, 98), makeEnemy('slime', 204, 128), makeEnemy('skeleton', 276, 100)].map((u, i) => ({ ...u, name: i < 3 ? `Slime ${i + 1}` : 'Skeleton' })),
+    enemies: [makeEnemy('slime', 210, 76), makeEnemy('slime', 230, 98), makeEnemy('slime', 210, 120), makeEnemy('skeleton', 278, 100)].map((u, i) => ({ ...u, name: i < 3 ? `Slime ${i + 1}` : 'Skeleton' })),
   };
 }
 

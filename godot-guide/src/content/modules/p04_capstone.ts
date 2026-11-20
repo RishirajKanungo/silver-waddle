@@ -75,18 +75,44 @@ func test_slice_counts() -> void:
 
 const EVENTS = gd`
 extends Node
-## Events autoload: the global signal bus. These are the signals the slice's systems use to talk
-## across module boundaries. Add the ones your bus does not have yet.
+## Events autoload: the global signal bus, consolidated for the slice. Each group was added by the
+## module named in its comment; the last group is new here (p03's Steam code listens to two of them).
 
-signal area_entered(area_id: String)
-signal enemy_defeated(enemy_id: String)
-signal enemy_staggered(enemy_id: String, by_member: String)
+# g03 / g04: pickups, economy, party
+signal coin_collected(value: int)
+signal gold_changed(total: int)
+signal inventory_changed
+signal party_changed
+signal enemy_defeated(data: EnemyData, at: Vector2)
+
+# k01 / k04 / k05: combat
+signal hit_landed(hit: HitData, target: Node2D)
+signal tactical_opened
+signal tactical_closed
+signal battle_started
+signal battle_ended
+signal battle_won(xp: int, gold: int)
+signal battle_lost
+signal enemy_staggered(enemy: Node2D)
+
+# r04: dialogue, flags, quests, cutscenes
+signal dialogue_requested(path: String, start_id: String)
+signal dialogue_started
+signal dialogue_finished
+signal flag_changed(flag: String, value: int)
+signal quest_updated(quest_id: String)
+signal cutscene_started
+signal cutscene_ended
+
+# c04 / r06: rooms and saving
+signal room_changed(room_id: String)
+signal checkpoint_reached(checkpoint: String)
+signal autosaved
+
+# p03 / p04: achievements and the shop
 signal boss_defeated(boss_id: String)
-signal party_leader_changed(member_id: String)
 signal shard_equipped
 signal item_bought(item_id: String)
-signal quest_updated(quest_id: String, stage: int)
-signal save_requested
 `;
 
 const AREAS_TEST = gd`
@@ -452,8 +478,9 @@ Working alone, nothing happens in parallel, so the finish is the **total** of al
 Each milestone connects systems through **seams**, and the cleanest seams are signals on the \`Events\` bus.
 
 - Combat emits \`enemy_defeated\`; the quest system and achievements listen.
-- The party manager emits \`party_leader_changed\`; the HUD and the camera listen.
+- \`Transitions\` emits \`room_changed\`; the save system autosaves and the map marks the room visited.
 - The shop emits \`item_bought\`; the save system marks the game as changed.
+- Bosses emit \`boss_defeated\`; the Steam achievement code from p03 listens.
 
 A system that only emits and listens can be tested alone and added to the slice without editing the others. Integrating a milestone means wiring its signals and checking the acceptance criteria in the full game, not in the test scene.
 

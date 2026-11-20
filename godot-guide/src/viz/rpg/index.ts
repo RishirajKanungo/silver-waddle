@@ -6,6 +6,9 @@ import { StatusTimeline } from './status';
 import { AbilityComposer } from './skill';
 import { ShardLearning } from './shard';
 import { ProgressionSim } from './progression';
+import { InventoryLab } from './inventory';
+import { LootSim } from './loot';
+import { ShopEconomy } from './shop';
 
 const oneOf = (v: unknown, xs: string[], name: string) => (v === undefined || xs.includes(v as string) ? null : `${name} must be one of ${xs.join(', ')}`);
 
@@ -44,5 +47,20 @@ export const VIZ: Record<string, VizDef> = {
     component: ProgressionSim,
     validate: (s) => (s.base === undefined || typeof s.base === 'number' ? null : 'base must be a number'),
     doc: 'Progression simulator: XP curve round(a L^k), level after each fight across field/ruins/dungeon/boss vs target levels, stats per level per character. Params: base, exponent.',
+  },
+  'rpg.inventory': {
+    component: InventoryLab,
+    validate: (s) => oneOf(s.model, ['dict', 'slots'], 'model'),
+    doc: 'Inventory lab: add/use/drop items, sort and filter, signal log; dictionary of counts (GameState.add_item) vs 8 slots of stacks; prints the data structure. Param: model.',
+  },
+  'rpg.loot': {
+    component: LootSim,
+    validate: () => null,
+    doc: 'Playable loot room: fight slimes (J), pickups from the weighted slime table, a once-only chest (F) recorded in GameState.opened, leave/re-enter, weight sliders and a 1000-kill simulation.',
+  },
+  'rpg.shop': {
+    component: ShopEconomy,
+    validate: (s) => oneOf(s.area, ['field', 'ruins', 'dungeon'], 'area'),
+    doc: 'Shop economy: gold per fight by area, fights per minute, potion sink, material sales; cumulative gold over 120 minutes against shop prices and minutes to afford each item. Param: area.',
   },
 };
