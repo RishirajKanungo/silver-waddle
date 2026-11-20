@@ -996,7 +996,8 @@ export class BattleSim {
   }
   private integrate(u: UnitBase, dt: number) {
     u.x = Math.max(ARENA.x0 + u.radius, Math.min(ARENA.x1 - u.radius, u.x + u.vx * dt));
-    u.y = Math.max(ARENA.y0 + 4, Math.min(ARENA.y1, u.y + u.vy * dt));
+    // big bodies keep their head (and HP bar) inside the arena
+    u.y = Math.max(ARENA.y0 + Math.max(4, u.radius * 2 - 4), Math.min(ARENA.y1, u.y + u.vy * dt));
   }
   private facingVec(c: Character): [number, number] {
     if (c.facing === 'side') return [c.flip ? -1 : 1, 0];
@@ -1145,8 +1146,9 @@ export class BattleSim {
         e.state = 'hurt';
         e.stateT = 0;
         const [ux, uy] = this.unit(e.x - c.x, e.y - c.y);
-        e.vx = ux * (e.type === 'slime' ? 90 : 45);
-        e.vy = uy * (e.type === 'slime' ? 90 : 45);
+        const kb = e.type === 'slime' ? 90 : e.type === 'dummy' ? 0 : 45; // the dummy is planted in the ground
+        e.vx = ux * kb;
+        e.vy = uy * kb;
       }
     }
   }
@@ -1364,6 +1366,10 @@ export class BattleSim {
   }
 
   /** keep bodies from overlapping (a cheap stand-in for collision shapes) */
+  private mass(u: UnitBase) {
+    return u.radius * u.radius * ((u as Enemy).type === 'dummy' ? 1000 : 1);
+  }
+
   private separate() {
     const all: UnitBase[] = [...this.party.members.filter((m) => m.state !== 'ko' && m.state !== 'dodge'), ...this.enemies.filter((e) => e.state !== 'dead')];
     for (let i = 0; i < all.length; i++)
@@ -1372,7 +1378,7 @@ export class BattleSim {
         const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = a.radius + b.radius;
         if (d > 0.001 && d < min) {
           // heavier bodies (mass ~ radius squared) move less: the party cannot shove the golem around
-          const wa = a.radius * a.radius, wb = b.radius * b.radius;
+          const wa = this.mass(a), wb = this.mass(b);
           const overlap = min - d;
           const pa = (overlap * wb) / (wa + wb), pb = (overlap * wa) / (wa + wb);
           a.x -= (dx / d) * pa;
