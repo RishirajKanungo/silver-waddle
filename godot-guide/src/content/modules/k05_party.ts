@@ -65,6 +65,11 @@ func _apply_control() -> void:
     # 3. everyone else is driven by AI; nobody keeps a stale intent from before the switch
     for member in members:
         var is_lead := member == lead
+        # k02's enemies look for the "player" group: keep it on whoever is in control
+        if is_lead:
+            member.add_to_group("player")
+        else:
+            member.remove_from_group("player")
         var ai := member.get_node("AllyAIController")
         ai.process_mode = Node.PROCESS_MODE_DISABLED if is_lead else Node.PROCESS_MODE_INHERIT
         member.intent.clear()
@@ -162,6 +167,11 @@ func _apply_control() -> void:
     player_controller.character = lead
     for member in members:
         var is_lead := member == lead
+        # k02's enemies look for the "player" group: keep it on whoever is in control
+        if is_lead:
+            member.add_to_group("player")
+        else:
+            member.remove_from_group("player")
         var ai := member.get_node("AllyAIController")
         ai.process_mode = Node.PROCESS_MODE_DISABLED if is_lead else Node.PROCESS_MODE_INHERIT
         member.intent.clear()
@@ -287,7 +297,7 @@ func _steer_to(point: Vector2, stop_distance: float) -> void:
 
 
 func _threatened() -> bool:
-    # enemies add themselves to "telegraphing" in their windup state and leave it on exit
+    # enemies join "telegraphing" for the length of a wind-up (Character.begin_telegraph, k04-2)
     for node in get_tree().get_nodes_in_group("telegraphing"):
         var enemy := node as Node2D
         if enemy and enemy.global_position.distance_to(character.global_position) < guard_radius:
@@ -434,20 +444,6 @@ func _refresh() -> void:
         info.text = runner.abilities[_cursor].description
 `;
 
-const TELEGRAPH_GROUP = gd`
-# In the enemy's windup state (k02, extended in k04-2): announce the telegraph to the party AI
-func enter() -> void:
-    character.play_anim("windup")
-    character.add_to_group("telegraphing")
-    if character.stagger:
-        character.stagger.vulnerable = true
-
-
-func exit() -> void:
-    character.remove_from_group("telegraphing")
-    if character.stagger:
-        character.stagger.vulnerable = false
-`;
 
 // ------------------------------------------------------------------------------------ k05-3 listings
 const LIMIT_GAUGE = gd`
@@ -796,6 +792,7 @@ c05 already did the hard part. A \`Character\` never reads \`Input\`; it reads i
 - **\`intent.clear()\` on everyone.** If Kai was holding *right* when you switched, his intent still says \`move = (1, 0)\` and his AI only overwrites it on its next tick. Clearing removes stale input from both sides of the switch.
 - **\`gain_scale\`.** k03's tuning gives uncontrolled members half the ATB per hit. The gauge has the knob (k04-1); the manager turns it.
 - **The camera** is one \`Camera2D\` that the manager moves to the leader every physics tick. With **Position Smoothing** enabled in the Inspector (speed about 6), a switch becomes a short glide that shows the player where the new character is.
+- **The \`player\` group.** k02's \`AIController\` finds its target with \`get_first_node_in_group("player")\`, so the manager moves that group to whoever is in control. An enemy that stored its target in \`_ready\` keeps chasing the old leader; have the brain look the target up again whenever it enters CHASE, and enemies turn to the member you control. (Allies use their own \`AllyAIController\` because k02's controller is built to hunt the player.)
 - **\`call_deferred\`** in \`_ready\`: reparenting while the scene is still being set up can collide with Godot adding children; deferring waits until the frame's setup is done.`,
         },
         {
@@ -950,8 +947,7 @@ In a fight, allies switch to **flanking spots** around the focus target instead:
           answer: { kind: 'number', value: 2 * 20 * Math.sin(0.5) },
           explain: md`$c = 2r\sin(\Delta/2) = 40 \sin 0.5 \approx 19.2$ px.`,
         },
-        { kind: 'code', file: 'scripts/ally_ai_controller.gd', code: ALLY_AI, note: md`The ally knows nothing about enemy AI internals: it reads the \`telegraphing\` group, which enemies join in their windup state (fragment below). Kai and Bram guard; for Lyra, set \`guard_radius\` to 0 and give her an \`attack_range\` of 60, and she simply stays out of reach. The AI never touches \`AbilityRunner.enqueue\`, which is rule 5 enforced by structure.` },
-        { kind: 'code', file: 'scripts/states/windup.gd', code: TELEGRAPH_GROUP, fragment: true },
+        { kind: 'code', file: 'scripts/ally_ai_controller.gd', code: ALLY_AI, note: md`The ally knows nothing about enemy AI internals: it reads the \`telegraphing\` group, which an enemy joins for the length of a wind-up through \`begin_telegraph()\` and \`end_telegraph()\` (k04-2's Call Method track). Kai and Bram guard; for Lyra, set \`guard_radius\` to 0 and give her an \`attack_range\` of 60, and she simply stays out of reach. The AI never touches \`AbilityRunner.enqueue\`, which is rule 5 enforced by structure.` },
         {
           kind: 'text',
           md: md`### Commands from tactical mode
@@ -1027,7 +1023,7 @@ Confirming calls \`enqueue\`, which pays the cost and queues the command, and cl
       cards: [
         { id: 'k05-2-c1', kind: 'concept', front: md`Why do Shardbound's allies follow the leader's trail instead of chasing the leader?`, back: md`Chasing stacks allies on one point and pushes them into walls the leader walked around; a trail follows the leader's actual path at fixed spacing.` },
         { id: 'k05-2-c2', kind: 'compute', front: md`Chord between two points at radius 16 px, 1.2 rad apart?`, answer: { kind: 'number', value: 32 * Math.sin(0.6) }, back: md`$2 \cdot 16 \sin 0.6 \approx 18.1$ px.` },
-        { id: 'k05-2-c3', kind: 'cloze', text: md`Enemies join the "{{}}" group in their windup state so allies can guard without knowing the enemy's AI.`, answers: ['telegraphing'] },
+        { id: 'k05-2-c3', kind: 'cloze', text: md`Enemies join the "{{}}" group during a wind-up so allies can guard without knowing the enemy's AI.`, answers: ['telegraphing'] },
         { id: 'k05-2-c4', kind: 'concept', front: md`The three choices a tactical command needs, and what confirming does.`, back: md`Member, ability, target. Confirming calls AbilityRunner.enqueue, which pays ATB/MP and queues a BattleCommand; then tactical mode closes.` },
         { id: 'k05-2-c5', kind: 'concept', front: md`What does an ally do while its AbilityRunner is busy?`, back: md`Nothing: the AllyAIController clears move and guard and returns, so it does not steer away during a commanded ability.` },
       ],
@@ -1183,7 +1179,7 @@ Good synergies cross characters, so the player has a reason to switch and to com
         {
           kind: 'explain',
           prompt: md`Describe one synergy in Shardbound's party in terms of the systems that create it (which signal, gauge or state each step touches), from the first action to the payoff.`,
-          model: md`Bram guards the golem's slam: the golem's windup state put it in the \`telegraphing\` group, so Bram's AllyAIController set \`wants_guard\` and he entered Guard. The hit arrives through his Hurtbox; \`Character._on_hurt\` reduces it by \`guard_factor\` and adds \`atb_per_block\` (25) to his AtbGauge, which fills a segment and emits \`segment_filled\`. In tactical mode the player commands Shield Bash; \`enqueue\` pays the segment, and the AbilityRunner later emits a HitData with \`pressures\` on the golem's Hurtbox. The golem's StaggerComponent enters PRESSURED, so for 4 s Kai's basic hits add double stagger. When the meter fills, it emits \`staggered\`; the golem enters its Staggered state, Events.enemy_staggered adds limit to the party, and Kai's saved Braver lands at ×1.6.`,
+          model: md`Bram guards the golem's slam: the Call Method track in the golem's slam animation called \`begin_telegraph()\`, which put it in the \`telegraphing\` group, so Bram's AllyAIController set \`wants_guard\` and he entered Guard. The hit arrives through his Hurtbox; \`Character._on_hurt\` reduces it by \`guard_factor\` and adds \`atb_per_block\` (25) to his AtbGauge, which fills a segment and emits \`segment_filled\`. In tactical mode the player commands Shield Bash; \`enqueue\` pays the segment, and the AbilityRunner later emits a HitData with \`pressures\` on the golem's Hurtbox. The golem's StaggerComponent enters PRESSURED, so for 4 s Kai's basic hits add double stagger. When the meter fills, it emits \`staggered\`; the golem enters its Staggered state, Events.enemy_staggered adds limit to the party, and Kai's saved Braver lands at ×1.6.`,
         },
       ],
       cards: [
@@ -1245,7 +1241,7 @@ Explain the delay and fix it.`,
       minutes: 12,
       statement: md`Playtesters say the allies "stand in the golem's slam". The slam hits a circle of radius 30 px around a point 20 px in front of the golem, after a 1 s windup. Design changes to the AllyAIController (not the golem) so allies avoid it, and explain how each change reads the situation without peeking into the golem's script.`,
       solution: [
-        md`Expose the danger area as data on the telegraph: in its windup state the golem joins \`telegraphing\` and sets a \`telegraph_area: Rect2\` or a centre and radius that any reader can query. The ally reads that, not the golem's internals.`,
+        md`Expose the danger area as data on the telegraph: in \`begin_telegraph()\` the golem joins \`telegraphing\` and sets a \`telegraph_area: Rect2\` or a centre and radius that any reader can query. The ally reads that, not the golem's internals.`,
         md`In \`_threatened\`, for an area telegraph, compute the distance from the ally to the area's centre. If it is inside the radius plus a margin, steer straight away from the centre (Lyra, Kai) or guard if leaving in time is impossible (Bram, who also gains ATB from it).`,
         md`Use the remaining windup time: leaving needs (radius − distance) / speed seconds; at 80 px/s and 15 px to cover, 0.19 s. If more time remains, move; otherwise guard.`,
         md`Return to the flanking spot after the slam (the group membership ends with the windup).`,

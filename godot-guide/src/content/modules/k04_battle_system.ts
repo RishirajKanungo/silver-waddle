@@ -460,7 +460,7 @@ enum State { NORMAL, PRESSURED, STAGGERED }
 var state := State.NORMAL
 var value := 0.0
 var damage_multiplier := 1.0
-## Set by the enemy's windup state: hits that land during a telegraph pressure it.
+## Set by Character.begin_telegraph(): hits that land during a wind-up pressure it.
 var vulnerable := false
 var _timer := 0.0
 var _since_hit := 0.0
@@ -585,6 +585,8 @@ func _ready() -> void:
     health.died.connect(_on_died)
     if stagger:
         stagger.staggered.connect(_on_staggered)
+    # any state change closes a telegraph, so an interrupted wind-up cannot leave it open
+    state_machine.state_changed.connect(func(_from: StringName, _to: StringName) -> void: end_telegraph())
     state_machine.start(self)
 
 
@@ -657,6 +659,21 @@ func _on_hurt(hit: HitData) -> void:
     state_machine.transition_to("Hurt")
 
 
+## Called by a Call Method track at the start of an attack's wind-up (k02's attack animations):
+## opens the punish window (k04) and tells the party AI to guard (k05).
+func begin_telegraph() -> void:
+    add_to_group("telegraphing")
+    if stagger:
+        stagger.vulnerable = true
+
+
+## Called when the wind-up ends, and on every state change.
+func end_telegraph() -> void:
+    remove_from_group("telegraphing")
+    if stagger:
+        stagger.vulnerable = false
+
+
 func _on_staggered() -> void:
     if health.health > 0:
         state_machine.transition_to("Staggered")
@@ -666,18 +683,6 @@ func _on_died() -> void:
     state_machine.transition_to("Dead")
 `;
 
-const WINDUP_FRAGMENT = gd`
-# In the enemy's windup (telegraph) state from k02: open and close the punish window
-func enter() -> void:
-    character.play_anim("windup")
-    if character.stagger:
-        character.stagger.vulnerable = true
-
-
-func exit() -> void:
-    if character.stagger:
-        character.stagger.vulnerable = false
-`;
 
 // ------------------------------------------------------------------------------------ k04-3 listings
 const EVENTS_BATTLE = gd`
@@ -1051,7 +1056,7 @@ The second half of the lesson builds the payoff for those abilities: the stagger
           title: 'Resources as data (from g04)',
           md: md`A script that \`extends Resource\` with \`class_name\` becomes a new resource type. Create instances with **FileSystem → right-click → New → Resource…**, pick the type, and save as \`resources/abilities/braver.tres\`. The Inspector edits its exported fields; \`@export_group\` sorts them into foldable sections. A node holds them in an exported \`Array[AbilityData]\`, and a designer can add an ability without opening a script.`,
         },
-        { kind: 'code', file: 'scripts/resources/ability_data.gd', code: ABILITY_DATA },
+        { kind: 'code', file: 'scripts/resources/ability_data.gd', code: ABILITY_DATA, note: md`This completes the \`AbilityData\` sketched in g04 (same \`Target\` enum, \`atb_cost\`, \`mp_cost\`, \`element\`) with the fields the battle system needs now. It is deliberately simplified: r02 later moves \`power\`, \`element\`, \`heal\` and the stagger fields into small composable \`AbilityEffect\` resources, and r01's \`DamageCalc.calculate(...)\` replaces the runner's \`power × attack\` line, receiving the target's stagger multiplier as its \`stagger_multiplier\` argument. The runner, the costs and the stagger component stay as they are.` },
         { kind: 'code', file: 'scripts/battle/battle_command.gd', code: BATTLE_COMMAND },
         { kind: 'code', file: 'scripts/components/ability_runner.gd', code: ABILITY_RUNNER },
         {
@@ -1123,14 +1128,19 @@ The design from k03, as rules an enemy component can enforce:
           task: md`Use the sliders to make stagger hard (\`stagger_max\` 180, \`pressured_gain\` 1) and play for 30 s. Then make it easy (\`stagger_max\` 60, \`pressured_gain\` 3). Which version makes you watch the skeleton's windups, and why?`,
           caption: md`The skeleton is pressured by any hit during its windup (\`vulnerable\`), so punishing telegraphs is the main way Kai, who has no ice spell, staggers it.`,
         },
-        { kind: 'code', file: 'scripts/states/windup.gd', code: WINDUP_FRAGMENT, fragment: true, note: md`k02's enemy windup state is where the telegraph plays. Setting \`vulnerable\` in \`enter()\` and clearing it in \`exit()\` opens the punish window for exactly as long as the telegraph lasts, however the state is left.` },
+        {
+          kind: 'callout',
+          tone: 'godot',
+          title: 'Opening the punish window from the attack animation',
+          md: md`k02 keys each enemy attack in an \`AnimationPlayer\` animation (the skeleton's \`skeleton_swing\`: \`windup\` from 0 to 0.4 s, then \`attack\`). Add a **Call Method Track** to that animation targeting the enemy's root node, with a key calling \`begin_telegraph\` at 0.0 s and \`end_telegraph\` at 0.4 s. The window is then exactly as long as the wind-up, and because \`Character._ready\` also calls \`end_telegraph()\` on every state change, a wind-up interrupted by a hit or a stagger closes it too.`,
+        },
         {
           kind: 'steps',
           title: 'Abilities and stagger on a skeleton',
           steps: [
             md`Create \`resources/abilities/\` and in it \`braver.tres\` (power 4, atb_cost 1, stagger 14, animation \`attack\`, cast_time 0.3) and \`focus_strike.tres\` (power 1.5, stagger 30, multiplier_bonus 0.25). Add a \`potion.tres\` with target \`SELF\`, power 0 and heal 70.`,
             md`Add an \`AbilityRunner\` to Kai, set its \`atb\` export to his \`AtbGauge\` and drag the three \`.tres\` files into \`abilities\`. Add an \`Ability\` state (\`scripts/states/ability.gd\`) and a \`Guard\` state under his \`StateMachine\`.`,
-            md`Open the skeleton scene from k02. Add a \`StaggerComponent\` child, add \`ICE\` to \`weaknesses\`, add a \`Staggered\` state under its \`StateMachine\`, and update its windup state as in the fragment above.`,
+            md`Open the skeleton scene from k02. Add a \`StaggerComponent\` child, add \`ICE\` to \`weaknesses\`, add a \`Staggered\` state under its \`StateMachine\`, and add the Call Method track to \`skeleton_swing\` as described above.`,
             md`Replace \`scripts/character.gd\` with the listing above and add the new fields to \`hit_data.gd\`.`,
             md`Until k05 builds the menu, test with a debug key: in a test script, on a key press call \`$Kai/AbilityRunner.enqueue(braver, $Skeleton)\` with \`braver\` preloaded from the \`.tres\`.`,
           ],

@@ -321,7 +321,7 @@ main { min-width: 0; }
 .ctl-slider { display: grid; grid-template-columns: minmax(70px, auto) minmax(80px, 1fr) 46px; gap: 8px; align-items: center; font-size: 13.5px; }
 .ctl-slider input { width: 100%; accent-color: var(--accent); }
 .ctl-val { font-family: var(--mono); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
-.ctl-label { color: var(--muted); font-size: 13px; }
+.ctl-label { color: var(--muted); font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
 .ctl-seg { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0; }
 .ctl-seg .ctl-label { margin-right: 8px; }
 .ctl-seg button { border-radius: 0; margin-left: -1px; padding: 5px 10px; font-size: 13px; }

@@ -13,7 +13,10 @@ const QUESTS := [
     preload("res://resources/quests/silent_well.tres"),
 ]
 
-var gold := 0
+var gold := 0:                  # the HUD from g04 listens to gold_changed
+    set(value):
+        gold = value
+        Events.gold_changed.emit(gold)
 var inventory: Dictionary = {}  # item id -> count (r03)
 var flags: Dictionary = {}      # story flags (r04)
 var opened: Dictionary = {}     # persistent ids of opened chests, picked herbs... -> true
@@ -79,8 +82,13 @@ func mark_opened(id: String) -> void:
     opened[id] = true
 
 
-func add_item(id: String, count: int = 1) -> void:
+## Short version for this lesson. If you built r03's add_item (stack limits, the
+## item_added signal, returning what did not fit), keep that one: saving only needs
+## the inventory Dictionary it writes to.
+func add_item(id: String, count: int = 1) -> int:
     inventory[id] = int(inventory.get(id, 0)) + count
+    Events.inventory_changed.emit()
+    return 0
 
 
 # ---- story flags (r04)

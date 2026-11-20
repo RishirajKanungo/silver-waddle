@@ -84,7 +84,7 @@ function drawDummy(ctx: CanvasRenderingContext2D, e: Enemy) {
   rect(ctx, e.x - 3 + wob, e.y - 27, 7, 6, e.flash > 0.5 ? '#ffffff' : '#c9a66b');
 }
 
-const ENEMY_SIZE: Record<string, [number, number]> = { slime: [12, 9], skeleton: [10, 20], golem: [24, 28] };
+const ENEMY_SIZE: Record<string, [number, number]> = { slime: [12, 10], skeleton: [10, 22], golem: [30, 40] };
 const ENEMY_COLOR: Record<string, string> = { slime: '#58b86a', skeleton: '#d8d4c4', golem: '#8c8478' };
 
 function drawWorld(ctx: CanvasRenderingContext2D, sim: BattleSim, time: number) {
@@ -137,13 +137,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, sim: BattleSim, time: number) 
         ctx.arc(c.x, c.y - 10, 11, 0, Math.PI * 2);
         ctx.stroke();
       }
-      if (c === leader && c.state !== 'ko') {
-        // the controlled character
-        const by = c.y - 30 + Math.round(Math.sin(time * 6));
-        rect(ctx, c.x - 2, by, 5, 1, PAL.weak);
-        rect(ctx, c.x - 1, by + 1, 3, 1, PAL.weak);
-        rect(ctx, c.x, by + 2, 1, 1, PAL.weak);
-      }
       const cmd = c.running?.cmd ?? c.queue[0];
       if (cmd && c.state !== 'ko') stext(ctx, cmd.ability.name, c.x, c.y - 34, c.running?.phase === 'windup' ? PAL.white : PAL.atb, 'center');
     } else {
@@ -182,6 +175,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, sim: BattleSim, time: number) 
         }
       }
     }
+  }
+  // the controlled character's marker, drawn over everything so it shows even behind the golem
+  if (leader.state !== 'ko') {
+    const by = leader.y - 30 + Math.round(Math.sin(time * 6));
+    rect(ctx, leader.x - 2, by, 5, 1, PAL.weak);
+    rect(ctx, leader.x - 1, by + 1, 3, 1, PAL.weak);
+    rect(ctx, leader.x, by + 2, 1, 1, PAL.weak);
   }
   // projectiles
   for (const p of sim.projectiles) {

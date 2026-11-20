@@ -1371,11 +1371,14 @@ export class BattleSim {
         const a = all[i], b = all[j];
         const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = a.radius + b.radius;
         if (d > 0.001 && d < min) {
-          const push = (min - d) / 2;
-          a.x -= (dx / d) * push;
-          a.y -= (dy / d) * push;
-          b.x += (dx / d) * push;
-          b.y += (dy / d) * push;
+          // heavier bodies (mass ~ radius squared) move less: the party cannot shove the golem around
+          const wa = a.radius * a.radius, wb = b.radius * b.radius;
+          const overlap = min - d;
+          const pa = (overlap * wb) / (wa + wb), pb = (overlap * wa) / (wa + wb);
+          a.x -= (dx / d) * pa;
+          a.y -= (dy / d) * pa;
+          b.x += (dx / d) * pb;
+          b.y += (dy / d) * pb;
         }
       }
   }

@@ -724,7 +724,9 @@ Both run from a panel in the editor and from the command line. This lesson uses 
             { problem: md`\`Identifier "DamageFormula" not declared\`.`, fix: md`The \`class_name\` line is missing, or the project has not rescanned scripts; save the script and wait a moment, or restart the editor.` },
           ],
         },
-        { kind: 'code', file: 'scripts/damage_formula.gd', code: DAMAGE, note: md`The formula is a \`static func\` on a \`RefCounted\` class: no node, no scene tree, no randomness inside. Combat code calls it; tests call it the same way. The crit roll happens outside and is passed in as \`crit\`, which is what makes the function testable.` },
+        { kind: 'code', file: 'scripts/damage_formula.gd', code: DAMAGE, note: md`The formula is a \`static func\` on a \`RefCounted\` class: no node, no scene tree, no randomness inside. Combat code calls it; tests call it the same way. The crit roll happens outside and is passed in as \`crit\`, which is what makes the function testable.
+
+This is a deliberately small copy of the pipeline so the tests read on their own. In Shardbound itself, test r01's \`DamageCalc.calculate\` the same way: build two \`StatBlock\`s in the test, pass \`crit_roll\` explicitly, and assert on \`Result.amount\` (r01-3's eight fixed cases, such as attack 52, power 2, defence 20 giving 87, are ready-made tests). Keep one damage implementation in the game; the copy here is for learning GUT.` },
         { kind: 'code', file: 'test/unit/test_damage_formula.gd', code: TEST_DAMAGE },
         {
           kind: 'derive',
